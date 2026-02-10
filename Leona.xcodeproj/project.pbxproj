@@ -1,0 +1,463 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0F55FFD9013739B7E986B64F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCF139EA651314B315EB43C3; };
+		B09DD8B27188FFC271605154 /* LeonaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF2E7DC487F6841504A93EB7; };
+		8F219014627A62D300B60351 /* Color+Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EAC0FBF1C0602366840FABB; };
+		225F29EE98C336737A103FB5 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8117C0CAAD2562224932A2B9; };
+		15F637D4DD317F24968DF575 /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA99EAC7787FD11EA4CF4327; };
+		05489F7DCF2F89C2DFEA1B42 /* Activity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E9C66241234240D6A88CC6; };
+		4B7851656836288C3EC12769 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6CA1E94B20DD5AF1F0204EE; };
+		D0B5B78253D327F5CD1F40D2 /* Baby.swift in Sources */ = {isa = PBXBuildFile; fileRef = D35FBF35CF71E3259A358E14; };
+		8BE66C53DF48A67AEA1D21A8 /* GrowthRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 425015BAC782BB3B1A9AAE3C; };
+		CB3A366BA0AE7BE7D4CA996B /* HealthRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DF2EB0EC6FD7DFAFB0725C2; };
+		C3CAF2F2C8615FF99F8FCB5C /* MealForecast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58454DFAD4C415ED8A94D08B; };
+		AAD0F2FD7B37A0282B736D65 /* CloudKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4DC2139FC1F4B711F0B3D1B; };
+		19CEC7356A1527EF0E224339 /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E273C4B8F2D7F0F5B4E81B3C; };
+		26EA2C281F2E7CD14A681325 /* MealForecastEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF37BA5375F03B44F103B7CD; };
+		8D74ECEA635D7AE02D832DD2 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 851723E545E3DBB9B8A525CE; };
+		18DD3FF7AA00ACE852A647BD /* StatisticsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605C37D008EFB4F12A677E86; };
+		215A8CE509A69E9BA891FADF /* WHODataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD923DF98722C690F5B92C8; };
+		8244BB42CC14CBE61D9F59E7 /* ConfettiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8162F8D0294AADDF038F6BE3; };
+		C0A2FC135F85AD1266728F51 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2988B260F028345324C4DF05; };
+		0FA87F89C24F4BE407ACA15F /* ActivityCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7272E3F3ADD04DC57B498DEF; };
+		50B4758B992A7BF2B826A3F9 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75D679367790E62B93B4A8D5; };
+		8F19C6DA588B79AD6D9DA69A /* NoteEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2F950DBE6AA2407CB766DA2; };
+		55A80AA833D57631D8CFC205 /* DiaperEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8C5B750DCA6D2E564D775D1; };
+		301202417A6A2E67456AB79C /* BreastfeedingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FC76DFDD3CB9F60A655E8A8; };
+		2709CDAF886E2A5EA43D76E0 /* FormulaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E5D1A8497C00B039D1069D; };
+		13CD7CB101F6101834597E98 /* MealForecastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66D4995BC282C6475539E135; };
+		4118446983C3D614B29AF784 /* MomsMilkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF8BDDD17E4E813510C7F612; };
+		71C42D1CA78AAA4CA9BA05D8 /* SolidFoodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEA7678E1A3C6656941AFB27; };
+		80B6B2D5CEE696E4ED79034A /* GrowthEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44214175D5B5493CB53C1A1; };
+		55A30C6608B43C1CECA9390F /* GrowthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26087644EDAD4FE64B2B16BF; };
+		9F69FB3987A3F5DEDC4F53C3 /* HealthDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA09458566FB318D2E12C430; };
+		7DA00C2B591DC05250531F27 /* HealthEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73071F4982360124EA9FC04D; };
+		047A78D94B9A016061343164 /* HealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D01BFC91DB8427D4C9DE5990; };
+		B100A63FFF74B15904C44EE4 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78C43B3497B8F171349BE295; };
+		9C36BB0F7C3BCD12955D8B16 /* AddBabyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 545C6251B1D96334255E3C3B; };
+		863A04C2832DD31B34507DA9 /* BabyProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC8072B065A4F95DC3E74600; };
+		51EC96A6A0F66B8EE6123BD7 /* BabySelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F55B19D4840EC8ECF8FDEE13; };
+		66D7348DC59818F5529E5BE7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38C3AB0DD2E086037B5DB392; };
+		43D324CC39F70962BA0BF3FC /* SleepTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E930D7D3E9C2D710015F4C9; };
+		D0E7EB6E7C11CABDAC67D41C /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9233E3C95EB62643F4DEFFC6; };
+		3DFFA870D50FA9AC849D1411 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6A5CBDE98FB02696B45B1310; };
+		7447A76D60FF5D4261207EFC /* weight_percentiles.json in Resources */ = {isa = PBXBuildFile; fileRef = 577D9D6463345CF41E1414EC; };
+		4D72D7DF7D7E52913BFE5868 /* height_percentiles.json in Resources */ = {isa = PBXBuildFile; fileRef = FF38E0592DB3D46E4F104A82; };
+		3B1E5ED21B5C1BB78861E547 /* head_circumference.json in Resources */ = {isa = PBXBuildFile; fileRef = 7FA036C682CDF8CD614A9630; };
+		E75D4C7B4D75E7B617B59CA2 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = AAAAAAAAAAAAAAAAAAAAAAAC; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		FFFFFFFFFFFFFFFFFFFFFFFF /* Leona.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Leona.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DCF139EA651314B315EB43C3 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/ContentView.swift"; sourceTree = SOURCE_ROOT; };
+		AF2E7DC487F6841504A93EB7 /* LeonaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/LeonaApp.swift"; sourceTree = SOURCE_ROOT; };
+		5EAC0FBF1C0602366840FABB /* Color+Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Extensions/Color+Theme.swift"; sourceTree = SOURCE_ROOT; };
+		8117C0CAAD2562224932A2B9 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Extensions/Date+Extensions.swift"; sourceTree = SOURCE_ROOT; };
+		DA99EAC7787FD11EA4CF4327 /* View+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Extensions/View+Extensions.swift"; sourceTree = SOURCE_ROOT; };
+		77E9C66241234240D6A88CC6 /* Activity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Models/Activity.swift"; sourceTree = SOURCE_ROOT; };
+		D6CA1E94B20DD5AF1F0204EE /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Models/AppSettings.swift"; sourceTree = SOURCE_ROOT; };
+		D35FBF35CF71E3259A358E14 /* Baby.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Models/Baby.swift"; sourceTree = SOURCE_ROOT; };
+		425015BAC782BB3B1A9AAE3C /* GrowthRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Models/GrowthRecord.swift"; sourceTree = SOURCE_ROOT; };
+		5DF2EB0EC6FD7DFAFB0725C2 /* HealthRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Models/HealthRecord.swift"; sourceTree = SOURCE_ROOT; };
+		58454DFAD4C415ED8A94D08B /* MealForecast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Models/MealForecast.swift"; sourceTree = SOURCE_ROOT; };
+		E4DC2139FC1F4B711F0B3D1B /* CloudKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Services/CloudKitManager.swift"; sourceTree = SOURCE_ROOT; };
+		E273C4B8F2D7F0F5B4E81B3C /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Services/ExportService.swift"; sourceTree = SOURCE_ROOT; };
+		FF37BA5375F03B44F103B7CD /* MealForecastEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Services/MealForecastEngine.swift"; sourceTree = SOURCE_ROOT; };
+		851723E545E3DBB9B8A525CE /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Services/NotificationManager.swift"; sourceTree = SOURCE_ROOT; };
+		605C37D008EFB4F12A677E86 /* StatisticsEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Services/StatisticsEngine.swift"; sourceTree = SOURCE_ROOT; };
+		9DD923DF98722C690F5B92C8 /* WHODataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Services/WHODataService.swift"; sourceTree = SOURCE_ROOT; };
+		8162F8D0294AADDF038F6BE3 /* ConfettiView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Components/ConfettiView.swift"; sourceTree = SOURCE_ROOT; };
+		2988B260F028345324C4DF05 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Components/EmptyStateView.swift"; sourceTree = SOURCE_ROOT; };
+		7272E3F3ADD04DC57B498DEF /* ActivityCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Dashboard/ActivityCardView.swift"; sourceTree = SOURCE_ROOT; };
+		75D679367790E62B93B4A8D5 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Dashboard/DashboardView.swift"; sourceTree = SOURCE_ROOT; };
+		C2F950DBE6AA2407CB766DA2 /* NoteEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Dashboard/NoteEntryView.swift"; sourceTree = SOURCE_ROOT; };
+		E8C5B750DCA6D2E564D775D1 /* DiaperEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Diaper/DiaperEntryView.swift"; sourceTree = SOURCE_ROOT; };
+		5FC76DFDD3CB9F60A655E8A8 /* BreastfeedingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Feeding/BreastfeedingView.swift"; sourceTree = SOURCE_ROOT; };
+		A7E5D1A8497C00B039D1069D /* FormulaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Feeding/FormulaView.swift"; sourceTree = SOURCE_ROOT; };
+		66D4995BC282C6475539E135 /* MealForecastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Feeding/MealForecastView.swift"; sourceTree = SOURCE_ROOT; };
+		FF8BDDD17E4E813510C7F612 /* MomsMilkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Feeding/MomsMilkView.swift"; sourceTree = SOURCE_ROOT; };
+		AEA7678E1A3C6656941AFB27 /* SolidFoodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Feeding/SolidFoodView.swift"; sourceTree = SOURCE_ROOT; };
+		C44214175D5B5493CB53C1A1 /* GrowthEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Growth/GrowthEntryView.swift"; sourceTree = SOURCE_ROOT; };
+		26087644EDAD4FE64B2B16BF /* GrowthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Growth/GrowthView.swift"; sourceTree = SOURCE_ROOT; };
+		BA09458566FB318D2E12C430 /* HealthDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Health/HealthDetailView.swift"; sourceTree = SOURCE_ROOT; };
+		73071F4982360124EA9FC04D /* HealthEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Health/HealthEntryView.swift"; sourceTree = SOURCE_ROOT; };
+		D01BFC91DB8427D4C9DE5990 /* HealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Health/HealthView.swift"; sourceTree = SOURCE_ROOT; };
+		78C43B3497B8F171349BE295 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Onboarding/OnboardingView.swift"; sourceTree = SOURCE_ROOT; };
+		545C6251B1D96334255E3C3B /* AddBabyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Profile/AddBabyView.swift"; sourceTree = SOURCE_ROOT; };
+		BC8072B065A4F95DC3E74600 /* BabyProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Profile/BabyProfileView.swift"; sourceTree = SOURCE_ROOT; };
+		F55B19D4840EC8ECF8FDEE13 /* BabySelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Profile/BabySelectorView.swift"; sourceTree = SOURCE_ROOT; };
+		38C3AB0DD2E086037B5DB392 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Settings/SettingsView.swift"; sourceTree = SOURCE_ROOT; };
+		0E930D7D3E9C2D710015F4C9 /* SleepTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Sleep/SleepTrackingView.swift"; sourceTree = SOURCE_ROOT; };
+		9233E3C95EB62643F4DEFFC6 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Views/Stats/StatsView.swift"; sourceTree = SOURCE_ROOT; };
+		6A5CBDE98FB02696B45B1310 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Leona/Resources/Assets.xcassets"; sourceTree = SOURCE_ROOT; };
+		577D9D6463345CF41E1414EC /* weight_percentiles.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "Leona/Resources/WHO/weight_percentiles.json"; sourceTree = SOURCE_ROOT; };
+		FF38E0592DB3D46E4F104A82 /* height_percentiles.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "Leona/Resources/WHO/height_percentiles.json"; sourceTree = SOURCE_ROOT; };
+		7FA036C682CDF8CD614A9630 /* head_circumference.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "Leona/Resources/WHO/head_circumference.json"; sourceTree = SOURCE_ROOT; };
+		8D19BBDC1489571B7513671D /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = "Leona/Localization/en.lproj/Localizable.strings"; sourceTree = SOURCE_ROOT; };
+		AA7427A6C6B4AE3C842AC5D3 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = "Leona/Localization/fr.lproj/Localizable.strings"; sourceTree = SOURCE_ROOT; };
+		A9B4E238E695688431B2283A /* fi */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fi; path = "Leona/Localization/fi.lproj/Localizable.strings"; sourceTree = SOURCE_ROOT; };
+		A30C70A8BBDC9EC678F6B3E8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Leona/Info.plist"; sourceTree = SOURCE_ROOT; };
+		3CCAFA9F181D09328A61224B /* Leona.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Leona/Leona.entitlements"; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		444444444444444444444444 = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		BBBBBBBBBBBBBBBBBBBBBBBB = {
+			isa = PBXGroup;
+			children = (
+				CCCCCCCCCCCCCCCCCCCCCCCC /* Sources */,
+				DDDDDDDDDDDDDDDDDDDDDDDD /* Resources */,
+				EEEEEEEEEEEEEEEEEEEEEEEE /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		EEEEEEEEEEEEEEEEEEEEEEEE = {
+			isa = PBXGroup;
+			children = (
+				FFFFFFFFFFFFFFFFFFFFFFFF /* Leona.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CCCCCCCCCCCCCCCCCCCCCCCC = {
+			isa = PBXGroup;
+			children = (
+				DCF139EA651314B315EB43C3 /* ContentView.swift */,
+				AF2E7DC487F6841504A93EB7 /* LeonaApp.swift */,
+				5EAC0FBF1C0602366840FABB /* Color+Theme.swift */,
+				8117C0CAAD2562224932A2B9 /* Date+Extensions.swift */,
+				DA99EAC7787FD11EA4CF4327 /* View+Extensions.swift */,
+				77E9C66241234240D6A88CC6 /* Activity.swift */,
+				D6CA1E94B20DD5AF1F0204EE /* AppSettings.swift */,
+				D35FBF35CF71E3259A358E14 /* Baby.swift */,
+				425015BAC782BB3B1A9AAE3C /* GrowthRecord.swift */,
+				5DF2EB0EC6FD7DFAFB0725C2 /* HealthRecord.swift */,
+				58454DFAD4C415ED8A94D08B /* MealForecast.swift */,
+				E4DC2139FC1F4B711F0B3D1B /* CloudKitManager.swift */,
+				E273C4B8F2D7F0F5B4E81B3C /* ExportService.swift */,
+				FF37BA5375F03B44F103B7CD /* MealForecastEngine.swift */,
+				851723E545E3DBB9B8A525CE /* NotificationManager.swift */,
+				605C37D008EFB4F12A677E86 /* StatisticsEngine.swift */,
+				9DD923DF98722C690F5B92C8 /* WHODataService.swift */,
+				8162F8D0294AADDF038F6BE3 /* ConfettiView.swift */,
+				2988B260F028345324C4DF05 /* EmptyStateView.swift */,
+				7272E3F3ADD04DC57B498DEF /* ActivityCardView.swift */,
+				75D679367790E62B93B4A8D5 /* DashboardView.swift */,
+				C2F950DBE6AA2407CB766DA2 /* NoteEntryView.swift */,
+				E8C5B750DCA6D2E564D775D1 /* DiaperEntryView.swift */,
+				5FC76DFDD3CB9F60A655E8A8 /* BreastfeedingView.swift */,
+				A7E5D1A8497C00B039D1069D /* FormulaView.swift */,
+				66D4995BC282C6475539E135 /* MealForecastView.swift */,
+				FF8BDDD17E4E813510C7F612 /* MomsMilkView.swift */,
+				AEA7678E1A3C6656941AFB27 /* SolidFoodView.swift */,
+				C44214175D5B5493CB53C1A1 /* GrowthEntryView.swift */,
+				26087644EDAD4FE64B2B16BF /* GrowthView.swift */,
+				BA09458566FB318D2E12C430 /* HealthDetailView.swift */,
+				73071F4982360124EA9FC04D /* HealthEntryView.swift */,
+				D01BFC91DB8427D4C9DE5990 /* HealthView.swift */,
+				78C43B3497B8F171349BE295 /* OnboardingView.swift */,
+				545C6251B1D96334255E3C3B /* AddBabyView.swift */,
+				BC8072B065A4F95DC3E74600 /* BabyProfileView.swift */,
+				F55B19D4840EC8ECF8FDEE13 /* BabySelectorView.swift */,
+				38C3AB0DD2E086037B5DB392 /* SettingsView.swift */,
+				0E930D7D3E9C2D710015F4C9 /* SleepTrackingView.swift */,
+				9233E3C95EB62643F4DEFFC6 /* StatsView.swift */,
+				A30C70A8BBDC9EC678F6B3E8 /* Info.plist */,
+				3CCAFA9F181D09328A61224B /* Leona.entitlements */,
+			);
+			name = Sources;
+			sourceTree = "<group>";
+		};
+		DDDDDDDDDDDDDDDDDDDDDDDD = {
+			isa = PBXGroup;
+			children = (
+				6A5CBDE98FB02696B45B1310 /* Assets.xcassets */,
+				577D9D6463345CF41E1414EC /* weight_percentiles.json */,
+				FF38E0592DB3D46E4F104A82 /* height_percentiles.json */,
+				7FA036C682CDF8CD614A9630 /* head_circumference.json */,
+				AAAAAAAAAAAAAAAAAAAAAAAC /* Localizable.strings */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1111111111111111111111111 = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 666666666666666666666666;
+			buildPhases = (
+				222222222222222222222222 /* Sources */,
+				444444444444444444444444 /* Frameworks */,
+				333333333333333333333333 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Leona;
+			productName = Leona;
+			productReference = FFFFFFFFFFFFFFFFFFFFFFFF /* Leona.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AAAAAAAAAAAAAAAAAAAAAAAA = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+			};
+			buildConfigurationList = 555555555555555555555555;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				fr,
+				fi,
+				Base,
+			);
+			mainGroup = BBBBBBBBBBBBBBBBBBBBBBBB;
+			productRefGroup = EEEEEEEEEEEEEEEEEEEEEEEE /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1111111111111111111111111 /* Leona */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		333333333333333333333333 = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3DFFA870D50FA9AC849D1411 /* Assets.xcassets in Resources */,
+				7447A76D60FF5D4261207EFC /* weight_percentiles.json in Resources */,
+				4D72D7DF7D7E52913BFE5868 /* height_percentiles.json in Resources */,
+				3B1E5ED21B5C1BB78861E547 /* head_circumference.json in Resources */,
+				E75D4C7B4D75E7B617B59CA2 /* Localizable.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		222222222222222222222222 = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0F55FFD9013739B7E986B64F /* ContentView.swift in Sources */,
+				B09DD8B27188FFC271605154 /* LeonaApp.swift in Sources */,
+				8F219014627A62D300B60351 /* Color+Theme.swift in Sources */,
+				225F29EE98C336737A103FB5 /* Date+Extensions.swift in Sources */,
+				15F637D4DD317F24968DF575 /* View+Extensions.swift in Sources */,
+				05489F7DCF2F89C2DFEA1B42 /* Activity.swift in Sources */,
+				4B7851656836288C3EC12769 /* AppSettings.swift in Sources */,
+				D0B5B78253D327F5CD1F40D2 /* Baby.swift in Sources */,
+				8BE66C53DF48A67AEA1D21A8 /* GrowthRecord.swift in Sources */,
+				CB3A366BA0AE7BE7D4CA996B /* HealthRecord.swift in Sources */,
+				C3CAF2F2C8615FF99F8FCB5C /* MealForecast.swift in Sources */,
+				AAD0F2FD7B37A0282B736D65 /* CloudKitManager.swift in Sources */,
+				19CEC7356A1527EF0E224339 /* ExportService.swift in Sources */,
+				26EA2C281F2E7CD14A681325 /* MealForecastEngine.swift in Sources */,
+				8D74ECEA635D7AE02D832DD2 /* NotificationManager.swift in Sources */,
+				18DD3FF7AA00ACE852A647BD /* StatisticsEngine.swift in Sources */,
+				215A8CE509A69E9BA891FADF /* WHODataService.swift in Sources */,
+				8244BB42CC14CBE61D9F59E7 /* ConfettiView.swift in Sources */,
+				C0A2FC135F85AD1266728F51 /* EmptyStateView.swift in Sources */,
+				0FA87F89C24F4BE407ACA15F /* ActivityCardView.swift in Sources */,
+				50B4758B992A7BF2B826A3F9 /* DashboardView.swift in Sources */,
+				8F19C6DA588B79AD6D9DA69A /* NoteEntryView.swift in Sources */,
+				55A80AA833D57631D8CFC205 /* DiaperEntryView.swift in Sources */,
+				301202417A6A2E67456AB79C /* BreastfeedingView.swift in Sources */,
+				2709CDAF886E2A5EA43D76E0 /* FormulaView.swift in Sources */,
+				13CD7CB101F6101834597E98 /* MealForecastView.swift in Sources */,
+				4118446983C3D614B29AF784 /* MomsMilkView.swift in Sources */,
+				71C42D1CA78AAA4CA9BA05D8 /* SolidFoodView.swift in Sources */,
+				80B6B2D5CEE696E4ED79034A /* GrowthEntryView.swift in Sources */,
+				55A30C6608B43C1CECA9390F /* GrowthView.swift in Sources */,
+				9F69FB3987A3F5DEDC4F53C3 /* HealthDetailView.swift in Sources */,
+				7DA00C2B591DC05250531F27 /* HealthEntryView.swift in Sources */,
+				047A78D94B9A016061343164 /* HealthView.swift in Sources */,
+				B100A63FFF74B15904C44EE4 /* OnboardingView.swift in Sources */,
+				9C36BB0F7C3BCD12955D8B16 /* AddBabyView.swift in Sources */,
+				863A04C2832DD31B34507DA9 /* BabyProfileView.swift in Sources */,
+				51EC96A6A0F66B8EE6123BD7 /* BabySelectorView.swift in Sources */,
+				66D7348DC59818F5529E5BE7 /* SettingsView.swift in Sources */,
+				43D324CC39F70962BA0BF3FC /* SleepTrackingView.swift in Sources */,
+				D0E7EB6E7C11CABDAC67D41C /* StatsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		AAAAAAAAAAAAAAAAAAAAAAAC = {
+			isa = PBXVariantGroup;
+			children = (
+				8D19BBDC1489571B7513671D /* en */,
+				AA7427A6C6B4AE3C842AC5D3 /* fr */,
+				A9B4E238E695688431B2283A /* fi */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		777777777777777777777777 = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSTCOMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("DEBUG=1", "$(inherited)");
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		888888888888888888888888 = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSTCOMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		999999999999999999999999 = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSTCOMPILER_COMPILER_APPICON_NAME = AppIcon;
+				ASSTCOMPILER_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Leona/Leona.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Leona/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Leona;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.leona.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AAAAAAAAAAAAAAAAAAAAAAAB = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSTCOMPILER_COMPILER_APPICON_NAME = AppIcon;
+				ASSTCOMPILER_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Leona/Leona.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Leona/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Leona;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.leona.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		555555555555555555555555 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				777777777777777777777777 /* Debug */,
+				888888888888888888888888 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		666666666666666666666666 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				999999999999999999999999 /* Debug */,
+				AAAAAAAAAAAAAAAAAAAAAAAB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = AAAAAAAAAAAAAAAAAAAAAAAA /* Project object */;
+}

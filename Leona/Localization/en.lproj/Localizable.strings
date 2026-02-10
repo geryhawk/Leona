@@ -1,0 +1,409 @@
+/* Leona - English Localization */
+
+/* General */
+"cancel" = "Cancel";
+"save" = "Save";
+"delete" = "Delete";
+"edit" = "Edit";
+"done" = "Done";
+"close" = "Close";
+"ok" = "OK";
+"baby" = "Baby";
+"ongoing" = "Ongoing";
+"not_specified" = "Not specified";
+
+/* Tabs */
+"tab_dashboard" = "Home";
+"tab_stats" = "Stats";
+"tab_growth" = "Growth";
+"tab_health" = "Health";
+"tab_settings" = "Settings";
+
+/* Onboarding */
+"onboarding_subtitle" = "Your baby's companion";
+"onboarding_feature_sleep" = "Track sleep patterns";
+"onboarding_feature_feeding" = "Monitor feeding sessions";
+"onboarding_feature_growth" = "Record growth milestones";
+"onboarding_feature_sync" = "Sync between parents via iCloud";
+"onboarding_baby_title" = "Tell us about your baby";
+"onboarding_ready_title" = "All set!";
+"onboarding_ready_subtitle %@" = "We're ready to help you take care of %@";
+"onboarding_enter_name" = "Please go back and enter your baby's name";
+"get_started" = "Get Started";
+
+/* Baby Profile */
+"first_name" = "First Name";
+"last_name" = "Last Name";
+"baby_name_placeholder" = "Baby's first name";
+"last_name_placeholder" = "Baby's last name";
+"date_of_birth" = "Date of Birth";
+"gender" = "Gender";
+"gender_boy" = "Boy";
+"gender_girl" = "Girl";
+"gender_unspecified" = "Other";
+"blood_type" = "Blood Type";
+"age" = "Age";
+"id" = "ID";
+"basic_info" = "Basic Information";
+"optional_info" = "Optional Information";
+"info" = "Information";
+"edit_profile" = "Edit Profile";
+"change_photo" = "Change Photo";
+"remove_photo" = "Remove Photo";
+"remove_photo_confirm" = "Remove profile photo?";
+"remove" = "Remove";
+
+/* Age Display */
+"arrival_in_days %lld" = "Arrival in %lld days";
+"age_years_months %lld %lld" = "%lld years, %lld months";
+"age_years %lld" = "%lld years";
+"age_months_days %lld %lld" = "%lld months, %lld days";
+"age_months %lld" = "%lld months";
+"age_days %lld" = "%lld days old";
+
+/* Activities */
+"activity_breastfeeding" = "Breastfeeding";
+"activity_formula" = "Formula";
+"activity_moms_milk" = "Mom's Milk";
+"activity_solid_food" = "Solid Food";
+"activity_sleep" = "Sleep";
+"activity_diaper" = "Diaper";
+"activity_note" = "Note";
+
+/* Categories */
+"category_feeding" = "Feeding";
+"category_sleep" = "Sleep";
+"category_diaper" = "Diaper";
+"category_notes" = "Notes";
+
+/* Duration */
+"duration_hours_minutes %lld %lld" = "%lldh %lldm";
+"duration_minutes %lld" = "%lldm";
+
+/* Quick Actions */
+"quick_actions" = "Quick Actions";
+"action_breastfeed" = "Breastfeed";
+"action_formula" = "Formula";
+"action_moms_milk" = "Mom's Milk";
+"action_solid" = "Solid";
+"action_sleep" = "Sleep";
+"action_wake" = "Wake Up";
+"action_diaper" = "Diaper";
+"action_note" = "Note";
+
+/* Dashboard */
+"today_summary" = "Today's Summary";
+"summary_feedings" = "Feedings";
+"summary_sleep" = "Sleep";
+"summary_diapers" = "Diapers";
+"recent_activities" = "Recent Activities";
+"no_activities" = "No Activities Yet";
+"no_activities_description" = "Start tracking by tapping a quick action above";
+"filter_all" = "All";
+"no_baby_selected" = "No Baby Selected";
+"add_baby_prompt" = "Please add a baby to get started";
+
+/* Status */
+"status_sleeping" = "Sleeping";
+"status_breastfeeding" = "Breastfeeding";
+"status_since %@" = "Since %@";
+
+/* Breastfeeding */
+"breastfeeding" = "Breastfeeding";
+"breast_side" = "Breast Side";
+"breast_left" = "Left";
+"breast_right" = "Right";
+"breast_both" = "Both";
+"last_used %@" = "Last: %@";
+"session_slot" = "Session";
+"slot_morning" = "Morning";
+"slot_day" = "Day";
+"slot_evening" = "Evening";
+"slot_night" = "Night";
+"bf_in_progress" = "Breastfeeding in progress...";
+"start_session" = "Start Session";
+"stop_session" = "Stop Session";
+"resume_session" = "Resume Session";
+"finish_session" = "Finish Session";
+"last_session" = "Last session";
+
+/* Formula & Milk */
+"formula" = "Formula";
+"moms_milk" = "Mom's Milk";
+"volume" = "Volume";
+"volume_ml" = "Volume";
+"quick_volume" = "Quick Select";
+"save_formula" = "Save Formula";
+"save_moms_milk" = "Save Mom's Milk";
+"formula_summary %lld" = "%lld ml formula";
+"moms_milk_summary %lld" = "%lld ml mom's milk";
+
+/* Solid Food */
+"solid_food" = "Solid Food";
+"food_name" = "Food Name";
+"food_name_placeholder" = "What did baby eat?";
+"common_foods" = "Common Foods";
+"quantity" = "Quantity";
+"unit" = "Unit";
+"save_solid_food" = "Save Solid Food";
+"food_carrot" = "Carrot";
+"food_banana" = "Banana";
+"food_apple" = "Apple";
+"food_avocado" = "Avocado";
+"food_sweet_potato" = "Sweet Potato";
+"food_broccoli" = "Broccoli";
+"food_rice_cereal" = "Rice Cereal";
+"food_oatmeal" = "Oatmeal";
+"food_chicken" = "Chicken";
+"food_fish" = "Fish";
+"food_yogurt" = "Yogurt";
+"food_cheese" = "Cheese";
+
+/* Units */
+"unit_grams" = "Grams";
+"unit_ml" = "Milliliters";
+"unit_pieces" = "Pieces";
+"unit_tbsp" = "Tablespoons";
+"unit_tsp" = "Teaspoons";
+
+/* Sleep */
+"sleep_tracking" = "Sleep Tracking";
+"sleep_in_progress" = "Sweet dreams...";
+"sleep_tap_to_start" = "Tap to start tracking sleep";
+"start_sleep" = "Start Sleep";
+"wake_up" = "Wake Up";
+"manual_entry" = "Manual Entry";
+"fell_asleep" = "Fell Asleep";
+"woke_up" = "Woke Up";
+"save_sleep" = "Save Sleep";
+"recent_sleep" = "Recent Sleep";
+
+/* Diaper */
+"diaper_change" = "Diaper Change";
+"diaper_type" = "Diaper Type";
+"diaper_pee" = "Pee";
+"diaper_poop" = "Poop";
+"diaper_both" = "Both";
+"save_diaper" = "Save Diaper";
+
+/* Notes */
+"note" = "Note";
+"note_optional" = "Note (optional)";
+"note_placeholder" = "Add a note...";
+"add_note" = "Add Note";
+"save_note" = "Save Note";
+
+/* Date & Time */
+"date_time" = "Date & Time";
+"start_time" = "Start Time";
+"end_time" = "End Time";
+"date_today" = "Today";
+"date_yesterday" = "Yesterday";
+"date_tomorrow" = "Tomorrow";
+"date_today_at %@" = "Today at %@";
+"date_yesterday_at %@" = "Yesterday at %@";
+
+/* Editing */
+"edit_activity" = "Edit Activity";
+"edit_time" = "Time";
+"edit_details" = "Details";
+"delete_activity_confirm" = "Delete this activity?";
+
+/* Meal Forecast */
+"meal_forecast" = "Meal Forecast";
+"forecast_not_enough_data" = "Need more feeding data";
+"forecast_next_meal" = "Next Ideal Meal";
+"forecast_estimated_volume" = "Estimated Volume";
+"forecast_with_bf %lld" = "With breastfeeding: ~%lld ml";
+"forecast_avg_interval" = "Average Interval";
+"forecast_between_meals" = "Between feedings";
+"forecast_max_delay" = "Maximum Delay";
+"forecast_dont_exceed" = "Try not to exceed this time";
+"forecast_confidence" = "Forecast Confidence";
+"forecast_last_feeding" = "Last Feeding";
+"forecast_unavailable" = "Forecast Unavailable";
+"forecast_need_more_data" = "Log at least 2 feedings to get meal predictions";
+"confidence_high" = "High";
+"confidence_medium" = "Medium";
+"confidence_low" = "Low";
+
+/* Growth */
+"growth" = "Growth";
+"growth_weight" = "Weight";
+"growth_height" = "Height";
+"growth_head" = "Head";
+"latest_measurements" = "Latest Measurements";
+"growth_no_records" = "No growth records yet";
+"add_measurement" = "Add Measurement";
+"edit_measurement" = "Edit Measurement";
+"all_measurements" = "All Measurements";
+"measurement_date" = "Measurement Date";
+"measurements" = "Measurements";
+"weight" = "Weight";
+"height" = "Height";
+"head_circumference" = "Head Circumference";
+"percentiles" = "Percentiles";
+"chart_type" = "Chart Type";
+"chart_age_months" = "Age (months)";
+"growth_age_months %@" = "%@ months old";
+
+/* Health */
+"health" = "Health";
+"active_health_issues" = "Active Health Issues";
+"health_since %@" = "Since %@";
+"health_days %lld" = "%lld days";
+"current_temperature" = "Current Temperature";
+"temp_high_fever" = "High Fever";
+"temp_fever" = "Fever";
+"temp_elevated" = "Elevated";
+"temp_normal" = "Normal";
+"health_no_records" = "No Health Records";
+"health_no_records_desc" = "Health records will appear here when you add them";
+"add_health_record" = "Add Health Record";
+"health_history" = "Health History";
+"illness_type" = "Illness Type";
+"dates" = "Dates";
+"start_date" = "Start Date";
+"end_date" = "End Date";
+"has_end_date" = "Has End Date";
+"temperature" = "Temperature";
+"temperature_readings" = "Temperature Readings";
+"add_temperature" = "Add Reading";
+"symptoms" = "Symptoms";
+"symptom_placeholder" = "Describe symptom";
+"add_symptom" = "Add symptom";
+"medications" = "Medications";
+"medication_name" = "Medication";
+"dosage" = "Dosage";
+"notes" = "Notes";
+"mark_resolved" = "Mark as Resolved";
+"delete_record" = "Delete Record";
+
+/* Illness Types */
+"illness_cold" = "Cold";
+"illness_flu" = "Flu";
+"illness_fever" = "Fever";
+"illness_ear_infection" = "Ear Infection";
+"illness_stomach_bug" = "Stomach Bug";
+"illness_rash" = "Rash";
+"illness_teething" = "Teething";
+"illness_allergy" = "Allergy";
+"illness_vaccination" = "Vaccination";
+"illness_other" = "Other";
+
+/* Severity */
+"severity_mild" = "Mild";
+"severity_moderate" = "Moderate";
+"severity_severe" = "Severe";
+
+/* Statistics */
+"statistics" = "Statistics";
+"stats_feeding" = "Feeding";
+"stats_sleep" = "Sleep";
+"stats_diaper" = "Diaper";
+"stat_total_feedings" = "Total Feedings";
+"stat_breastfeeding" = "Breastfeeding";
+"stat_formula_total" = "Formula Total";
+"stat_avg_interval" = "Avg. Interval";
+"stat_total_sleep" = "Total Sleep";
+"stat_avg_per_day" = "Avg. per Day";
+"stat_day_sleep" = "Day Sleep";
+"stat_night_sleep" = "Night Sleep";
+"stat_longest" = "Longest";
+"stat_sessions" = "Sessions";
+"stat_total_diapers" = "Total Diapers";
+"stat_pee" = "Pee";
+"stat_poop" = "Poop";
+"feeding_chart" = "Feeding Chart";
+"sleep_chart" = "Sleep Chart";
+"diaper_chart" = "Diaper Chart";
+"chart_hours" = "Hours";
+
+/* Time Periods */
+"period_today" = "Today";
+"period_3_days" = "3 Days";
+"period_7_days" = "7 Days";
+"period_30_days" = "30 Days";
+"period_6_months" = "6 Months";
+"period_12_months" = "12 Months";
+
+/* Baby Selector */
+"your_babies" = "Your Babies";
+"add_baby" = "Add Baby";
+"babies" = "Babies";
+"sharing" = "Sharing";
+"icloud_sync" = "iCloud Sync";
+"icloud_sync_description" = "Your data syncs automatically across all your devices via iCloud. Both parents can access the same data when signed into the same iCloud account.";
+
+/* Settings */
+"settings" = "Settings";
+"sync" = "Sync";
+"last_sync" = "Last Sync";
+"tracking_features" = "Tracking Features";
+"toggle_sleep" = "Sleep Tracking";
+"toggle_feeding" = "Feeding Tracking";
+"toggle_diaper" = "Diaper Tracking";
+"toggle_breastfeeding" = "Breastfeeding";
+"toggle_ongoing_status" = "Ongoing Status Banner";
+"appearance" = "Appearance";
+"theme" = "Theme";
+"theme_system" = "System";
+"theme_light" = "Light";
+"theme_dark" = "Dark";
+"unit_celsius" = "Celsius (°C)";
+"unit_fahrenheit" = "Fahrenheit (°F)";
+"unit_metric" = "Metric (kg, cm)";
+"unit_imperial" = "Imperial (lb, in)";
+"language" = "Language";
+"app_language" = "App Language";
+"language_system" = "System";
+"notifications" = "Notifications";
+"feeding_reminders" = "Feeding Reminders";
+"reminder_interval" = "Reminder Interval";
+"interval_2h" = "2 hours";
+"interval_2_5h" = "2.5 hours";
+"interval_3h" = "3 hours";
+"interval_3_5h" = "3.5 hours";
+"interval_4h" = "4 hours";
+"bf_notifications" = "Breastfeeding Reminders";
+"data" = "Data";
+"export_data" = "Export Data";
+"delete_all_data" = "Delete All Data";
+"delete_all_confirm" = "Delete All Data?";
+"delete_all_warning" = "This will permanently delete all activities, growth records, and health records for this baby. This cannot be undone.";
+"delete_everything" = "Delete Everything";
+"about" = "About";
+"version" = "Version";
+"app_name" = "App Name";
+"source_code" = "Source Code";
+
+/* Export */
+"export_title" = "Export Baby Data";
+"format" = "Format";
+"full_report" = "Full Report";
+"export_summary" = "Data Summary";
+"activities" = "Activities";
+"growth_records" = "Growth Records";
+"generate_export" = "Generate Export";
+"copy_to_clipboard" = "Copy to Clipboard";
+
+/* Sync Status */
+"sync_idle" = "Ready";
+"sync_syncing" = "Syncing...";
+"sync_synced" = "Synced";
+"sync_error" = "Sync Error";
+"sync_offline" = "Offline";
+
+/* Notifications */
+"notification_feeding_title" = "Feeding Time";
+"notification_feeding_body %@" = "It might be time to feed %@";
+"notification_sleep_title" = "Sleep Check";
+"notification_sleep_body %@" = "%@ has been sleeping for a while";
+"notification_bf_title" = "Breastfeeding Reminder";
+"notification_bf_body %@ %@" = "Time for %@'s %@ breastfeeding session";
+"notification_milestone_title" = "Milestone!";
+"notification_milestone_body %@ %@" = "%@ has reached a new milestone: %@";
+"notification_snoozed_title" = "Reminder";
+"notification_snoozed_body" = "Snoozed reminder";
+"notification_action_snooze" = "Snooze 30m";
+"notification_action_dismiss" = "Dismiss";

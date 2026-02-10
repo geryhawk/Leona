@@ -1,0 +1,409 @@
+/* Leona - Suomenkielinen lokalisointi */
+
+/* General */
+"cancel" = "Peruuta";
+"save" = "Tallenna";
+"delete" = "Poista";
+"edit" = "Muokkaa";
+"done" = "Valmis";
+"close" = "Sulje";
+"ok" = "OK";
+"baby" = "Vauva";
+"ongoing" = "Käynnissä";
+"not_specified" = "Ei määritetty";
+
+/* Tabs */
+"tab_dashboard" = "Koti";
+"tab_stats" = "Tilastot";
+"tab_growth" = "Kasvu";
+"tab_health" = "Terveys";
+"tab_settings" = "Asetukset";
+
+/* Onboarding */
+"onboarding_subtitle" = "Vauvasi kumppani";
+"onboarding_feature_sleep" = "Seuraa unirytmiä";
+"onboarding_feature_feeding" = "Seuraa ruokailuja";
+"onboarding_feature_growth" = "Kirjaa kasvun virstanpylväät";
+"onboarding_feature_sync" = "Synkronoi vanhempien välillä iCloudin kautta";
+"onboarding_baby_title" = "Kerro vauvastasi";
+"onboarding_ready_title" = "Kaikki valmista!";
+"onboarding_ready_subtitle %@" = "Olemme valmiita auttamaan sinua huolehtimaan %@sta";
+"onboarding_enter_name" = "Palaa takaisin ja kirjoita vauvasi nimi";
+"get_started" = "Aloita";
+
+/* Baby Profile */
+"first_name" = "Etunimi";
+"last_name" = "Sukunimi";
+"baby_name_placeholder" = "Vauvan etunimi";
+"last_name_placeholder" = "Vauvan sukunimi";
+"date_of_birth" = "Syntymäaika";
+"gender" = "Sukupuoli";
+"gender_boy" = "Poika";
+"gender_girl" = "Tyttö";
+"gender_unspecified" = "Muu";
+"blood_type" = "Veriryhmä";
+"age" = "Ikä";
+"id" = "ID";
+"basic_info" = "Perustiedot";
+"optional_info" = "Lisätiedot";
+"info" = "Tiedot";
+"edit_profile" = "Muokkaa profiilia";
+"change_photo" = "Vaihda kuva";
+"remove_photo" = "Poista kuva";
+"remove_photo_confirm" = "Poista profiilikuva?";
+"remove" = "Poista";
+
+/* Age Display */
+"arrival_in_days %lld" = "Saapuminen %lld päivässä";
+"age_years_months %lld %lld" = "%lld vuotta, %lld kuukautta";
+"age_years %lld" = "%lld vuotta";
+"age_months_days %lld %lld" = "%lld kuukautta, %lld päivää";
+"age_months %lld" = "%lld kuukautta";
+"age_days %lld" = "%lld päivää vanha";
+
+/* Activities */
+"activity_breastfeeding" = "Imetys";
+"activity_formula" = "Äidinmaidonkorvike";
+"activity_moms_milk" = "Äidinmaito";
+"activity_solid_food" = "Kiinteä ruoka";
+"activity_sleep" = "Uni";
+"activity_diaper" = "Vaippa";
+"activity_note" = "Muistiinpano";
+
+/* Categories */
+"category_feeding" = "Ruokailu";
+"category_sleep" = "Uni";
+"category_diaper" = "Vaipat";
+"category_notes" = "Muistiinpanot";
+
+/* Duration */
+"duration_hours_minutes %lld %lld" = "%lld t %lld min";
+"duration_minutes %lld" = "%lld min";
+
+/* Quick Actions */
+"quick_actions" = "Pikatoiminnot";
+"action_breastfeed" = "Imetä";
+"action_formula" = "Korvike";
+"action_moms_milk" = "Äidinmaito";
+"action_solid" = "Kiinteä";
+"action_sleep" = "Uni";
+"action_wake" = "Herätys";
+"action_diaper" = "Vaippa";
+"action_note" = "Muistiin.";
+
+/* Dashboard */
+"today_summary" = "Päivän yhteenveto";
+"summary_feedings" = "Ruokailut";
+"summary_sleep" = "Uni";
+"summary_diapers" = "Vaipat";
+"recent_activities" = "Viimeaikaiset toiminnot";
+"no_activities" = "Ei toimintoja vielä";
+"no_activities_description" = "Aloita seuranta napauttamalla pikatoimintoa";
+"filter_all" = "Kaikki";
+"no_baby_selected" = "Vauvaa ei valittu";
+"add_baby_prompt" = "Lisää vauva aloittaaksesi";
+
+/* Status */
+"status_sleeping" = "Nukkuu";
+"status_breastfeeding" = "Imetys käynnissä";
+"status_since %@" = "Alkaen %@";
+
+/* Breastfeeding */
+"breastfeeding" = "Imetys";
+"breast_side" = "Puoli";
+"breast_left" = "Vasen";
+"breast_right" = "Oikea";
+"breast_both" = "Molemmat";
+"last_used %@" = "Viimeksi: %@";
+"session_slot" = "Ajankohta";
+"slot_morning" = "Aamu";
+"slot_day" = "Päivä";
+"slot_evening" = "Ilta";
+"slot_night" = "Yö";
+"bf_in_progress" = "Imetys käynnissä...";
+"start_session" = "Aloita imetys";
+"stop_session" = "Lopeta imetys";
+"resume_session" = "Jatka imetystä";
+"finish_session" = "Viimeistele imetys";
+"last_session" = "Viimeisin imetys";
+
+/* Formula & Milk */
+"formula" = "Korvike";
+"moms_milk" = "Äidinmaito";
+"volume" = "Määrä";
+"volume_ml" = "Määrä";
+"quick_volume" = "Pikavalinta";
+"save_formula" = "Tallenna korvike";
+"save_moms_milk" = "Tallenna äidinmaito";
+"formula_summary %lld" = "%lld ml korviketta";
+"moms_milk_summary %lld" = "%lld ml äidinmaitoa";
+
+/* Solid Food */
+"solid_food" = "Kiinteä ruoka";
+"food_name" = "Ruoan nimi";
+"food_name_placeholder" = "Mitä vauva söi?";
+"common_foods" = "Yleiset ruoat";
+"quantity" = "Määrä";
+"unit" = "Yksikkö";
+"save_solid_food" = "Tallenna ruokailu";
+"food_carrot" = "Porkkana";
+"food_banana" = "Banaani";
+"food_apple" = "Omena";
+"food_avocado" = "Avokado";
+"food_sweet_potato" = "Bataatti";
+"food_broccoli" = "Parsakaali";
+"food_rice_cereal" = "Riisipuuro";
+"food_oatmeal" = "Kaurapuuro";
+"food_chicken" = "Kana";
+"food_fish" = "Kala";
+"food_yogurt" = "Jogurtti";
+"food_cheese" = "Juusto";
+
+/* Units */
+"unit_grams" = "Grammaa";
+"unit_ml" = "Millilitraa";
+"unit_pieces" = "Kappaletta";
+"unit_tbsp" = "Ruokalusikkaa";
+"unit_tsp" = "Teelusikkaa";
+
+/* Sleep */
+"sleep_tracking" = "Unen seuranta";
+"sleep_in_progress" = "Kauniita unia...";
+"sleep_tap_to_start" = "Napauta aloittaaksesi seuranta";
+"start_sleep" = "Aloita uni";
+"wake_up" = "Herätys";
+"manual_entry" = "Manuaalinen syöttö";
+"fell_asleep" = "Nukahtaminen";
+"woke_up" = "Herääminen";
+"save_sleep" = "Tallenna uni";
+"recent_sleep" = "Viimeaikainen uni";
+
+/* Diaper */
+"diaper_change" = "Vaipanvaihto";
+"diaper_type" = "Vaipan tyyppi";
+"diaper_pee" = "Pissa";
+"diaper_poop" = "Kakka";
+"diaper_both" = "Molemmat";
+"save_diaper" = "Tallenna vaipanvaihto";
+
+/* Notes */
+"note" = "Muistiinpano";
+"note_optional" = "Muistiinpano (valinnainen)";
+"note_placeholder" = "Lisää muistiinpano...";
+"add_note" = "Lisää muistiinpano";
+"save_note" = "Tallenna muistiinpano";
+
+/* Date & Time */
+"date_time" = "Päivämäärä ja aika";
+"start_time" = "Alkuaika";
+"end_time" = "Loppuaika";
+"date_today" = "Tänään";
+"date_yesterday" = "Eilen";
+"date_tomorrow" = "Huomenna";
+"date_today_at %@" = "Tänään klo %@";
+"date_yesterday_at %@" = "Eilen klo %@";
+
+/* Editing */
+"edit_activity" = "Muokkaa toimintoa";
+"edit_time" = "Aika";
+"edit_details" = "Tiedot";
+"delete_activity_confirm" = "Poista tämä toiminto?";
+
+/* Meal Forecast */
+"meal_forecast" = "Ruokaennuste";
+"forecast_not_enough_data" = "Tarvitaan lisää tietoja";
+"forecast_next_meal" = "Seuraava ateria";
+"forecast_estimated_volume" = "Arvioitu määrä";
+"forecast_with_bf %lld" = "Imetyksellä: ~%lld ml";
+"forecast_avg_interval" = "Keskimääräinen väli";
+"forecast_between_meals" = "Aterioiden välillä";
+"forecast_max_delay" = "Enimmäisviive";
+"forecast_dont_exceed" = "Yritä olla ylittämättä tätä aikaa";
+"forecast_confidence" = "Ennusteen luotettavuus";
+"forecast_last_feeding" = "Viimeisin ruokailu";
+"forecast_unavailable" = "Ennuste ei saatavilla";
+"forecast_need_more_data" = "Kirjaa vähintään 2 ruokailua saadaksesi ennusteita";
+"confidence_high" = "Korkea";
+"confidence_medium" = "Keskitaso";
+"confidence_low" = "Matala";
+
+/* Growth */
+"growth" = "Kasvu";
+"growth_weight" = "Paino";
+"growth_height" = "Pituus";
+"growth_head" = "Pää";
+"latest_measurements" = "Viimeisimmät mittaukset";
+"growth_no_records" = "Ei kasvutietoja vielä";
+"add_measurement" = "Lisää mittaus";
+"edit_measurement" = "Muokkaa mittausta";
+"all_measurements" = "Kaikki mittaukset";
+"measurement_date" = "Mittauspäivä";
+"measurements" = "Mittaukset";
+"weight" = "Paino";
+"height" = "Pituus";
+"head_circumference" = "Päänympärys";
+"percentiles" = "Persentiilit";
+"chart_type" = "Kaaviotyyppi";
+"chart_age_months" = "Ikä (kuukautta)";
+"growth_age_months %@" = "%@ kuukautta";
+
+/* Health */
+"health" = "Terveys";
+"active_health_issues" = "Aktiiviset terveysongelmat";
+"health_since %@" = "%@ alkaen";
+"health_days %lld" = "%lld päivää";
+"current_temperature" = "Nykyinen lämpötila";
+"temp_high_fever" = "Korkea kuume";
+"temp_fever" = "Kuume";
+"temp_elevated" = "Kohonnut";
+"temp_normal" = "Normaali";
+"health_no_records" = "Ei terveystietoja";
+"health_no_records_desc" = "Terveystiedot näkyvät täällä kun lisäät niitä";
+"add_health_record" = "Lisää terveystieto";
+"health_history" = "Terveyshistoria";
+"illness_type" = "Sairauden tyyppi";
+"dates" = "Päivämäärät";
+"start_date" = "Alkupäivä";
+"end_date" = "Loppupäivä";
+"has_end_date" = "Loppupäivä";
+"temperature" = "Lämpötila";
+"temperature_readings" = "Lämpötilat";
+"add_temperature" = "Lisää mittaus";
+"symptoms" = "Oireet";
+"symptom_placeholder" = "Kuvaile oiretta";
+"add_symptom" = "Lisää oire";
+"medications" = "Lääkkeet";
+"medication_name" = "Lääke";
+"dosage" = "Annostus";
+"notes" = "Muistiinpanot";
+"mark_resolved" = "Merkitse parantuneeksi";
+"delete_record" = "Poista tietue";
+
+/* Illness Types */
+"illness_cold" = "Flunssa";
+"illness_flu" = "Influenssa";
+"illness_fever" = "Kuume";
+"illness_ear_infection" = "Korvatulehdus";
+"illness_stomach_bug" = "Vatsatauti";
+"illness_rash" = "Ihottuma";
+"illness_teething" = "Hampaiden puhkeaminen";
+"illness_allergy" = "Allergia";
+"illness_vaccination" = "Rokotus";
+"illness_other" = "Muu";
+
+/* Severity */
+"severity_mild" = "Lievä";
+"severity_moderate" = "Kohtalainen";
+"severity_severe" = "Vakava";
+
+/* Statistics */
+"statistics" = "Tilastot";
+"stats_feeding" = "Ruokailu";
+"stats_sleep" = "Uni";
+"stats_diaper" = "Vaipat";
+"stat_total_feedings" = "Ruokailut yht.";
+"stat_breastfeeding" = "Imetykset";
+"stat_formula_total" = "Korvike yht.";
+"stat_avg_interval" = "Keskim. väli";
+"stat_total_sleep" = "Uni yhteensä";
+"stat_avg_per_day" = "Keskim./päivä";
+"stat_day_sleep" = "Päiväuni";
+"stat_night_sleep" = "Yöuni";
+"stat_longest" = "Pisin";
+"stat_sessions" = "Jaksot";
+"stat_total_diapers" = "Vaipat yht.";
+"stat_pee" = "Pissa";
+"stat_poop" = "Kakka";
+"feeding_chart" = "Ruokailukaavio";
+"sleep_chart" = "Unikaavio";
+"diaper_chart" = "Vaippakaavio";
+"chart_hours" = "Tunnit";
+
+/* Time Periods */
+"period_today" = "Tänään";
+"period_3_days" = "3 päivää";
+"period_7_days" = "7 päivää";
+"period_30_days" = "30 päivää";
+"period_6_months" = "6 kuukautta";
+"period_12_months" = "12 kuukautta";
+
+/* Baby Selector */
+"your_babies" = "Vauvasi";
+"add_baby" = "Lisää vauva";
+"babies" = "Vauvat";
+"sharing" = "Jakaminen";
+"icloud_sync" = "iCloud-synkronointi";
+"icloud_sync_description" = "Tietosi synkronoituvat automaattisesti kaikkien laitteidesi välillä iCloudin kautta. Molemmat vanhemmat voivat käyttää samoja tietoja kirjautumalla samalle iCloud-tilille.";
+
+/* Settings */
+"settings" = "Asetukset";
+"sync" = "Synkronointi";
+"last_sync" = "Viimeisin synkronointi";
+"tracking_features" = "Seurantatoiminnot";
+"toggle_sleep" = "Unen seuranta";
+"toggle_feeding" = "Ruokailun seuranta";
+"toggle_diaper" = "Vaippojen seuranta";
+"toggle_breastfeeding" = "Imetys";
+"toggle_ongoing_status" = "Tilapalkki";
+"appearance" = "Ulkoasu";
+"theme" = "Teema";
+"theme_system" = "Järjestelmä";
+"theme_light" = "Vaalea";
+"theme_dark" = "Tumma";
+"unit_celsius" = "Celsius (°C)";
+"unit_fahrenheit" = "Fahrenheit (°F)";
+"unit_metric" = "Metrinen (kg, cm)";
+"unit_imperial" = "Imperiaalinen (lb, in)";
+"language" = "Kieli";
+"app_language" = "Sovelluksen kieli";
+"language_system" = "Järjestelmä";
+"notifications" = "Ilmoitukset";
+"feeding_reminders" = "Ruokailumuistutukset";
+"reminder_interval" = "Muistutusväli";
+"interval_2h" = "2 tuntia";
+"interval_2_5h" = "2,5 tuntia";
+"interval_3h" = "3 tuntia";
+"interval_3_5h" = "3,5 tuntia";
+"interval_4h" = "4 tuntia";
+"bf_notifications" = "Imetysmuistutukset";
+"data" = "Tiedot";
+"export_data" = "Vie tiedot";
+"delete_all_data" = "Poista kaikki tiedot";
+"delete_all_confirm" = "Poista kaikki tiedot?";
+"delete_all_warning" = "Tämä poistaa pysyvästi kaikki toiminnot, kasvumittaukset ja terveystiedot tästä vauvasta. Toimintoa ei voi peruuttaa.";
+"delete_everything" = "Poista kaikki";
+"about" = "Tietoja";
+"version" = "Versio";
+"app_name" = "Sovelluksen nimi";
+"source_code" = "Lähdekoodi";
+
+/* Export */
+"export_title" = "Vie vauvan tiedot";
+"format" = "Muoto";
+"full_report" = "Täysi raportti";
+"export_summary" = "Tietojen yhteenveto";
+"activities" = "Toiminnot";
+"growth_records" = "Kasvumittaukset";
+"generate_export" = "Luo vienti";
+"copy_to_clipboard" = "Kopioi leikepöydälle";
+
+/* Sync Status */
+"sync_idle" = "Valmis";
+"sync_syncing" = "Synkronoidaan...";
+"sync_synced" = "Synkronoitu";
+"sync_error" = "Synkronointivirhe";
+"sync_offline" = "Offline";
+
+/* Notifications */
+"notification_feeding_title" = "Ruoka-aika";
+"notification_feeding_body %@" = "Voi olla aika ruokkia %@";
+"notification_sleep_title" = "Unen tarkistus";
+"notification_sleep_body %@" = "%@ on nukkunut jo jonkin aikaa";
+"notification_bf_title" = "Imetysmuistutus";
+"notification_bf_body %@ %@" = "On aika %@n %@imetykselle";
+"notification_milestone_title" = "Virstanpylväs!";
+"notification_milestone_body %@ %@" = "%@ on saavuttanut uuden virstanpylvään: %@";
+"notification_snoozed_title" = "Muistutus";
+"notification_snoozed_body" = "Torkutettu muistutus";
+"notification_action_snooze" = "Torkuta 30min";
+"notification_action_dismiss" = "Ohita";

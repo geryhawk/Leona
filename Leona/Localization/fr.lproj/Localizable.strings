@@ -1,0 +1,409 @@
+/* Leona - Localisation Française */
+
+/* General */
+"cancel" = "Annuler";
+"save" = "Enregistrer";
+"delete" = "Supprimer";
+"edit" = "Modifier";
+"done" = "Terminé";
+"close" = "Fermer";
+"ok" = "OK";
+"baby" = "Bébé";
+"ongoing" = "En cours";
+"not_specified" = "Non spécifié";
+
+/* Tabs */
+"tab_dashboard" = "Accueil";
+"tab_stats" = "Stats";
+"tab_growth" = "Croissance";
+"tab_health" = "Santé";
+"tab_settings" = "Réglages";
+
+/* Onboarding */
+"onboarding_subtitle" = "Le compagnon de votre bébé";
+"onboarding_feature_sleep" = "Suivez les cycles de sommeil";
+"onboarding_feature_feeding" = "Surveillez les repas";
+"onboarding_feature_growth" = "Enregistrez la croissance";
+"onboarding_feature_sync" = "Synchronisez entre parents via iCloud";
+"onboarding_baby_title" = "Parlez-nous de votre bébé";
+"onboarding_ready_title" = "C'est parti !";
+"onboarding_ready_subtitle %@" = "Nous sommes prêts à vous aider à prendre soin de %@";
+"onboarding_enter_name" = "Veuillez revenir en arrière et entrer le prénom de votre bébé";
+"get_started" = "Commencer";
+
+/* Baby Profile */
+"first_name" = "Prénom";
+"last_name" = "Nom de famille";
+"baby_name_placeholder" = "Prénom du bébé";
+"last_name_placeholder" = "Nom de famille du bébé";
+"date_of_birth" = "Date de naissance";
+"gender" = "Genre";
+"gender_boy" = "Garçon";
+"gender_girl" = "Fille";
+"gender_unspecified" = "Autre";
+"blood_type" = "Groupe sanguin";
+"age" = "Âge";
+"id" = "ID";
+"basic_info" = "Informations de base";
+"optional_info" = "Informations optionnelles";
+"info" = "Informations";
+"edit_profile" = "Modifier le profil";
+"change_photo" = "Changer la photo";
+"remove_photo" = "Supprimer la photo";
+"remove_photo_confirm" = "Supprimer la photo de profil ?";
+"remove" = "Supprimer";
+
+/* Age Display */
+"arrival_in_days %lld" = "Arrivée dans %lld jours";
+"age_years_months %lld %lld" = "%lld ans et %lld mois";
+"age_years %lld" = "%lld ans";
+"age_months_days %lld %lld" = "%lld mois et %lld jours";
+"age_months %lld" = "%lld mois";
+"age_days %lld" = "%lld jours";
+
+/* Activities */
+"activity_breastfeeding" = "Allaitement";
+"activity_formula" = "Biberon";
+"activity_moms_milk" = "Lait maternel";
+"activity_solid_food" = "Alimentation solide";
+"activity_sleep" = "Sommeil";
+"activity_diaper" = "Couche";
+"activity_note" = "Note";
+
+/* Categories */
+"category_feeding" = "Repas";
+"category_sleep" = "Sommeil";
+"category_diaper" = "Couches";
+"category_notes" = "Notes";
+
+/* Duration */
+"duration_hours_minutes %lld %lld" = "%lldh %lldmin";
+"duration_minutes %lld" = "%lldmin";
+
+/* Quick Actions */
+"quick_actions" = "Actions rapides";
+"action_breastfeed" = "Allaiter";
+"action_formula" = "Biberon";
+"action_moms_milk" = "Lait mat.";
+"action_solid" = "Solide";
+"action_sleep" = "Dormir";
+"action_wake" = "Réveiller";
+"action_diaper" = "Couche";
+"action_note" = "Note";
+
+/* Dashboard */
+"today_summary" = "Résumé du jour";
+"summary_feedings" = "Repas";
+"summary_sleep" = "Sommeil";
+"summary_diapers" = "Couches";
+"recent_activities" = "Activités récentes";
+"no_activities" = "Aucune activité";
+"no_activities_description" = "Commencez le suivi en appuyant sur une action rapide";
+"filter_all" = "Tout";
+"no_baby_selected" = "Aucun bébé sélectionné";
+"add_baby_prompt" = "Veuillez ajouter un bébé pour commencer";
+
+/* Status */
+"status_sleeping" = "En train de dormir";
+"status_breastfeeding" = "Allaitement en cours";
+"status_since %@" = "Depuis %@";
+
+/* Breastfeeding */
+"breastfeeding" = "Allaitement";
+"breast_side" = "Côté";
+"breast_left" = "Gauche";
+"breast_right" = "Droit";
+"breast_both" = "Les deux";
+"last_used %@" = "Dernier : %@";
+"session_slot" = "Créneau";
+"slot_morning" = "Matin";
+"slot_day" = "Journée";
+"slot_evening" = "Soir";
+"slot_night" = "Nuit";
+"bf_in_progress" = "Allaitement en cours...";
+"start_session" = "Démarrer la tétée";
+"stop_session" = "Arrêter la tétée";
+"resume_session" = "Reprendre la tétée";
+"finish_session" = "Terminer la tétée";
+"last_session" = "Dernière tétée";
+
+/* Formula & Milk */
+"formula" = "Biberon";
+"moms_milk" = "Lait maternel";
+"volume" = "Volume";
+"volume_ml" = "Volume";
+"quick_volume" = "Sélection rapide";
+"save_formula" = "Enregistrer le biberon";
+"save_moms_milk" = "Enregistrer le lait maternel";
+"formula_summary %lld" = "%lld ml de lait infantile";
+"moms_milk_summary %lld" = "%lld ml de lait maternel";
+
+/* Solid Food */
+"solid_food" = "Alimentation solide";
+"food_name" = "Nom de l'aliment";
+"food_name_placeholder" = "Qu'a mangé bébé ?";
+"common_foods" = "Aliments courants";
+"quantity" = "Quantité";
+"unit" = "Unité";
+"save_solid_food" = "Enregistrer le repas";
+"food_carrot" = "Carotte";
+"food_banana" = "Banane";
+"food_apple" = "Pomme";
+"food_avocado" = "Avocat";
+"food_sweet_potato" = "Patate douce";
+"food_broccoli" = "Brocoli";
+"food_rice_cereal" = "Céréales de riz";
+"food_oatmeal" = "Flocons d'avoine";
+"food_chicken" = "Poulet";
+"food_fish" = "Poisson";
+"food_yogurt" = "Yaourt";
+"food_cheese" = "Fromage";
+
+/* Units */
+"unit_grams" = "Grammes";
+"unit_ml" = "Millilitres";
+"unit_pieces" = "Morceaux";
+"unit_tbsp" = "Cuillères à soupe";
+"unit_tsp" = "Cuillères à café";
+
+/* Sleep */
+"sleep_tracking" = "Suivi du sommeil";
+"sleep_in_progress" = "Faites de beaux rêves...";
+"sleep_tap_to_start" = "Appuyez pour commencer le suivi";
+"start_sleep" = "Début du sommeil";
+"wake_up" = "Réveil";
+"manual_entry" = "Saisie manuelle";
+"fell_asleep" = "Endormissement";
+"woke_up" = "Réveil";
+"save_sleep" = "Enregistrer le sommeil";
+"recent_sleep" = "Sommeil récent";
+
+/* Diaper */
+"diaper_change" = "Changement de couche";
+"diaper_type" = "Type de couche";
+"diaper_pee" = "Pipi";
+"diaper_poop" = "Caca";
+"diaper_both" = "Les deux";
+"save_diaper" = "Enregistrer la couche";
+
+/* Notes */
+"note" = "Note";
+"note_optional" = "Note (optionnelle)";
+"note_placeholder" = "Ajouter une note...";
+"add_note" = "Ajouter une note";
+"save_note" = "Enregistrer la note";
+
+/* Date & Time */
+"date_time" = "Date et heure";
+"start_time" = "Heure de début";
+"end_time" = "Heure de fin";
+"date_today" = "Aujourd'hui";
+"date_yesterday" = "Hier";
+"date_tomorrow" = "Demain";
+"date_today_at %@" = "Aujourd'hui à %@";
+"date_yesterday_at %@" = "Hier à %@";
+
+/* Editing */
+"edit_activity" = "Modifier l'activité";
+"edit_time" = "Horaire";
+"edit_details" = "Détails";
+"delete_activity_confirm" = "Supprimer cette activité ?";
+
+/* Meal Forecast */
+"meal_forecast" = "Prévision repas";
+"forecast_not_enough_data" = "Plus de données nécessaires";
+"forecast_next_meal" = "Prochain repas idéal";
+"forecast_estimated_volume" = "Volume estimé";
+"forecast_with_bf %lld" = "Avec allaitement : ~%lld ml";
+"forecast_avg_interval" = "Intervalle moyen";
+"forecast_between_meals" = "Entre les repas";
+"forecast_max_delay" = "Délai maximum";
+"forecast_dont_exceed" = "Essayez de ne pas dépasser ce délai";
+"forecast_confidence" = "Fiabilité de la prévision";
+"forecast_last_feeding" = "Dernier repas";
+"forecast_unavailable" = "Prévision indisponible";
+"forecast_need_more_data" = "Enregistrez au moins 2 repas pour obtenir des prévisions";
+"confidence_high" = "Élevée";
+"confidence_medium" = "Moyenne";
+"confidence_low" = "Faible";
+
+/* Growth */
+"growth" = "Croissance";
+"growth_weight" = "Poids";
+"growth_height" = "Taille";
+"growth_head" = "Tête";
+"latest_measurements" = "Dernières mesures";
+"growth_no_records" = "Aucune mesure enregistrée";
+"add_measurement" = "Ajouter une mesure";
+"edit_measurement" = "Modifier la mesure";
+"all_measurements" = "Toutes les mesures";
+"measurement_date" = "Date de la mesure";
+"measurements" = "Mesures";
+"weight" = "Poids";
+"height" = "Taille";
+"head_circumference" = "Tour de tête";
+"percentiles" = "Percentiles";
+"chart_type" = "Type de graphique";
+"chart_age_months" = "Âge (mois)";
+"growth_age_months %@" = "%@ mois";
+
+/* Health */
+"health" = "Santé";
+"active_health_issues" = "Problèmes de santé actifs";
+"health_since %@" = "Depuis %@";
+"health_days %lld" = "%lld jours";
+"current_temperature" = "Température actuelle";
+"temp_high_fever" = "Forte fièvre";
+"temp_fever" = "Fièvre";
+"temp_elevated" = "Élevée";
+"temp_normal" = "Normale";
+"health_no_records" = "Aucun dossier médical";
+"health_no_records_desc" = "Les dossiers médicaux apparaîtront ici lorsque vous en ajouterez";
+"add_health_record" = "Ajouter un dossier médical";
+"health_history" = "Historique médical";
+"illness_type" = "Type de maladie";
+"dates" = "Dates";
+"start_date" = "Date de début";
+"end_date" = "Date de fin";
+"has_end_date" = "Date de fin définie";
+"temperature" = "Température";
+"temperature_readings" = "Relevés de température";
+"add_temperature" = "Ajouter un relevé";
+"symptoms" = "Symptômes";
+"symptom_placeholder" = "Décrire le symptôme";
+"add_symptom" = "Ajouter un symptôme";
+"medications" = "Médicaments";
+"medication_name" = "Médicament";
+"dosage" = "Posologie";
+"notes" = "Notes";
+"mark_resolved" = "Marquer comme résolu";
+"delete_record" = "Supprimer le dossier";
+
+/* Illness Types */
+"illness_cold" = "Rhume";
+"illness_flu" = "Grippe";
+"illness_fever" = "Fièvre";
+"illness_ear_infection" = "Otite";
+"illness_stomach_bug" = "Gastro";
+"illness_rash" = "Éruption cutanée";
+"illness_teething" = "Poussée dentaire";
+"illness_allergy" = "Allergie";
+"illness_vaccination" = "Vaccination";
+"illness_other" = "Autre";
+
+/* Severity */
+"severity_mild" = "Léger";
+"severity_moderate" = "Modéré";
+"severity_severe" = "Sévère";
+
+/* Statistics */
+"statistics" = "Statistiques";
+"stats_feeding" = "Repas";
+"stats_sleep" = "Sommeil";
+"stats_diaper" = "Couches";
+"stat_total_feedings" = "Total repas";
+"stat_breastfeeding" = "Allaitements";
+"stat_formula_total" = "Total biberon";
+"stat_avg_interval" = "Intervalle moy.";
+"stat_total_sleep" = "Sommeil total";
+"stat_avg_per_day" = "Moy. par jour";
+"stat_day_sleep" = "Sommeil jour";
+"stat_night_sleep" = "Sommeil nuit";
+"stat_longest" = "Plus long";
+"stat_sessions" = "Sessions";
+"stat_total_diapers" = "Total couches";
+"stat_pee" = "Pipi";
+"stat_poop" = "Caca";
+"feeding_chart" = "Graphique repas";
+"sleep_chart" = "Graphique sommeil";
+"diaper_chart" = "Graphique couches";
+"chart_hours" = "Heures";
+
+/* Time Periods */
+"period_today" = "Aujourd'hui";
+"period_3_days" = "3 jours";
+"period_7_days" = "7 jours";
+"period_30_days" = "30 jours";
+"period_6_months" = "6 mois";
+"period_12_months" = "12 mois";
+
+/* Baby Selector */
+"your_babies" = "Vos bébés";
+"add_baby" = "Ajouter un bébé";
+"babies" = "Bébés";
+"sharing" = "Partage";
+"icloud_sync" = "Synchronisation iCloud";
+"icloud_sync_description" = "Vos données se synchronisent automatiquement sur tous vos appareils via iCloud. Les deux parents peuvent accéder aux mêmes données en se connectant au même compte iCloud.";
+
+/* Settings */
+"settings" = "Réglages";
+"sync" = "Synchronisation";
+"last_sync" = "Dernière synchro";
+"tracking_features" = "Fonctions de suivi";
+"toggle_sleep" = "Suivi du sommeil";
+"toggle_feeding" = "Suivi des repas";
+"toggle_diaper" = "Suivi des couches";
+"toggle_breastfeeding" = "Allaitement";
+"toggle_ongoing_status" = "Bannière de statut";
+"appearance" = "Apparence";
+"theme" = "Thème";
+"theme_system" = "Système";
+"theme_light" = "Clair";
+"theme_dark" = "Sombre";
+"unit_celsius" = "Celsius (°C)";
+"unit_fahrenheit" = "Fahrenheit (°F)";
+"unit_metric" = "Métrique (kg, cm)";
+"unit_imperial" = "Impérial (lb, in)";
+"language" = "Langue";
+"app_language" = "Langue de l'application";
+"language_system" = "Système";
+"notifications" = "Notifications";
+"feeding_reminders" = "Rappels de repas";
+"reminder_interval" = "Intervalle de rappel";
+"interval_2h" = "2 heures";
+"interval_2_5h" = "2h30";
+"interval_3h" = "3 heures";
+"interval_3_5h" = "3h30";
+"interval_4h" = "4 heures";
+"bf_notifications" = "Rappels d'allaitement";
+"data" = "Données";
+"export_data" = "Exporter les données";
+"delete_all_data" = "Supprimer toutes les données";
+"delete_all_confirm" = "Supprimer toutes les données ?";
+"delete_all_warning" = "Cela supprimera définitivement toutes les activités, mesures de croissance et dossiers médicaux de ce bébé. Cette action est irréversible.";
+"delete_everything" = "Tout supprimer";
+"about" = "À propos";
+"version" = "Version";
+"app_name" = "Nom de l'app";
+"source_code" = "Code source";
+
+/* Export */
+"export_title" = "Exporter les données";
+"format" = "Format";
+"full_report" = "Rapport complet";
+"export_summary" = "Résumé des données";
+"activities" = "Activités";
+"growth_records" = "Mesures de croissance";
+"generate_export" = "Générer l'export";
+"copy_to_clipboard" = "Copier dans le presse-papier";
+
+/* Sync Status */
+"sync_idle" = "Prêt";
+"sync_syncing" = "Synchronisation...";
+"sync_synced" = "Synchronisé";
+"sync_error" = "Erreur de synchro";
+"sync_offline" = "Hors ligne";
+
+/* Notifications */
+"notification_feeding_title" = "Heure du repas";
+"notification_feeding_body %@" = "Il est peut-être temps de nourrir %@";
+"notification_sleep_title" = "Vérification sommeil";
+"notification_sleep_body %@" = "%@ dort depuis un moment";
+"notification_bf_title" = "Rappel d'allaitement";
+"notification_bf_body %@ %@" = "C'est l'heure de la tétée %@ de %@";
+"notification_milestone_title" = "Événement !";
+"notification_milestone_body %@ %@" = "%@ a atteint une étape : %@";
+"notification_snoozed_title" = "Rappel";
+"notification_snoozed_body" = "Rappel reporté";
+"notification_action_snooze" = "Reporter 30min";
+"notification_action_dismiss" = "Ignorer";
