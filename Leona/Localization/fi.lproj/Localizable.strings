@@ -354,6 +354,12 @@
 "unit_fahrenheit" = "Fahrenheit (°F)";
 "unit_metric" = "Metrinen (kg, cm)";
 "unit_imperial" = "Imperiaalinen (lb, in)";
+"accent_color" = "Korostusväri";
+"accent_rose" = "Ruusu";
+"accent_blue" = "Sininen";
+"accent_purple" = "Violetti";
+"accent_green" = "Vihreä";
+"accent_orange" = "Oranssi";
 "language" = "Kieli";
 "app_language" = "Sovelluksen kieli";
 "language_system" = "Järjestelmä";
@@ -407,3 +413,30 @@
 "notification_snoozed_body" = "Torkutettu muistutus";
 "notification_action_snooze" = "Torkuta 30min";
 "notification_action_dismiss" = "Ohita";
+
+/* iCloud Settings */
+"icloud_sync_toggle" = "iCloud-synkronointi";
+"icloud_sync_enabled_desc" = "Tiedot synkronoituvat kaikille laitteillesi";
+"icloud_sync_disabled_desc" = "Tiedot tallennetaan vain tähän laitteeseen";
+"icloud_restart_note" = "Tämän asetuksen muuttaminen vaatii sovelluksen uudelleenkäynnistyksen.";
+"icloud_account_status" = "Tilin tila";
+"icloud_available" = "Yhdistetty";
+"icloud_unavailable" = "Ei saatavilla";
+"icloud_status_desc" = "Kirjaudu iCloudiin Asetuksissa ottaaksesi synkronoinnin käyttöön";
+
+/* Sharing */
+"share_with_partner" = "Jaa kumppanin kanssa";
+"share_baby_profile" = "Jaa vauvan profiili";
+"share_description" = "Kutsu kumppanisi käyttämään %@n tietoja";
+"share_via" = "Jaa kautta";
+"share_link_copied" = "Kutsulinkki kopioitu!";
+"share_generating" = "Luodaan jakolinkkiä...";
+"share_error" = "Jakolinkkiä ei voitu luoda";
+"share_invitation_text %@" = "Haluaisin jakaa %@n vauvaseurannan kanssasi Leonassa! Avaa tämä linkki liittyäksesi: ";
+"invite_partner" = "Kutsu kumppani";
+"invite_partner_desc" = "Molemmat vanhemmat voivat seurata ja katsella samoja tietoja";
+"share_url_unavailable" = "Jakolinkkiä ei voitu luoda. Yritä uudelleen.";
+"share_fallback_message" = "Lataa Leona App Storesta aloittaaksesi!";
+"share_icloud_disabled" = "Ota iCloud-synkronointi käyttöön asetuksissa luodaksesi jakolinkin.";
+"share_icloud_unavailable" = "iCloud ei ole saatavilla. Tarkista iCloud-asetuksesi.";
+"cloudkit_not_available" = "CloudKit ei ole saatavilla. Apple Developer -ohjelma vaaditaan.";

@@ -4,11 +4,11 @@ import SwiftUI
 
 @Model
 final class Activity {
-    var id: UUID
-    var type: ActivityType
-    var startTime: Date
+    var id: UUID = UUID()
+    var type: ActivityType = ActivityType.note
+    var startTime: Date = Date()
     var endTime: Date?
-    var isOngoing: Bool
+    var isOngoing: Bool = false
     
     // Feeding
     var volumeML: Double?
@@ -29,8 +29,8 @@ final class Activity {
     // Relationship
     var baby: Baby?
     
-    var createdAt: Date
-    var updatedAt: Date
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
     
     init(
         type: ActivityType,

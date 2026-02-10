@@ -9,28 +9,37 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     
     @Query private var allActivities: [Activity]
+    @Query(sort: \Baby.createdAt) private var babies: [Baby]
     @Query private var growthRecords: [GrowthRecord]
     @Query private var healthRecords: [HealthRecord]
     
     @State private var showExport = false
     @State private var showDeleteAllConfirm = false
+    @State private var showBabySelector = false
     @State private var showShareSheet = false
-    @State private var exportURL: URL?
+    @State private var shareItems: [Any] = []
+    @State private var isGeneratingShare = false
+    @State private var shareError: String?
+    @State private var showRestartAlert = false
+    @State private var pendingCloudValue = false
     
     var body: some View {
         NavigationStack {
             List {
-                // iCloud Status
-                icloudSection
+                // Baby profile header
+                babyProfileSection
                 
-                // Feature Toggles
-                featureTogglesSection
+                // iCloud & Sharing
+                icloudSection
                 
                 // Appearance
                 appearanceSection
                 
                 // Language
                 languageSection
+                
+                // Feature Toggles
+                featureTogglesSection
                 
                 // Notifications
                 notificationSection
@@ -45,56 +54,264 @@ struct SettingsView: View {
             .sheet(isPresented: $showExport) {
                 DataExportView(baby: baby)
             }
+            .sheet(isPresented: $showBabySelector) {
+                BabySelectorView()
+            }
+            .sheet(isPresented: $showShareSheet) {
+                if !shareItems.isEmpty {
+                    ShareSheet(items: shareItems)
+                }
+            }
+            .alert(String(localized: "icloud_sync_toggle"), isPresented: $showRestartAlert) {
+                Button(String(localized: "ok")) {
+                    settings.iCloudSyncEnabled = pendingCloudValue
+                }
+                Button(String(localized: "cancel"), role: .cancel) { }
+            } message: {
+                Text(String(localized: "icloud_restart_note"))
+            }
         }
     }
     
-    // MARK: - iCloud
+    // MARK: - Baby Profile Section
     
-    @ViewBuilder
+    private var babyProfileSection: some View {
+        Section {
+            Button { showBabySelector = true } label: {
+                HStack(spacing: 14) {
+                    ZStack {
+                        if let image = baby.profileImage {
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } else {
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
+                                .foregroundStyle(baby.gender.color.opacity(0.6))
+                        }
+                    }
+                    .frame(width: 56, height: 56)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.leonaPrimary.opacity(0.3), lineWidth: 2))
+                    
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(baby.displayName)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Text(baby.ageDescription)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    if babies.count > 1 {
+                        Text("\(babies.count)")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color(.tertiarySystemFill))
+                            .clipShape(Capsule())
+                    }
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.vertical, 4)
+            }
+            .tint(.primary)
+        }
+    }
+    
+    // MARK: - iCloud & Sharing
+    
     private var icloudSection: some View {
         Section {
-            HStack(spacing: 12) {
-                Image(systemName: cloudKit.syncStatus.icon)
-                    .foregroundStyle(cloudKit.iCloudAvailable ? .blue : .secondary)
-                    .symbolEffect(.pulse, isActive: cloudKit.syncStatus == .syncing)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("iCloud")
-                        .font(.subheadline.weight(.medium))
-                    Text(cloudKit.syncStatus.displayName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            // iCloud toggle
+            Toggle(isOn: Binding(
+                get: { settings.iCloudSyncEnabled },
+                set: { newValue in
+                    pendingCloudValue = newValue
+                    showRestartAlert = true
+                }
+            )) {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(String(localized: "icloud_sync_toggle"))
+                        Text(settings.iCloudSyncEnabled
+                             ? String(localized: "icloud_sync_enabled_desc")
+                             : String(localized: "icloud_sync_disabled_desc"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } icon: {
+                    Image(systemName: "icloud.fill")
+                        .foregroundStyle(.blue)
+                }
+            }
+            .tint(.blue)
+            
+            // iCloud account status
+            if settings.iCloudSyncEnabled {
+                HStack(spacing: 12) {
+                    Image(systemName: cloudKit.syncStatus.icon)
+                        .foregroundStyle(cloudKit.iCloudAvailable ? .green : .secondary)
+                        .symbolEffect(.pulse, isActive: cloudKit.syncStatus == .syncing)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(String(localized: "icloud_account_status"))
+                            .font(.subheadline)
+                        Text(cloudKit.iCloudAvailable
+                             ? String(localized: "icloud_available")
+                             : String(localized: "icloud_unavailable"))
+                            .font(.caption)
+                            .foregroundStyle(cloudKit.iCloudAvailable ? .green : .orange)
+                    }
+                    
+                    Spacer()
+                    
+                    if let lastSync = cloudKit.lastSyncDate {
+                        Text(lastSync.timeAgo())
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 
-                Spacer()
-                
-                if cloudKit.iCloudAvailable {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                } else {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.red)
+                if !cloudKit.iCloudAvailable {
+                    Label {
+                        Text(String(localized: "icloud_status_desc"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
                 }
             }
             
-            if let lastSync = cloudKit.lastSyncDate {
-                HStack {
-                    Text(String(localized: "last_sync"))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(lastSync.timeAgo())
-                        .foregroundStyle(.secondary)
-                        .font(.caption)
+            // Share with partner
+            Button {
+                shareBabyProfile()
+            } label: {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(String(localized: "invite_partner"))
+                        Text(String(localized: "invite_partner_desc"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } icon: {
+                    if isGeneratingShare {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "person.badge.plus")
+                            .foregroundStyle(.leonaPrimary)
+                    }
                 }
             }
+            .disabled(isGeneratingShare)
         } header: {
             Text(String(localized: "sync"))
+        } footer: {
+            if let error = shareError {
+                Text(error)
+                    .foregroundStyle(.red)
+            }
+        }
+    }
+    
+    // MARK: - Appearance
+    
+    private var appearanceSection: some View {
+        Section(String(localized: "appearance")) {
+            // Theme picker - Apple-standard inline navigation picker
+            Picker(String(localized: "theme"), selection: Binding(get: { settings.colorScheme }, set: { settings.colorScheme = $0 })) {
+                ForEach(AppColorScheme.allCases) { scheme in
+                    Label(scheme.displayName, systemImage: scheme.icon)
+                        .tag(scheme)
+                }
+            }
+            
+            // Accent color selector
+            VStack(alignment: .leading, spacing: 12) {
+                Text(String(localized: "accent_color"))
+                    .font(.body)
+                
+                HStack(spacing: 16) {
+                    ForEach(AppAccentColor.allCases) { accent in
+                        Button {
+                            withAnimation(.spring(response: 0.3)) {
+                                settings.accentColor = accent
+                            }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        } label: {
+                            ZStack {
+                                Circle()
+                                    .fill(accent.color.gradient)
+                                    .frame(width: 36, height: 36)
+                                    .shadow(color: accent.color.opacity(0.3), radius: settings.accentColor == accent ? 4 : 0, x: 0, y: 2)
+                                
+                                if settings.accentColor == accent {
+                                    Circle()
+                                        .strokeBorder(.white, lineWidth: 2.5)
+                                        .frame(width: 36, height: 36)
+                                    
+                                    Image(systemName: "checkmark")
+                                        .font(.caption.bold())
+                                        .foregroundStyle(.white)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .scaleEffect(settings.accentColor == accent ? 1.15 : 1.0)
+                        .animation(.spring(response: 0.3), value: settings.accentColor)
+                    }
+                    
+                    Spacer()
+                }
+            }
+            .padding(.vertical, 4)
+            
+            // Units
+            Toggle(isOn: Binding(get: { settings.useCelsius }, set: { settings.useCelsius = $0 })) {
+                Label(
+                    settings.useCelsius ? String(localized: "unit_celsius") : String(localized: "unit_fahrenheit"),
+                    systemImage: "thermometer"
+                )
+            }
+            .tint(.leonaPrimary)
+            
+            Toggle(isOn: Binding(get: { settings.useMetric }, set: { settings.useMetric = $0 })) {
+                Label(
+                    settings.useMetric ? String(localized: "unit_metric") : String(localized: "unit_imperial"),
+                    systemImage: "ruler"
+                )
+            }
+            .tint(.leonaPrimary)
+        }
+    }
+    
+    // MARK: - Language
+    
+    private var languageSection: some View {
+        Section(String(localized: "language")) {
+            Picker(selection: Binding(get: { settings.language }, set: { settings.language = $0 })) {
+                ForEach(AppLanguage.allCases) { lang in
+                    Text("\(lang.flag) \(lang.displayName)")
+                        .tag(lang)
+                }
+            } label: {
+                Label(String(localized: "app_language"), systemImage: "globe")
+            }
         }
     }
     
     // MARK: - Feature Toggles
     
-    @ViewBuilder
     private var featureTogglesSection: some View {
         Section(String(localized: "tracking_features")) {
             Toggle(isOn: Binding(get: { settings.showSleepTracking }, set: { settings.showSleepTracking = $0 })) {
@@ -120,65 +337,18 @@ struct SettingsView: View {
             Toggle(isOn: Binding(get: { settings.showOngoingStatus }, set: { settings.showOngoingStatus = $0 })) {
                 Label(String(localized: "toggle_ongoing_status"), systemImage: "bell.badge.fill")
             }
-            .tint(.leonaPink)
-        }
-    }
-    
-    // MARK: - Appearance
-    
-    @ViewBuilder
-    private var appearanceSection: some View {
-        Section(String(localized: "appearance")) {
-            Picker(String(localized: "theme"), selection: Binding(get: { settings.colorScheme }, set: { settings.colorScheme = $0 })) {
-                ForEach(AppColorScheme.allCases) { scheme in
-                    Text(scheme.displayName).tag(scheme)
-                }
-            }
-            
-            Toggle(isOn: Binding(get: { settings.useCelsius }, set: { settings.useCelsius = $0 })) {
-                Label(
-                    settings.useCelsius ? String(localized: "unit_celsius") : String(localized: "unit_fahrenheit"),
-                    systemImage: "thermometer"
-                )
-            }
-            .tint(.leonaPink)
-            
-            Toggle(isOn: Binding(get: { settings.useMetric }, set: { settings.useMetric = $0 })) {
-                Label(
-                    settings.useMetric ? String(localized: "unit_metric") : String(localized: "unit_imperial"),
-                    systemImage: "ruler"
-                )
-            }
-            .tint(.leonaPink)
-        }
-    }
-    
-    // MARK: - Language
-    
-    @ViewBuilder
-    private var languageSection: some View {
-        Section(String(localized: "language")) {
-            Picker(String(localized: "app_language"), selection: Binding(get: { settings.language }, set: { settings.language = $0 })) {
-                ForEach(AppLanguage.allCases) { lang in
-                    HStack {
-                        Text(lang.flag)
-                        Text(lang.displayName)
-                    }
-                    .tag(lang)
-                }
-            }
+            .tint(.leonaPrimary)
         }
     }
     
     // MARK: - Notifications
     
-    @ViewBuilder
     private var notificationSection: some View {
         Section(String(localized: "notifications")) {
             Toggle(isOn: Binding(get: { settings.enableFeedingReminders }, set: { settings.enableFeedingReminders = $0 })) {
                 Label(String(localized: "feeding_reminders"), systemImage: "bell.fill")
             }
-            .tint(.leonaPink)
+            .tint(.leonaPrimary)
             
             if settings.enableFeedingReminders {
                 Picker(String(localized: "reminder_interval"), selection: Binding(get: { settings.feedingReminderInterval }, set: { settings.feedingReminderInterval = $0 })) {
@@ -199,7 +369,6 @@ struct SettingsView: View {
     
     // MARK: - Data
     
-    @ViewBuilder
     private var dataSection: some View {
         Section(String(localized: "data")) {
             Button {
@@ -232,32 +401,68 @@ struct SettingsView: View {
     private var aboutSection: some View {
         Section(String(localized: "about")) {
             HStack {
-                Text(String(localized: "version"))
+                Label(String(localized: "version"), systemImage: "info.circle")
                 Spacer()
-                Text("1.0.0")
+                Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0")
                     .foregroundStyle(.secondary)
             }
             
             HStack {
-                Text(String(localized: "app_name"))
+                Label(String(localized: "app_name"), systemImage: "heart.fill")
                 Spacer()
                 Text("Leona")
-                    .foregroundStyle(.leonaPink)
+                    .foregroundStyle(.leonaPrimary)
                     .fontWeight(.semibold)
-            }
-            
-            Link(destination: URL(string: "https://github.com/leona-app")!) {
-                HStack {
-                    Text(String(localized: "source_code"))
-                    Spacer()
-                    Image(systemName: "arrow.up.right.square")
-                        .foregroundStyle(.secondary)
-                }
             }
         }
     }
     
-    // MARK: - Data Management
+    // MARK: - Actions
+    
+    private func shareBabyProfile() {
+        isGeneratingShare = true
+        shareError = nil
+        
+        let shareText = String(localized: "share_invitation_text \(baby.displayName)")
+        
+        if cloudKit.iCloudAvailable && settings.iCloudSyncEnabled {
+            Task {
+                do {
+                    let share = try await cloudKit.shareBabyProfile(baby: baby)
+                    await MainActor.run {
+                        if let url = share.url {
+                            // Format: invitation text + line break + iCloud share link
+                            let fullMessage = shareText + "\n\n" + url.absoluteString
+                            shareItems = [fullMessage]
+                        } else {
+                            shareError = String(localized: "share_url_unavailable")
+                            shareItems = [shareText]
+                        }
+                        isGeneratingShare = false
+                        showShareSheet = true
+                    }
+                } catch {
+                    await MainActor.run {
+                        shareError = error.localizedDescription
+                        // Fall back to basic text sharing
+                        shareItems = [shareText + "\n\n" + String(localized: "share_fallback_message")]
+                        isGeneratingShare = false
+                        showShareSheet = true
+                    }
+                }
+            }
+        } else {
+            if !settings.iCloudSyncEnabled {
+                shareError = String(localized: "share_icloud_disabled")
+            } else if !cloudKit.iCloudAvailable {
+                shareError = String(localized: "share_icloud_unavailable")
+            }
+            // Offline sharing - just share the invitation text
+            shareItems = [shareText + "\n\n" + String(localized: "share_fallback_message")]
+            isGeneratingShare = false
+            showShareSheet = true
+        }
+    }
     
     private func deleteAllData() {
         let babyActivities = allActivities.filter { $0.baby?.id == baby.id }
@@ -275,6 +480,18 @@ struct SettingsView: View {
             modelContext.delete(record)
         }
     }
+}
+
+// MARK: - Share Sheet (UIKit wrapper)
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - Data Export View
@@ -309,7 +526,7 @@ struct DataExportView: View {
             VStack(spacing: 20) {
                 Image(systemName: "square.and.arrow.up")
                     .font(.system(size: 48))
-                    .foregroundStyle(.leonaPink)
+                    .foregroundStyle(.leonaPrimary)
                     .padding(.top, 32)
                 
                 Text(String(localized: "export_title"))
@@ -354,7 +571,7 @@ struct DataExportView: View {
                     Label(String(localized: "generate_export"), systemImage: "doc.badge.arrow.up")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(LeonaButtonStyle(color: .leonaPink))
+                .buttonStyle(LeonaButtonStyle(color: .leonaPrimary))
                 .padding(.horizontal)
                 
                 if !exportContent.isEmpty {
@@ -375,7 +592,7 @@ struct DataExportView: View {
                         Label(String(localized: "copy_to_clipboard"), systemImage: "doc.on.doc")
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(LeonaSecondaryButtonStyle(color: .leonaPink))
+                    .buttonStyle(LeonaSecondaryButtonStyle(color: .leonaPrimary))
                     .padding(.horizontal)
                 }
                 

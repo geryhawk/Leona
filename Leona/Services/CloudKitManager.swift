@@ -8,7 +8,18 @@ import SwiftUI
 final class CloudKitManager {
     static let shared = CloudKitManager()
     
-    private let container = CKContainer(identifier: "iCloud.com.leona.app")
+    /// Whether CloudKit is enabled (requires iCloud entitlements + Developer Program)
+    static let isCloudKitEnabled = true
+    
+    /// Dedicated zone for shareable baby records
+    static let babyZoneName = "BabyZone"
+    
+    // CKContainer is thread-safe and lightweight; one shared instance
+    @ObservationIgnored
+    private let container: CKContainer? = {
+        guard isCloudKitEnabled else { return nil }
+        return CKContainer(identifier: "iCloud.com.leona.app")
+    }()
     
     var iCloudAvailable = false
     var iCloudStatus: CKAccountStatus = .couldNotDetermine
@@ -48,6 +59,13 @@ final class CloudKitManager {
     // MARK: - Check iCloud Status
     
     func checkiCloudStatus() async {
+        guard let container = container else {
+            await MainActor.run {
+                self.iCloudAvailable = false
+                self.syncStatus = .offline
+            }
+            return
+        }
         do {
             let status = try await container.accountStatus()
             await MainActor.run {
@@ -72,23 +90,85 @@ final class CloudKitManager {
         return code
     }
     
+    // MARK: - Ensure Custom Zone Exists
+    
+    private func ensureZoneExists(in database: CKDatabase) async throws -> CKRecordZone.ID {
+        let zoneID = CKRecordZone.ID(zoneName: Self.babyZoneName, ownerName: CKCurrentUserDefaultName)
+        let zone = CKRecordZone(zoneID: zoneID)
+        
+        do {
+            let results = try await database.modifyRecordZones(saving: [zone], deleting: [])
+            if let result = results.saveResults[zoneID], case .failure(let error) = result {
+                // Zone already exists is OK, other errors rethrow
+                let ckError = error as? CKError
+                if ckError?.code != .serverRejectedRequest {
+                    throw error
+                }
+            }
+        } catch {
+            // If zone already exists, that's fine
+            let ckError = error as? CKError
+            if ckError?.code != .serverRejectedRequest {
+                throw error
+            }
+        }
+        
+        return zoneID
+    }
+    
     // MARK: - Share Baby Profile
     
     func shareBabyProfile(baby: Baby) async throws -> CKShare {
+        guard let container = container else {
+            throw NSError(
+                domain: "CloudKitManager",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: String(localized: "cloudkit_not_available")]
+            )
+        }
+        
         let privateDB = container.privateCloudDatabase
         
-        let recordID = CKRecord.ID(recordName: baby.id.uuidString)
+        // Ensure the custom zone exists (CKShare requires a custom zone)
+        let zoneID = try await ensureZoneExists(in: privateDB)
+        
+        // Create the baby record in the custom zone
+        let recordID = CKRecord.ID(recordName: "baby-\(baby.id.uuidString)", zoneID: zoneID)
         let record = CKRecord(recordType: "Baby", recordID: recordID)
         record["firstName"] = baby.firstName as CKRecordValue
         record["lastName"] = baby.lastName as CKRecordValue
         record["dateOfBirth"] = baby.dateOfBirth as CKRecordValue
         record["gender"] = baby.gender.rawValue as CKRecordValue
         
+        // Create share with public read/write
         let share = CKShare(rootRecord: record)
-        share[CKShare.SystemFieldKey.title] = "\(baby.displayName)'s Profile" as CKRecordValue
+        share[CKShare.SystemFieldKey.title] = "\(baby.displayName)" as CKRecordValue
         share.publicPermission = .readWrite
         
-        try await privateDB.modifyRecords(saving: [record, share], deleting: [])
+        // Save and CAPTURE the returned share (it contains the server-generated URL)
+        let results = try await privateDB.modifyRecords(
+            saving: [record, share],
+            deleting: [],
+            savePolicy: .changedKeys
+        )
+        
+        // Extract the saved share from results - this is the one with the URL
+        if let shareResult = results.saveResults[share.recordID],
+           case .success(let savedRecord) = shareResult,
+           let savedShare = savedRecord as? CKShare,
+           savedShare.url != nil {
+            return savedShare
+        }
+        
+        // If somehow the share didn't come back, try fetching it directly
+        do {
+            let fetchedRecord = try await privateDB.record(for: share.recordID)
+            if let fetchedShare = fetchedRecord as? CKShare {
+                return fetchedShare
+            }
+        } catch {
+            // Fall through to return original share
+        }
         
         return share
     }
@@ -102,6 +182,7 @@ final class CloudKitManager {
     // MARK: - Accept Share
     
     func acceptShare(metadata: CKShare.Metadata) async throws {
+        guard let container = container else { return }
         try await container.accept(metadata)
         await MainActor.run {
             self.syncStatus = .synced
@@ -135,17 +216,36 @@ extension ModelContainer {
             HealthRecord.self
         ])
         
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: false,
-            allowsSave: true,
-            groupContainer: .automatic,
-            cloudKitDatabase: .automatic
-        )
+        let useCloud = AppSettings.shared.iCloudSyncEnabled
         
-        return try ModelContainer(
-            for: schema,
-            configurations: [modelConfiguration]
-        )
+        if useCloud {
+            // Try CloudKit first, fall back to local-only
+            do {
+                let cloudConfig = ModelConfiguration(
+                    schema: schema,
+                    isStoredInMemoryOnly: false,
+                    allowsSave: true,
+                    groupContainer: .automatic,
+                    cloudKitDatabase: .automatic
+                )
+                return try ModelContainer(for: schema, configurations: [cloudConfig])
+            } catch {
+                let localConfig = ModelConfiguration(
+                    schema: schema,
+                    isStoredInMemoryOnly: false,
+                    allowsSave: true,
+                    cloudKitDatabase: .none
+                )
+                return try ModelContainer(for: schema, configurations: [localConfig])
+            }
+        } else {
+            let localConfig = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: false,
+                allowsSave: true,
+                cloudKitDatabase: .none
+            )
+            return try ModelContainer(for: schema, configurations: [localConfig])
+        }
     }
 }

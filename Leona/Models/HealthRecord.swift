@@ -4,14 +4,14 @@ import SwiftUI
 
 @Model
 final class HealthRecord {
-    var id: UUID
-    var illnessType: IllnessType
-    var startDate: Date
+    var id: UUID = UUID()
+    var illnessType: IllnessType = IllnessType.other
+    var startDate: Date = Date()
     var endDate: Date?
-    var notes: String
+    var notes: String = ""
     var baby: Baby?
-    var createdAt: Date
-    var updatedAt: Date
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
     
     // Embedded data (stored as JSON-encoded arrays)
     var symptomsData: Data?

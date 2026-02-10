@@ -3,14 +3,14 @@ import SwiftData
 
 @Model
 final class GrowthRecord {
-    var id: UUID
-    var date: Date
+    var id: UUID = UUID()
+    var date: Date = Date()
     var weightKg: Double?
     var heightCm: Double?
     var headCircumferenceCm: Double?
     var baby: Baby?
-    var createdAt: Date
-    var updatedAt: Date
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
     
     init(
         date: Date = Date(),

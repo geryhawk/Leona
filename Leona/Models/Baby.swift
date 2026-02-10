@@ -5,16 +5,16 @@ import UIKit
 
 @Model
 final class Baby {
-    var id: UUID
-    var firstName: String
-    var lastName: String
-    var dateOfBirth: Date
-    var gender: BabyGender
-    var bloodType: String
+    var id: UUID = UUID()
+    var firstName: String = ""
+    var lastName: String = ""
+    var dateOfBirth: Date = Date()
+    var gender: BabyGender = BabyGender.unspecified
+    var bloodType: String = ""
     @Attribute(.externalStorage) var profileImageData: Data?
-    var isActive: Bool
-    var createdAt: Date
-    var updatedAt: Date
+    var isActive: Bool = true
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
     
     // Sharing
     var shareCode: String?
@@ -22,13 +22,13 @@ final class Baby {
     
     // Relationships
     @Relationship(deleteRule: .cascade, inverse: \Activity.baby)
-    var activities: [Activity] = []
+    var activities: [Activity]? = []
     
     @Relationship(deleteRule: .cascade, inverse: \GrowthRecord.baby)
-    var growthRecords: [GrowthRecord] = []
+    var growthRecords: [GrowthRecord]? = []
     
     @Relationship(deleteRule: .cascade, inverse: \HealthRecord.baby)
-    var healthRecords: [HealthRecord] = []
+    var healthRecords: [HealthRecord]? = []
     
     init(
         firstName: String,

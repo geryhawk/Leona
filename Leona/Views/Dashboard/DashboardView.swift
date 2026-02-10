@@ -138,7 +138,7 @@ struct DashboardView: View {
     private var babyHeaderSection: some View {
         HStack(spacing: 16) {
             // Profile image
-            Group {
+            ZStack {
                 if let image = baby.profileImage {
                     image
                         .resizable()
@@ -146,12 +146,12 @@ struct DashboardView: View {
                 } else {
                     Image(systemName: "person.crop.circle.fill")
                         .resizable()
-                        .foregroundStyle(.leonaPink.opacity(0.6))
+                        .foregroundStyle(Color.leonaPink.opacity(0.6))
                 }
             }
             .frame(width: 56, height: 56)
             .clipShape(Circle())
-            .overlay(Circle().stroke(.leonaPink.opacity(0.3), lineWidth: 2))
+            .overlay(Circle().stroke(Color.leonaPink.opacity(0.3), lineWidth: 2))
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(baby.displayName)
@@ -408,7 +408,7 @@ struct DashboardView: View {
     
     private var babyAvatarButton: some View {
         Button { showBabySelector = true } label: {
-            Group {
+            ZStack {
                 if let image = baby.profileImage {
                     image
                         .resizable()
@@ -416,12 +416,12 @@ struct DashboardView: View {
                 } else {
                     Image(systemName: "person.2.fill")
                         .font(.caption)
-                        .foregroundStyle(.leonaPink)
+                        .foregroundStyle(Color.leonaPink)
                 }
             }
             .frame(width: 32, height: 32)
             .clipShape(Circle())
-            .overlay(Circle().stroke(.leonaPink.opacity(0.3), lineWidth: 1))
+            .overlay(Circle().stroke(Color.leonaPink.opacity(0.3), lineWidth: 1))
         }
     }
     

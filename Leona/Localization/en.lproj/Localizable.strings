@@ -354,6 +354,12 @@
 "unit_fahrenheit" = "Fahrenheit (°F)";
 "unit_metric" = "Metric (kg, cm)";
 "unit_imperial" = "Imperial (lb, in)";
+"accent_color" = "Accent Color";
+"accent_rose" = "Rose";
+"accent_blue" = "Blue";
+"accent_purple" = "Purple";
+"accent_green" = "Green";
+"accent_orange" = "Orange";
 "language" = "Language";
 "app_language" = "App Language";
 "language_system" = "System";
@@ -407,3 +413,30 @@
 "notification_snoozed_body" = "Snoozed reminder";
 "notification_action_snooze" = "Snooze 30m";
 "notification_action_dismiss" = "Dismiss";
+
+/* iCloud Settings */
+"icloud_sync_toggle" = "iCloud Sync";
+"icloud_sync_enabled_desc" = "Data syncs across all your devices";
+"icloud_sync_disabled_desc" = "Data is stored locally on this device only";
+"icloud_restart_note" = "Changing this setting requires restarting the app to take effect.";
+"icloud_account_status" = "Account Status";
+"icloud_available" = "Connected";
+"icloud_unavailable" = "Not Available";
+"icloud_status_desc" = "Sign in to iCloud in Settings to enable sync";
+
+/* Sharing */
+"share_with_partner" = "Share with Partner";
+"share_baby_profile" = "Share Baby Profile";
+"share_description" = "Invite your partner to access %@'s data";
+"share_via" = "Share via";
+"share_link_copied" = "Invitation link copied!";
+"share_generating" = "Generating share link...";
+"share_error" = "Could not generate share link";
+"share_invitation_text %@" = "I'd like to share %@'s baby tracker with you on Leona! Open this link to join: ";
+"invite_partner" = "Invite Partner";
+"invite_partner_desc" = "Both parents can track and view the same data";
+"share_url_unavailable" = "The share link could not be generated. Please try again.";
+"share_fallback_message" = "Download Leona from the App Store to get started!";
+"share_icloud_disabled" = "Enable iCloud Sync in settings to generate a share link.";
+"share_icloud_unavailable" = "iCloud is not available. Please check your iCloud settings.";
+"cloudkit_not_available" = "CloudKit is not available. Apple Developer Program required.";

@@ -17,12 +17,13 @@ struct BabySelectorView: View {
                 // Baby profiles
                 Section(String(localized: "your_babies")) {
                     ForEach(babies) { baby in
+                        let isSelected = settings.activeBabyID == baby.id.uuidString
                         Button {
                             selectBaby(baby)
                         } label: {
                             HStack(spacing: 14) {
                                 // Avatar
-                                Group {
+                                ZStack {
                                     if let image = baby.profileImage {
                                         image
                                             .resizable()
@@ -37,10 +38,8 @@ struct BabySelectorView: View {
                                 .clipShape(Circle())
                                 .overlay(
                                     Circle().stroke(
-                                        settings.activeBabyID == baby.id.uuidString
-                                            ? Color.leonaPink
-                                            : Color.clear,
-                                        lineWidth: 2
+                                        isSelected ? Color.leonaPrimary : Color.clear,
+                                        lineWidth: 2.5
                                     )
                                 )
                                 
@@ -49,18 +48,22 @@ struct BabySelectorView: View {
                                         .font(.headline)
                                     
                                     Text(baby.ageDescription)
-                                        .font(.caption)
+                                        .font(.subheadline)
                                         .foregroundStyle(.secondary)
                                 }
                                 
                                 Spacer()
                                 
-                                if settings.activeBabyID == baby.id.uuidString {
+                                if isSelected {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.leonaPink)
+                                        .foregroundStyle(.leonaPrimary)
+                                        .font(.title3)
                                 }
                             }
+                            .padding(.vertical, 4)
                         }
+                        .tint(.primary)
+                        .listRowBackground(isSelected ? Color.leonaPrimary.opacity(0.06) : nil)
                         .swipeActions(edge: .trailing) {
                             Button(role: .destructive) {
                                 deleteBaby(baby)
@@ -84,25 +87,8 @@ struct BabySelectorView: View {
                         showAddBaby = true
                     } label: {
                         Label(String(localized: "add_baby"), systemImage: "plus.circle.fill")
-                            .foregroundStyle(.leonaPink)
+                            .foregroundStyle(.leonaPrimary)
                     }
-                }
-                
-                // Sharing info
-                Section {
-                    HStack(spacing: 12) {
-                        Image(systemName: "icloud.fill")
-                            .foregroundStyle(.blue)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(String(localized: "icloud_sync"))
-                                .font(.subheadline.weight(.medium))
-                            Text(String(localized: "icloud_sync_description"))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                } header: {
-                    Text(String(localized: "sharing"))
                 }
             }
             .navigationTitle(String(localized: "babies"))
@@ -122,21 +108,27 @@ struct BabySelectorView: View {
     }
     
     private func selectBaby(_ baby: Baby) {
-        settings.activeBabyID = baby.id.uuidString
+        withAnimation(.easeInOut(duration: 0.2)) {
+            settings.activeBabyID = baby.id.uuidString
+        }
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        dismiss()
+        // Small delay so the user sees the selection feedback
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            dismiss()
+        }
     }
     
     private func deleteBaby(_ baby: Baby) {
-        guard babies.count > 1 else { return } // Don't delete the last baby
+        guard babies.count > 1 else { return }
         
         if settings.activeBabyID == baby.id.uuidString {
-            // Switch to another baby
             if let other = babies.first(where: { $0.id != baby.id }) {
                 settings.activeBabyID = other.id.uuidString
             }
         }
         
-        modelContext.delete(baby)
+        withAnimation {
+            modelContext.delete(baby)
+        }
     }
 }

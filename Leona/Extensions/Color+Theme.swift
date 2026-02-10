@@ -1,15 +1,28 @@
 import SwiftUI
 
-// MARK: - App Theme Colors
+// MARK: - Dynamic Theme Colors (resolve from AppSettings accent color)
 
 extension Color {
     
-    // Primary palette
-    static let leonaPink = Color(red: 0.863, green: 0.518, blue: 0.639)
-    static let leonaPinkLight = Color(red: 0.949, green: 0.784, blue: 0.847)
-    static let leonaPinkDark = Color(red: 0.694, green: 0.361, blue: 0.478)
+    // Dynamic primary colors - read from current accent setting
+    static var leonaPrimary: Color {
+        AppSettings.shared.accentColor.color
+    }
     
-    // Accent colors
+    static var leonaPrimaryLight: Color {
+        AppSettings.shared.accentColor.colorLight
+    }
+    
+    static var leonaPrimaryDark: Color {
+        AppSettings.shared.accentColor.colorDark
+    }
+    
+    // Legacy aliases - point to dynamic primary
+    static var leonaPink: Color { leonaPrimary }
+    static var leonaPinkLight: Color { leonaPrimaryLight }
+    static var leonaPinkDark: Color { leonaPrimaryDark }
+    
+    // Accent colors (fixed, for specific use)
     static let leonaBlue = Color(red: 0.4, green: 0.6, blue: 0.85)
     static let leonaBlueDark = Color(red: 0.2, green: 0.3, blue: 0.55)
     static let leonaPurple = Color(red: 0.6, green: 0.4, blue: 0.8)
@@ -35,13 +48,46 @@ extension Color {
     static let feedingColor = Color(red: 1.0, green: 0.6, blue: 0.7)
     static let sleepColor = Color(red: 0.55, green: 0.55, blue: 0.95)
     static let diaperColor = Color(red: 0.4, green: 0.8, blue: 0.85)
-    
-    // Gradients
-    static let leonaPinkGradient = LinearGradient(
-        colors: [leonaPinkLight, leonaPink],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
+}
+
+// MARK: - ShapeStyle Extensions (allows .leonaPink in foregroundStyle, stroke, etc.)
+
+extension ShapeStyle where Self == Color {
+    static var leonaPink: Color { Color.leonaPink }
+    static var leonaPinkLight: Color { Color.leonaPinkLight }
+    static var leonaPinkDark: Color { Color.leonaPinkDark }
+    static var leonaPrimary: Color { Color.leonaPrimary }
+    static var leonaPrimaryLight: Color { Color.leonaPrimaryLight }
+    static var leonaPrimaryDark: Color { Color.leonaPrimaryDark }
+    static var leonaBlue: Color { Color.leonaBlue }
+    static var leonaBlueDark: Color { Color.leonaBlueDark }
+    static var leonaPurple: Color { Color.leonaPurple }
+    static var leonaGreen: Color { Color.leonaGreen }
+    static var leonaOrange: Color { Color.leonaOrange }
+    static var leonaBackground: Color { Color.leonaBackground }
+    static var leonaCardBackground: Color { Color.leonaCardBackground }
+    static var leonaNightBackground: Color { Color.leonaNightBackground }
+    static var leonaDayBackground: Color { Color.leonaDayBackground }
+    static var leonaText: Color { Color.leonaText }
+    static var leonaTextSecondary: Color { Color.leonaTextSecondary }
+    static var leonaSuccess: Color { Color.leonaSuccess }
+    static var leonaWarning: Color { Color.leonaWarning }
+    static var leonaError: Color { Color.leonaError }
+    static var feedingColor: Color { Color.feedingColor }
+    static var sleepColor: Color { Color.sleepColor }
+    static var diaperColor: Color { Color.diaperColor }
+}
+
+// MARK: - Dynamic Gradients
+
+extension Color {
+    static var leonaPrimaryGradient: LinearGradient {
+        LinearGradient(
+            colors: [leonaPrimaryLight, leonaPrimary],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
     
     static let leonaBlueGradient = LinearGradient(
         colors: [leonaDayBackground, leonaBlue],
@@ -56,10 +102,13 @@ extension Color {
     )
     
     static let leonaSunriseGradient = LinearGradient(
-        colors: [leonaOrange.opacity(0.6), leonaPink.opacity(0.4), leonaBlue.opacity(0.3)],
+        colors: [leonaOrange.opacity(0.6), Color(red: 0.863, green: 0.518, blue: 0.639).opacity(0.4), leonaBlue.opacity(0.3)],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
+    
+    // Legacy alias
+    static var leonaPinkGradient: LinearGradient { leonaPrimaryGradient }
 }
 
 // MARK: - Themed View Modifiers
@@ -110,11 +159,11 @@ extension View {
         modifier(LeonaCardStyle())
     }
     
-    func leonaButton(color: Color = .leonaPink) -> some View {
+    func leonaButton(color: Color = .leonaPrimary) -> some View {
         buttonStyle(LeonaButtonStyle(color: color))
     }
     
-    func leonaSecondaryButton(color: Color = .leonaPink) -> some View {
+    func leonaSecondaryButton(color: Color = .leonaPrimary) -> some View {
         buttonStyle(LeonaSecondaryButtonStyle(color: color))
     }
 }
