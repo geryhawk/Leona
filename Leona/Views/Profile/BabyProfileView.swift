@@ -129,7 +129,8 @@ struct BabyProfileView: View {
             }
             .confirmationDialog(
                 String(localized: "remove_photo_confirm"),
-                isPresented: $showRemovePhotoConfirm
+                isPresented: $showRemovePhotoConfirm,
+                titleVisibility: .visible
             ) {
                 Button(String(localized: "remove"), role: .destructive) {
                     baby.profileImageData = nil

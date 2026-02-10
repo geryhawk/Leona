@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ConfettiView: View {
     @State private var particles: [ConfettiParticle] = []
-    @State private var isAnimating = false
+    @State private var animationTimer: Timer?
     
     let colors: [Color] = [.pink, .purple, .blue, .orange, .yellow, .green, .red, .mint]
     
@@ -19,7 +19,7 @@ struct ConfettiView: View {
     }
     
     var body: some View {
-        TimelineView(.animation) { timeline in
+        TimelineView(.animation) { _ in
             Canvas { context, size in
                 for particle in particles {
                     let rect = CGRect(
@@ -40,6 +40,10 @@ struct ConfettiView: View {
             generateParticles()
             startAnimation()
         }
+        .onDisappear {
+            animationTimer?.invalidate()
+            animationTimer = nil
+        }
     }
     
     private func generateParticles() {
@@ -58,17 +62,20 @@ struct ConfettiView: View {
     }
     
     private func startAnimation() {
-        Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { timer in
-            for i in particles.indices {
-                particles[i].y += particles[i].speed
-                particles[i].x += particles[i].oscillation
-                particles[i].rotation += Double.random(in: -5...5)
+        animationTimer?.invalidate()
+        animationTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in
+            var updated = particles
+            for i in updated.indices {
+                updated[i].y += updated[i].speed
+                updated[i].x += updated[i].oscillation
+                updated[i].rotation += Double.random(in: -5...5)
                 
-                if particles[i].y > UIScreen.main.bounds.height + 50 {
-                    particles[i].y = CGFloat.random(in: -100...(-10))
-                    particles[i].x = CGFloat.random(in: 0...UIScreen.main.bounds.width)
+                if updated[i].y > UIScreen.main.bounds.height + 50 {
+                    updated[i].y = CGFloat.random(in: -100...(-10))
+                    updated[i].x = CGFloat.random(in: 0...UIScreen.main.bounds.width)
                 }
             }
+            particles = updated
         }
     }
 }
