@@ -49,8 +49,15 @@ jobs:
           BUILD_NUMBER=${{ github.run_number }}
           agvtool new-version -all $BUILD_NUMBER
 
+      - name: Resolve dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project Leona.xcodeproj \
+            -scheme Leona || true
+
       - name: Archive
         run: |
+          set -o pipefail
           xcodebuild archive \
             -project Leona.xcodeproj \
             -scheme Leona \
@@ -61,7 +68,16 @@ jobs:
             -authenticationKeyID ${{ secrets.ASC_API_KEY_ID }} \
             -authenticationKeyIssuerID ${{ secrets.ASC_API_ISSUER_ID }} \
             CODE_SIGN_STYLE=Automatic \
-            DEVELOPMENT_TEAM=HLUMLG6SWA
+            DEVELOPMENT_TEAM=HLUMLG6SWA \
+            2>&1 | tee /tmp/build.log
+
+      - name: Show build errors on failure
+        if: failure()
+        run: |
+          echo "=== LAST 200 LINES OF BUILD LOG ==="
+          tail -200 /tmp/build.log || true
+          echo "=== ERRORS ==="
+          grep -i "error:" /tmp/build.log || echo "No explicit error lines found"
 
       - name: Export and Upload to TestFlight
         run: |
