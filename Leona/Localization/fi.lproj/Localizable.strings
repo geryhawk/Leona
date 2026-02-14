@@ -425,18 +425,5 @@
 "icloud_status_desc" = "Kirjaudu iCloudiin Asetuksissa ottaaksesi synkronoinnin käyttöön";
 
 /* Sharing */
-"share_with_partner" = "Jaa kumppanin kanssa";
-"share_baby_profile" = "Jaa vauvan profiili";
-"share_description" = "Kutsu kumppanisi käyttämään %@n tietoja";
-"share_via" = "Jaa kautta";
-"share_link_copied" = "Kutsulinkki kopioitu!";
-"share_generating" = "Luodaan jakolinkkiä...";
-"share_error" = "Jakolinkkiä ei voitu luoda";
-"share_invitation_text %@" = "Haluaisin jakaa %@n vauvaseurannan kanssasi Leonassa! Avaa tämä linkki liittyäksesi: ";
-"invite_partner" = "Kutsu kumppani";
-"invite_partner_desc" = "Molemmat vanhemmat voivat seurata ja katsella samoja tietoja";
-"share_url_unavailable" = "Jakolinkkiä ei voitu luoda. Yritä uudelleen.";
-"share_fallback_message" = "Lataa Leona App Storesta aloittaaksesi!";
-"share_icloud_disabled" = "Ota iCloud-synkronointi käyttöön asetuksissa luodaksesi jakolinkin.";
-"share_icloud_unavailable" = "iCloud ei ole saatavilla. Tarkista iCloud-asetuksesi.";
-"cloudkit_not_available" = "CloudKit ei ole saatavilla. Apple Developer -ohjelma vaaditaan.";
+"invite_partner" = "Jaa kumppanin kanssa";
+"icloud_sync_partner_desc" = "Kirjaudu samalle iCloud-tilille molemmilla laitteilla. Kaikki vauvan tiedot synkronoituvat automaattisesti.";

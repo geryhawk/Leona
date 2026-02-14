@@ -69,7 +69,7 @@ struct ContentView: View {
             }
             
             Group {
-                if !settings.hasCompletedOnboarding || babies.isEmpty {
+                if !settings.hasCompletedOnboarding && babies.isEmpty {
                     OnboardingView()
                 } else {
                     mainTabView
@@ -78,7 +78,11 @@ struct ContentView: View {
             .onAppear {
                 setupApp()
             }
-            .onChange(of: babies.count) { _, _ in
+            .onChange(of: babies.count) { _, newCount in
+                // Auto-complete onboarding if babies arrived via iCloud sync
+                if newCount > 0 && !settings.hasCompletedOnboarding {
+                    settings.hasCompletedOnboarding = true
+                }
                 syncActiveBabyID()
             }
             .onChange(of: settings.activeBabyID) { _, newValue in

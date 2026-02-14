@@ -16,10 +16,6 @@ struct SettingsView: View {
     @State private var showExport = false
     @State private var showDeleteAllConfirm = false
     @State private var showBabySelector = false
-    @State private var showShareSheet = false
-    @State private var shareItems: [Any] = []
-    @State private var isGeneratingShare = false
-    @State private var shareError: String?
     @State private var showRestartAlert = false
     @State private var pendingCloudValue = false
     
@@ -56,11 +52,6 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showBabySelector) {
                 BabySelectorView()
-            }
-            .sheet(isPresented: $showShareSheet) {
-                if !shareItems.isEmpty {
-                    ShareSheet(items: shareItems)
-                }
             }
             .alert(String(localized: "icloud_sync_toggle"), isPresented: $showRestartAlert) {
                 Button(String(localized: "ok")) {
@@ -192,35 +183,22 @@ struct SettingsView: View {
                 }
             }
             
-            // Share with partner
-            Button {
-                shareBabyProfile()
-            } label: {
+            // Sync info
+            if settings.iCloudSyncEnabled && cloudKit.iCloudAvailable {
                 Label {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(String(localized: "invite_partner"))
-                        Text(String(localized: "invite_partner_desc"))
+                        Text(String(localized: "icloud_sync_partner_desc"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 } icon: {
-                    if isGeneratingShare {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        Image(systemName: "person.badge.plus")
-                            .foregroundStyle(.leonaPrimary)
-                    }
+                    Image(systemName: "person.2.fill")
+                        .foregroundStyle(.leonaPrimary)
                 }
             }
-            .disabled(isGeneratingShare)
         } header: {
             Text(String(localized: "sync"))
-        } footer: {
-            if let error = shareError {
-                Text(error)
-                    .foregroundStyle(.red)
-            }
         }
     }
     
@@ -419,51 +397,6 @@ struct SettingsView: View {
     
     // MARK: - Actions
     
-    private func shareBabyProfile() {
-        isGeneratingShare = true
-        shareError = nil
-        
-        let shareText = String(localized: "share_invitation_text \(baby.displayName)")
-        
-        if cloudKit.iCloudAvailable && settings.iCloudSyncEnabled {
-            Task {
-                do {
-                    let share = try await cloudKit.shareBabyProfile(baby: baby)
-                    await MainActor.run {
-                        if let url = share.url {
-                            // Format: invitation text + line break + iCloud share link
-                            let fullMessage = shareText + "\n\n" + url.absoluteString
-                            shareItems = [fullMessage]
-                        } else {
-                            shareError = String(localized: "share_url_unavailable")
-                            shareItems = [shareText]
-                        }
-                        isGeneratingShare = false
-                        showShareSheet = true
-                    }
-                } catch {
-                    await MainActor.run {
-                        shareError = error.localizedDescription
-                        // Fall back to basic text sharing
-                        shareItems = [shareText + "\n\n" + String(localized: "share_fallback_message")]
-                        isGeneratingShare = false
-                        showShareSheet = true
-                    }
-                }
-            }
-        } else {
-            if !settings.iCloudSyncEnabled {
-                shareError = String(localized: "share_icloud_disabled")
-            } else if !cloudKit.iCloudAvailable {
-                shareError = String(localized: "share_icloud_unavailable")
-            }
-            // Offline sharing - just share the invitation text
-            shareItems = [shareText + "\n\n" + String(localized: "share_fallback_message")]
-            isGeneratingShare = false
-            showShareSheet = true
-        }
-    }
-    
     private func deleteAllData() {
         let babyActivities = allActivities.filter { $0.baby?.id == baby.id }
         for activity in babyActivities {
@@ -482,18 +415,6 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Share Sheet (UIKit wrapper)
-
-struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-    
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
-    }
-    
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}
-
 // MARK: - Data Export View
 
 struct DataExportView: View {
@@ -507,7 +428,6 @@ struct DataExportView: View {
     
     @State private var exportFormat: ExportFormat = .csv
     @State private var exportContent: String = ""
-    @State private var showShareSheet = false
     
     enum ExportFormat: String, CaseIterable, Identifiable {
         case csv, xml, report

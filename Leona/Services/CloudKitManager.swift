@@ -3,36 +3,33 @@ import CloudKit
 import SwiftData
 import SwiftUI
 
-/// Manages iCloud sync and sharing between parents
+/// Manages iCloud sync status between devices on the same iCloud account
 @Observable
 final class CloudKitManager {
     static let shared = CloudKitManager()
-    
+
     /// Whether CloudKit is enabled (requires iCloud entitlements + Developer Program)
     static let isCloudKitEnabled = true
-    
-    /// Dedicated zone for shareable baby records
-    static let babyZoneName = "BabyZone"
-    
+
     // CKContainer is thread-safe and lightweight; one shared instance
     @ObservationIgnored
     private let container: CKContainer? = {
         guard isCloudKitEnabled else { return nil }
         return CKContainer(identifier: "iCloud.com.leona.app")
     }()
-    
+
     var iCloudAvailable = false
     var iCloudStatus: CKAccountStatus = .couldNotDetermine
     var syncStatus: SyncStatus = .idle
     var lastSyncDate: Date?
-    
+
     enum SyncStatus: String {
         case idle
         case syncing
         case synced
         case error
         case offline
-        
+
         var displayName: String {
             switch self {
             case .idle: return String(localized: "sync_idle")
@@ -42,7 +39,7 @@ final class CloudKitManager {
             case .offline: return String(localized: "sync_offline")
             }
         }
-        
+
         var icon: String {
             switch self {
             case .idle: return "icloud"
@@ -53,11 +50,11 @@ final class CloudKitManager {
             }
         }
     }
-    
+
     private init() {}
-    
+
     // MARK: - Check iCloud Status
-    
+
     func checkiCloudStatus() async {
         guard let container = container else {
             await MainActor.run {
@@ -71,7 +68,9 @@ final class CloudKitManager {
             await MainActor.run {
                 self.iCloudStatus = status
                 self.iCloudAvailable = status == .available
-                if status != .available {
+                if status == .available {
+                    self.syncStatus = .synced
+                } else {
                     self.syncStatus = .offline
                 }
             }
@@ -82,124 +81,18 @@ final class CloudKitManager {
             }
         }
     }
-    
-    // MARK: - Generate Share Code
-    
-    func generateShareCode(for babyID: UUID) -> String {
-        let code = String(babyID.uuidString.prefix(8)).uppercased()
-        return code
-    }
-    
-    // MARK: - Ensure Custom Zone Exists
-    
-    private func ensureZoneExists(in database: CKDatabase) async throws -> CKRecordZone.ID {
-        let zoneID = CKRecordZone.ID(zoneName: Self.babyZoneName, ownerName: CKCurrentUserDefaultName)
-        let zone = CKRecordZone(zoneID: zoneID)
-        
-        do {
-            let results = try await database.modifyRecordZones(saving: [zone], deleting: [])
-            if let result = results.saveResults[zoneID], case .failure(let error) = result {
-                // Zone already exists is OK, other errors rethrow
-                let ckError = error as? CKError
-                if ckError?.code != .serverRejectedRequest && ckError?.code != .zoneNotFound {
-                    throw error
-                }
-            }
-        } catch {
-            // If zone already exists, that's fine
-            let ckError = error as? CKError
-            if ckError?.code != .serverRejectedRequest && ckError?.code != .zoneNotFound {
-                throw error
-            }
-        }
-        
-        return zoneID
-    }
-    
-    // MARK: - Share Baby Profile
-    
-    func shareBabyProfile(baby: Baby) async throws -> CKShare {
-        guard let container = container else {
-            throw NSError(
-                domain: "CloudKitManager",
-                code: 1,
-                userInfo: [NSLocalizedDescriptionKey: String(localized: "cloudkit_not_available")]
-            )
-        }
-        
-        let privateDB = container.privateCloudDatabase
-        
-        // Ensure the custom zone exists (CKShare requires a custom zone)
-        let zoneID = try await ensureZoneExists(in: privateDB)
-        
-        // Create the baby record in the custom zone
-        let recordID = CKRecord.ID(recordName: "baby-\(baby.id.uuidString)", zoneID: zoneID)
-        let record = CKRecord(recordType: "Baby", recordID: recordID)
-        record["firstName"] = baby.firstName as CKRecordValue
-        record["lastName"] = baby.lastName as CKRecordValue
-        record["dateOfBirth"] = baby.dateOfBirth as CKRecordValue
-        record["gender"] = baby.gender.rawValue as CKRecordValue
-        
-        // Create share with public read/write
-        let share = CKShare(rootRecord: record)
-        share[CKShare.SystemFieldKey.title] = "\(baby.displayName)" as CKRecordValue
-        share.publicPermission = .readWrite
-        
-        // Save and CAPTURE the returned share (it contains the server-generated URL)
-        let results = try await privateDB.modifyRecords(
-            saving: [record, share],
-            deleting: [],
-            savePolicy: .changedKeys
-        )
-        
-        // Extract the saved share from results - this is the one with the URL
-        if let shareResult = results.saveResults[share.recordID],
-           case .success(let savedRecord) = shareResult,
-           let savedShare = savedRecord as? CKShare,
-           savedShare.url != nil {
-            return savedShare
-        }
-        
-        // If somehow the share didn't come back, try fetching it directly
-        do {
-            let fetchedRecord = try await privateDB.record(for: share.recordID)
-            if let fetchedShare = fetchedRecord as? CKShare {
-                return fetchedShare
-            }
-        } catch {
-            // Fall through to return original share
-        }
-        
-        return share
-    }
-    
-    // MARK: - Fetch Share URL
-    
-    func getShareURL(for share: CKShare) -> URL? {
-        return share.url
-    }
-    
-    // MARK: - Accept Share
-    
-    func acceptShare(metadata: CKShare.Metadata) async throws {
-        guard let container = container else { return }
-        try await container.accept(metadata)
-        await MainActor.run {
-            self.syncStatus = .synced
-        }
-    }
-    
+
     // MARK: - Sync Status Update
-    
+
     func markSyncing() {
         syncStatus = .syncing
     }
-    
+
     func markSynced() {
         syncStatus = .synced
         lastSyncDate = Date()
     }
-    
+
     func markError() {
         syncStatus = .error
     }
@@ -215,9 +108,9 @@ extension ModelContainer {
             GrowthRecord.self,
             HealthRecord.self
         ])
-        
+
         let useCloud = AppSettings.shared.iCloudSyncEnabled
-        
+
         if useCloud {
             // Try CloudKit first, fall back to local-only
             do {

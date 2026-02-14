@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import CoreData
 import os.log
 
 private let logger = Logger(subsystem: "com.leona.app", category: "App")
@@ -30,6 +31,12 @@ struct LeonaApp: App {
                 .environment(cloudKit)
                 .environment(notifications)
                 .tint(settings.accentColor.color)
+                .onReceive(NotificationCenter.default.publisher(
+                    for: .NSPersistentStoreRemoteChange
+                )) { _ in
+                    logger.info("iCloud sync: remote changes received")
+                    cloudKit.markSynced()
+                }
         }
         .modelContainer(sharedModelContainer)
     }

@@ -425,18 +425,5 @@
 "icloud_status_desc" = "Connectez-vous à iCloud dans Réglages pour activer la synchronisation";
 
 /* Sharing */
-"share_with_partner" = "Partager avec le partenaire";
-"share_baby_profile" = "Partager le profil du bébé";
-"share_description" = "Invitez votre partenaire à accéder aux données de %@";
-"share_via" = "Partager via";
-"share_link_copied" = "Lien d'invitation copié !";
-"share_generating" = "Génération du lien...";
-"share_error" = "Impossible de générer le lien de partage";
-"share_invitation_text %@" = "Je souhaite partager le suivi de %@ avec toi sur Leona ! Ouvre ce lien pour rejoindre : ";
-"invite_partner" = "Inviter le partenaire";
-"invite_partner_desc" = "Les deux parents peuvent suivre et consulter les mêmes données";
-"share_url_unavailable" = "Le lien de partage n'a pas pu être généré. Veuillez réessayer.";
-"share_fallback_message" = "Téléchargez Leona sur l'App Store pour commencer !";
-"share_icloud_disabled" = "Activez la synchronisation iCloud dans les réglages pour générer un lien de partage.";
-"share_icloud_unavailable" = "iCloud n'est pas disponible. Vérifiez vos réglages iCloud.";
-"cloudkit_not_available" = "CloudKit n'est pas disponible. Le programme Apple Developer est requis.";
+"invite_partner" = "Partager avec le partenaire";
+"icloud_sync_partner_desc" = "Connectez-vous au même compte iCloud sur les deux appareils. Toutes les données du bébé se synchronisent automatiquement.";

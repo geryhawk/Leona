@@ -425,18 +425,5 @@
 "icloud_status_desc" = "Sign in to iCloud in Settings to enable sync";
 
 /* Sharing */
-"share_with_partner" = "Share with Partner";
-"share_baby_profile" = "Share Baby Profile";
-"share_description" = "Invite your partner to access %@'s data";
-"share_via" = "Share via";
-"share_link_copied" = "Invitation link copied!";
-"share_generating" = "Generating share link...";
-"share_error" = "Could not generate share link";
-"share_invitation_text %@" = "I'd like to share %@'s baby tracker with you on Leona! Open this link to join: ";
-"invite_partner" = "Invite Partner";
-"invite_partner_desc" = "Both parents can track and view the same data";
-"share_url_unavailable" = "The share link could not be generated. Please try again.";
-"share_fallback_message" = "Download Leona from the App Store to get started!";
-"share_icloud_disabled" = "Enable iCloud Sync in settings to generate a share link.";
-"share_icloud_unavailable" = "iCloud is not available. Please check your iCloud settings.";
-"cloudkit_not_available" = "CloudKit is not available. Apple Developer Program required.";
+"invite_partner" = "Share with Partner";
+"icloud_sync_partner_desc" = "Sign in to the same iCloud account on both devices. All baby data syncs automatically.";

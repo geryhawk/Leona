@@ -16,8 +16,6 @@ final class Baby {
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
     
-    // Sharing
-    var shareCode: String?
     var ownerName: String?
     
     // Relationships
@@ -47,7 +45,6 @@ final class Baby {
         self.isActive = true
         self.createdAt = Date()
         self.updatedAt = Date()
-        self.shareCode = nil
         self.ownerName = nil
     }
     
