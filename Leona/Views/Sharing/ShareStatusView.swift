@@ -1,10 +1,6 @@
 import SwiftUI
 import CloudKit
 
-extension CKShare: @retroactive Identifiable {
-    public var id: String { recordID.recordName }
-}
-
 struct ShareStatusView: View {
     let baby: Baby
 
@@ -18,6 +14,7 @@ struct ShareStatusView: View {
     @State private var participantToRemove: CKShare.Participant?
     @State private var errorMessage: String?
     @State private var pendingShare: CKShare?
+    @State private var showCloudSharing = false
     @State private var isLoading = false
 
     var body: some View {
@@ -58,19 +55,22 @@ struct ShareStatusView: View {
         } message: {
             Text(String(localized: "remove_participant_message"))
         }
-        .sheet(item: $pendingShare) { share in
-            CloudSharingView(
-                share: share,
-                container: sharing.container,
-                baby: baby,
-                onDismiss: {
-                    pendingShare = nil
-                    // Refresh share info after dismissing
-                    Task {
-                        await sharing.fetchShareInfo(for: baby)
+        .sheet(isPresented: $showCloudSharing) {
+            if let share = pendingShare {
+                CloudSharingView(
+                    share: share,
+                    container: sharing.container,
+                    baby: baby,
+                    onDismiss: {
+                        showCloudSharing = false
+                        pendingShare = nil
+                        // Refresh share info after dismissing
+                        Task {
+                            await sharing.fetchShareInfo(for: baby)
+                        }
                     }
-                }
-            )
+                )
+            }
         }
         .task {
             if baby.isShared {
@@ -289,6 +289,7 @@ struct ShareStatusView: View {
 
                 await MainActor.run {
                     pendingShare = share
+                    showCloudSharing = true
                     isCreatingShare = false
                 }
             } catch {
