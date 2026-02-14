@@ -6,7 +6,7 @@ import os.log
 private let logger = Logger(subsystem: "com.leona.app", category: "Sharing")
 
 /// Manages CloudKit sharing of baby profiles between different iCloud accounts.
-/// Uses CKShare alongside the existing SwiftData stack.
+/// Uses CKShare + UICloudSharingController alongside the existing SwiftData stack.
 @Observable
 final class SharingManager {
     static let shared = SharingManager()
