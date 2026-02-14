@@ -1,6 +1,10 @@
 import SwiftUI
 import CloudKit
 
+extension URL: @retroactive Identifiable {
+    public var id: String { absoluteString }
+}
+
 struct ShareStatusView: View {
     let baby: Baby
 
@@ -12,8 +16,7 @@ struct ShareStatusView: View {
     @State private var showStopConfirm = false
     @State private var errorMessage: String?
     @State private var inviteEmail = ""
-    @State private var showShareLink = false
-    @State private var pendingShare: CKShare?
+    @State private var pendingShareURL: URL?
 
     var body: some View {
         List {
@@ -41,10 +44,8 @@ struct ShareStatusView: View {
         } message: {
             Text(String(localized: "stop_sharing_message"))
         }
-        .sheet(isPresented: $showShareLink) {
-            if let share = pendingShare, let url = share.url {
-                ShareLinkSheet(url: url, babyName: baby.displayName)
-            }
+        .sheet(item: $pendingShareURL) { url in
+            ShareLinkSheet(url: url, babyName: baby.displayName)
         }
         .task {
             if baby.isShared {
@@ -232,9 +233,12 @@ struct ShareStatusView: View {
                     share = try await sharing.createShare(for: baby, in: modelContext)
                 }
 
+                guard let url = share.url else {
+                    throw SharingError.shareCreationFailed
+                }
+
                 await MainActor.run {
-                    pendingShare = share
-                    showShareLink = true
+                    pendingShareURL = url
                     isCreatingShare = false
                     inviteEmail = ""
                 }
@@ -260,9 +264,12 @@ struct ShareStatusView: View {
                     share = try await sharing.createShare(for: baby, in: modelContext)
                 }
 
+                guard let url = share.url else {
+                    throw SharingError.shareCreationFailed
+                }
+
                 await MainActor.run {
-                    pendingShare = share
-                    showShareLink = true
+                    pendingShareURL = url
                     isCreatingShare = false
                 }
             } catch {

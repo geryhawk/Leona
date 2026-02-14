@@ -85,8 +85,17 @@ final class SharingManager {
             share[CKShare.SystemFieldKey.title] = baby.displayName as CKRecordValue
             share.publicPermission = .readWrite
 
-            // Save the share
-            try await saveRecords([babyRecord, share], to: container.privateCloudDatabase)
+            // Save the share and use the returned records (which have URL populated)
+            let database = container.privateCloudDatabase
+            let (savedResults, _) = try await database.modifyRecords(saving: [babyRecord, share], deleting: [], savePolicy: .changedKeys)
+
+            // Extract the saved CKShare (which has the .url populated by CloudKit)
+            var savedShare = share
+            for (_, result) in savedResults {
+                if case .success(let record) = result, let returnedShare = record as? CKShare {
+                    savedShare = returnedShare
+                }
+            }
 
             // 5. Update local state
             baby.ckRecordName = babyRecord.recordID.recordName
@@ -95,12 +104,12 @@ final class SharingManager {
 
             sharedBabyIDs.insert(baby.id)
             saveSharedBabyIDs()
-            activeShare = share
-            participants = share.participants.filter { $0.role != .owner }
+            activeShare = savedShare
+            participants = savedShare.participants.filter { $0.role != .owner }
             sharingStatus = .active
 
-            logger.info("Share created for baby: \(baby.displayName)")
-            return share
+            logger.info("Share created for baby: \(baby.displayName), URL: \(savedShare.url?.absoluteString ?? "nil")")
+            return savedShare
         } catch {
             sharingStatus = .error(error.localizedDescription)
             logger.error("Failed to create share: \(error.localizedDescription)")
