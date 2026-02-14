@@ -11,19 +11,19 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 45
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode
+      - name: Select Xcode 26
         run: |
           ls /Applications/Xcode*.app/Contents/Developer || true
-          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer || \
-          sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer || \
-          sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer || \
+          sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer || \
+          sudo xcode-select -s /Applications/Xcode_26.1.1.app/Contents/Developer || \
+          sudo xcode-select -s /Applications/Xcode_26.0.1.app/Contents/Developer || \
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
       - name: Install iOS Simulator Runtime
