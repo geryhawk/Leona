@@ -28,7 +28,7 @@ struct GrowthEntryView: View {
         NavigationStack {
             Form {
                 Section(String(localized: "measurement_date")) {
-                    DatePicker(String(localized: "date"), selection: $date, displayedComponents: .date)
+                    DatePicker(String(localized: "date"), selection: $date, in: ...Date(), displayedComponents: .date)
                 }
                 
                 Section(String(localized: "measurements")) {

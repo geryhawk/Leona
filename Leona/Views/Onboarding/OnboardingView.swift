@@ -234,6 +234,7 @@ struct OnboardingView: View {
                 DatePicker(
                     String(localized: "date_of_birth"),
                     selection: $dateOfBirth,
+                    in: ...Date(),
                     displayedComponents: .date
                 )
                 .datePickerStyle(.compact)

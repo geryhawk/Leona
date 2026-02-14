@@ -12,8 +12,9 @@ struct MealForecastEngine {
         guard let lastFeeding = feedings.first else { return nil }
         
         // Use last 7 days of data for pattern analysis
+        guard let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) else { return nil }
         let recentFeedings = feedings.filter {
-            $0.startTime > Calendar.current.date(byAdding: .day, value: -7, to: Date())!
+            $0.startTime > sevenDaysAgo
         }
         
         guard recentFeedings.count >= 2 else { return nil }

@@ -128,8 +128,9 @@ struct ExportService {
         report += "\n"
         
         // Activity Summary
+        let thirtyDaysAgo = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
         let last30 = activities.filter {
-            $0.startTime > Calendar.current.date(byAdding: .day, value: -30, to: Date())!
+            $0.startTime > thirtyDaysAgo
         }
         report += "--- Last 30 Days Summary ---\n"
         report += "Total Activities: \(last30.count)\n"

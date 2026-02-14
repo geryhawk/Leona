@@ -71,7 +71,7 @@ struct BabyProfileView: View {
                 Section(String(localized: "basic_info")) {
                     TextField(String(localized: "first_name"), text: $firstName)
                     TextField(String(localized: "last_name"), text: $lastName)
-                    DatePicker(String(localized: "date_of_birth"), selection: $dateOfBirth, displayedComponents: .date)
+                    DatePicker(String(localized: "date_of_birth"), selection: $dateOfBirth, in: ...Date(), displayedComponents: .date)
                 }
                 
                 Section(String(localized: "gender")) {

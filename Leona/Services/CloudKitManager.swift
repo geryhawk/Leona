@@ -101,14 +101,14 @@ final class CloudKitManager {
             if let result = results.saveResults[zoneID], case .failure(let error) = result {
                 // Zone already exists is OK, other errors rethrow
                 let ckError = error as? CKError
-                if ckError?.code != .serverRejectedRequest {
+                if ckError?.code != .serverRejectedRequest && ckError?.code != .zoneNotFound {
                     throw error
                 }
             }
         } catch {
             // If zone already exists, that's fine
             let ckError = error as? CKError
-            if ckError?.code != .serverRejectedRequest {
+            if ckError?.code != .serverRejectedRequest && ckError?.code != .zoneNotFound {
                 throw error
             }
         }

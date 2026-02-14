@@ -249,7 +249,8 @@ struct EditActivityView: View {
     private func saveChanges() {
         activity.startTime = editedStartTime
         if activity.endTime != nil {
-            activity.endTime = editedEndTime
+            // Ensure end time is after start time
+            activity.endTime = editedEndTime > editedStartTime ? editedEndTime : editedStartTime
         }
         activity.volumeML = editedVolume > 0 ? editedVolume : nil
         activity.breastSide = editedBreastSide

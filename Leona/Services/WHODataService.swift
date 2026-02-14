@@ -185,16 +185,20 @@ struct WHODataService {
         // Estimate percentile based on where value falls
         if value <= point.p3 { return 3 }
         if value <= point.p15 {
-            return 3 + (value - point.p3) / (point.p15 - point.p3) * 12
+            let range = point.p15 - point.p3
+            return range > 0 ? 3 + (value - point.p3) / range * 12 : 9
         }
         if value <= point.p50 {
-            return 15 + (value - point.p15) / (point.p50 - point.p15) * 35
+            let range = point.p50 - point.p15
+            return range > 0 ? 15 + (value - point.p15) / range * 35 : 32
         }
         if value <= point.p85 {
-            return 50 + (value - point.p50) / (point.p85 - point.p50) * 35
+            let range = point.p85 - point.p50
+            return range > 0 ? 50 + (value - point.p50) / range * 35 : 67
         }
         if value <= point.p97 {
-            return 85 + (value - point.p85) / (point.p97 - point.p85) * 12
+            let range = point.p97 - point.p85
+            return range > 0 ? 85 + (value - point.p85) / range * 12 : 91
         }
         return 97
     }
