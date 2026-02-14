@@ -68,7 +68,14 @@ jobs:
             -authenticationKeyID ${{ secrets.ASC_API_KEY_ID }} \
             -authenticationKeyIssuerID ${{ secrets.ASC_API_ISSUER_ID }} \
             CODE_SIGN_STYLE=Automatic \
-            DEVELOPMENT_TEAM=HLUMLG6SWA
+            DEVELOPMENT_TEAM=HLUMLG6SWA \
+            -skipPackagePluginValidation \
+            -verbose 2>&1 || {
+              echo "Archive failed. Checking signing..."
+              security find-identity -v -p codesigning
+              ls ~/Library/MobileDevice/Provisioning\ Profiles/ 2>/dev/null || echo "No provisioning profiles"
+              exit 1
+            }
 
       - name: Export and Upload to TestFlight
         run: |
