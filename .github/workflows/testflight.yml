@@ -79,6 +79,14 @@ jobs:
           echo "=== ERRORS ==="
           grep -i "error:" /tmp/build.log || echo "No explicit error lines found"
 
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: /tmp/build.log
+          retention-days: 1
+
       - name: Export and Upload to TestFlight
         run: |
           cat > $RUNNER_TEMP/ExportOptions.plist << 'PLIST'
