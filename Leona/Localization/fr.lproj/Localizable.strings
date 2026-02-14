@@ -465,4 +465,3 @@
 "role_invited" = "Invité";
 "role_removed" = "Supprimé";
 "delete_record_message" = "Ce dossier de santé et toutes ses données seront définitivement supprimés.";
-"share_fetch_error" = "Impossible de récupérer les informations de partage. Veuillez réessayer.";

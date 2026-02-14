@@ -465,4 +465,3 @@
 "role_invited" = "Invited";
 "role_removed" = "Removed";
 "delete_record_message" = "This health record and all its data will be permanently deleted.";
-"share_fetch_error" = "Could not retrieve sharing info. Please try again.";
