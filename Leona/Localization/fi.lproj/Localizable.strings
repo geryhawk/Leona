@@ -443,3 +443,16 @@
 "participant_unknown" = "Tuntematon";
 "partner" = "Kumppani";
 "share_tap_to_invite" = "Napauta kutsuaksesi kumppanisi";
+"share_email_placeholder" = "Kumppanin iCloud-sähköposti";
+"share_invite_by_email" = "Lähetä kutsu";
+"share_invite_header" = "Kutsu sähköpostilla";
+"share_invite_footer" = "Syötä kumppanisi iCloud-sähköpostiosoite. Hänellä on oltava iCloud-tili kutsun vastaanottamiseksi.";
+"share_send_link" = "Jaa linkki";
+"share_send_link_desc" = "Lähetä kutsulinkki iMessagen, WhatsAppin tms. kautta";
+"share_or" = "Tai";
+"share_participants" = "Osallistujat";
+"share_link_ready" = "Kutsulinkki valmis";
+"share_link_explanation" = "Lähetä tämä linkki kumppanillesi, jotta hän voi käyttää vauvan tietoja Leonassa.";
+"share_link_message %@" = "Liity mukaani Leonaan seuraamaan yhdessä %@:n toimintoja!";
+"share_copy_link" = "Kopioi linkki";
+"share_link_copied" = "Kopioitu!";

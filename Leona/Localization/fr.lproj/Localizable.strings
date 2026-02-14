@@ -443,3 +443,16 @@
 "participant_unknown" = "Inconnu";
 "partner" = "Partenaire";
 "share_tap_to_invite" = "Appuyez pour inviter votre partenaire";
+"share_email_placeholder" = "Email iCloud du partenaire";
+"share_invite_by_email" = "Envoyer l'invitation";
+"share_invite_header" = "Inviter par email";
+"share_invite_footer" = "Entrez l'adresse email iCloud de votre partenaire. Il doit avoir un compte iCloud pour recevoir l'invitation.";
+"share_send_link" = "Partager le lien";
+"share_send_link_desc" = "Envoyer un lien d'invitation via iMessage, WhatsApp, etc.";
+"share_or" = "Ou";
+"share_participants" = "Participants";
+"share_link_ready" = "Lien d'invitation prêt";
+"share_link_explanation" = "Envoyez ce lien à votre partenaire pour qu'il puisse accéder aux données du bébé dans Leona.";
+"share_link_message %@" = "Rejoins-moi sur Leona pour suivre les activités de %@ ensemble !";
+"share_copy_link" = "Copier le lien";
+"share_link_copied" = "Copié !";

@@ -83,16 +83,7 @@ struct DashboardView: View {
                 .padding(.bottom, 20)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Leona")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    babyAvatarButton
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    notificationBellButton
-                }
-            }
+            .navigationBarHidden(true)
             .sheet(isPresented: $showBreastfeeding) {
                 BreastfeedingView(baby: baby)
             }
@@ -136,52 +127,84 @@ struct DashboardView: View {
     // MARK: - Baby Header
     
     private var babyHeaderSection: some View {
-        HStack(spacing: 16) {
-            // Profile image
-            ZStack {
-                if let image = baby.profileImage {
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Image(systemName: "person.crop.circle.fill")
-                        .resizable()
-                        .foregroundStyle(Color.leonaPink.opacity(0.6))
+        VStack(spacing: 0) {
+            // Top bar: App name + notification bell
+            HStack {
+                Text("Leona")
+                    .font(.title.bold())
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                Button {
+                    // Show notifications
+                } label: {
+                    Image(systemName: "bell.fill")
+                        .font(.body)
+                        .foregroundStyle(.leonaPink)
+                        .frame(width: 36, height: 36)
+                        .background(Color.leonaPink.opacity(0.1))
+                        .clipShape(Circle())
                 }
             }
-            .frame(width: 56, height: 56)
-            .clipShape(Circle())
-            .overlay(Circle().stroke(Color.leonaPink.opacity(0.3), lineWidth: 2))
-            
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(baby.displayName)
-                        .font(.title2.bold())
-                        .foregroundStyle(.primary)
+            .padding(.horizontal, 4)
+            .padding(.bottom, 12)
 
-                    if baby.isShared {
-                        Image(systemName: "person.2.fill")
-                            .font(.caption)
-                            .foregroundStyle(.green)
+            // Baby card (tappable for baby selector)
+            Button { showBabySelector = true } label: {
+                HStack(spacing: 16) {
+                    // Profile image
+                    ZStack {
+                        if let image = baby.profileImage {
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } else {
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
+                                .foregroundStyle(Color.leonaPink.opacity(0.6))
+                        }
+                    }
+                    .frame(width: 56, height: 56)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.leonaPink.opacity(0.3), lineWidth: 2))
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 6) {
+                            Text(baby.displayName)
+                                .font(.title2.bold())
+                                .foregroundStyle(.primary)
+
+                            if baby.isShared {
+                                Image(systemName: "person.2.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(.green)
+                            }
+
+                            Image(systemName: "chevron.down")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+
+                        Text(baby.ageDescription)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    // Quick status
+                    if let sleep = ongoingSleep {
+                        sleepingBadge(since: sleep.startTime)
+                    } else if let bf = ongoingBreastfeeding {
+                        breastfeedingBadge(since: bf.startTime)
                     }
                 }
-
-                Text(baby.ageDescription)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                .padding()
+                .leonaCard()
             }
-            
-            Spacer()
-            
-            // Quick status
-            if let sleep = ongoingSleep {
-                sleepingBadge(since: sleep.startTime)
-            } else if let bf = ongoingBreastfeeding {
-                breastfeedingBadge(since: bf.startTime)
-            }
+            .buttonStyle(.plain)
         }
-        .padding()
-        .leonaCard()
     }
     
     // MARK: - Ongoing Status
@@ -409,36 +432,6 @@ struct DashboardView: View {
                     }
                 }
             }
-        }
-    }
-    
-    // MARK: - Toolbar Buttons
-    
-    private var babyAvatarButton: some View {
-        Button { showBabySelector = true } label: {
-            ZStack {
-                if let image = baby.profileImage {
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Image(systemName: "person.2.fill")
-                        .font(.caption)
-                        .foregroundStyle(Color.leonaPink)
-                }
-            }
-            .frame(width: 32, height: 32)
-            .clipShape(Circle())
-            .overlay(Circle().stroke(Color.leonaPink.opacity(0.3), lineWidth: 1))
-        }
-    }
-    
-    private var notificationBellButton: some View {
-        Button {
-            // Show notifications
-        } label: {
-            Image(systemName: "bell.fill")
-                .foregroundStyle(.leonaPink)
         }
     }
     
