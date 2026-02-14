@@ -334,12 +334,7 @@ struct ShareStatusView: View {
 
         Task {
             do {
-                let share: CKShare
-                if baby.isShared, let existing = sharing.activeShare {
-                    share = existing
-                } else {
-                    share = try await sharing.createShare(for: baby, in: modelContext)
-                }
+                let share = try await sharing.getOrCreateShare(for: baby, in: modelContext)
 
                 guard let url = share.url else {
                     throw SharingError.shareCreationFailed
@@ -365,12 +360,7 @@ struct ShareStatusView: View {
 
         Task {
             do {
-                let share: CKShare
-                if baby.isShared, let existing = sharing.activeShare {
-                    share = existing
-                } else {
-                    share = try await sharing.createShare(for: baby, in: modelContext)
-                }
+                let share = try await sharing.getOrCreateShare(for: baby, in: modelContext)
 
                 guard let url = share.url else {
                     throw SharingError.shareCreationFailed

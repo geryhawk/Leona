@@ -53,76 +53,142 @@ final class SharingManager {
         }
     }
 
-    // MARK: - Create Share
+    // MARK: - Get or Create Share
 
-    /// Creates a CKShare for a baby profile and all its child records.
-    /// Returns the CKShare with a populated URL for sharing.
-    func createShare(for baby: Baby, in context: ModelContext) async throws -> CKShare {
+    /// Gets an existing share or creates a new one.
+    /// Handles all edge cases: first time, app restart, partial failures.
+    func getOrCreateShare(for baby: Baby, in context: ModelContext) async throws -> CKShare {
         sharingStatus = .preparing
-        let zone = zoneID(for: baby.id)
         let database = container.privateCloudDatabase
 
         do {
-            // 1. Create the custom zone
-            try await ensureZoneExists(zone)
-
-            // 2. Convert baby to CKRecord
-            let babyRecord = baby.toCKRecord(in: zone)
-
-            // 3. Create CKShare rooted at the baby record
-            let share = CKShare(rootRecord: babyRecord)
-            share[CKShare.SystemFieldKey.title] = baby.displayName as CKRecordValue
-            share.publicPermission = .readWrite
-
-            // 4. Save baby record + share together in ONE operation
-            //    (CKShare must be saved alongside its root record)
-            let (shareResults, _) = try await database.modifyRecords(
-                saving: [babyRecord, share],
-                deleting: [],
-                savePolicy: .allKeys
-            )
-
-            // Extract the saved CKShare (which has the .url populated by CloudKit)
-            var savedShare = share
-            for (_, result) in shareResults {
-                if case .success(let record) = result, let returnedShare = record as? CKShare {
-                    savedShare = returnedShare
+            // Try to fetch existing share first
+            if let existingShare = try await fetchExistingShare(for: baby) {
+                logger.info("Found existing share for baby: \(baby.displayName)")
+                await MainActor.run {
+                    self.activeShare = existingShare
+                    self.participants = existingShare.participants.filter { $0.role != .owner }
+                    self.sharingStatus = .active
                 }
+
+                // Make sure local state is correct
+                if !baby.isShared {
+                    baby.isShared = true
+                    try? context.save()
+                }
+
+                return existingShare
             }
 
-            // 5. Save child records separately (activities, growth, health)
-            var childRecords: [CKRecord] = []
-            for activity in baby.activities ?? [] {
-                childRecords.append(activity.toCKRecord(in: zone))
-            }
-            for growth in baby.growthRecords ?? [] {
-                childRecords.append(growth.toCKRecord(in: zone))
-            }
-            for health in baby.healthRecords ?? [] {
-                childRecords.append(health.toCKRecord(in: zone))
-            }
-            if !childRecords.isEmpty {
-                try await saveRecords(childRecords, to: database)
-            }
-
-            // 6. Update local state
-            baby.ckRecordName = babyRecord.recordID.recordName
-            baby.isShared = true
-            try? context.save()
-
-            sharedBabyIDs.insert(baby.id)
-            saveSharedBabyIDs()
-            activeShare = savedShare
-            participants = savedShare.participants.filter { $0.role != .owner }
-            sharingStatus = .active
-
-            logger.info("Share created for baby: \(baby.displayName), URL: \(savedShare.url?.absoluteString ?? "nil")")
-            return savedShare
+            // No existing share — create fresh
+            logger.info("No existing share found, creating new one for baby: \(baby.displayName)")
+            return try await createFreshShare(for: baby, in: context)
         } catch {
             sharingStatus = .error(error.localizedDescription)
-            logger.error("Failed to create share: \(error.localizedDescription)")
+            logger.error("Failed to get/create share: \(error.localizedDescription)")
             throw error
         }
+    }
+
+    /// Fetches an existing CKShare from CloudKit for this baby.
+    private func fetchExistingShare(for baby: Baby) async throws -> CKShare? {
+        let zone = zoneID(for: baby.id)
+        let database = container.privateCloudDatabase
+
+        // Try to fetch the baby record from CloudKit
+        let recordName = baby.ckRecordName ?? baby.id.uuidString
+        let recordID = CKRecord.ID(recordName: recordName, zoneID: zone)
+
+        do {
+            let record = try await database.record(for: recordID)
+            // Check if this record has a share reference
+            if let shareRef = record.share {
+                let shareRecord = try await database.record(for: shareRef.recordID)
+                if let share = shareRecord as? CKShare {
+                    return share
+                }
+            }
+        } catch let error as CKError where error.code == .unknownItem || error.code == .zoneNotFound {
+            // Record or zone doesn't exist yet — that's fine, we'll create fresh
+            logger.info("No existing record/zone found for baby \(baby.id)")
+        }
+
+        return nil
+    }
+
+    /// Creates a brand new share from scratch (clean zone, records, share).
+    private func createFreshShare(for baby: Baby, in context: ModelContext) async throws -> CKShare {
+        let zone = zoneID(for: baby.id)
+        let database = container.privateCloudDatabase
+
+        // 1. Clean up any leftover zone from failed attempts
+        do {
+            try await database.deleteRecordZone(withID: zone)
+            logger.info("Cleaned up leftover zone: \(zone.zoneName)")
+        } catch {
+            // Zone didn't exist — that's fine
+            logger.info("No leftover zone to clean: \(zone.zoneName)")
+        }
+
+        // 2. Create fresh zone
+        let newZone = CKRecordZone(zoneID: zone)
+        _ = try await database.save(newZone)
+        logger.info("Created fresh zone: \(zone.zoneName)")
+
+        // 3. Convert baby to CKRecord + create share together
+        let babyRecord = baby.toCKRecord(in: zone)
+        let share = CKShare(rootRecord: babyRecord)
+        share[CKShare.SystemFieldKey.title] = baby.displayName as CKRecordValue
+        share.publicPermission = .readWrite
+
+        // 4. Save baby + share in ONE operation
+        let (shareResults, _) = try await database.modifyRecords(
+            saving: [babyRecord, share],
+            deleting: [],
+            savePolicy: .allKeys
+        )
+
+        // Extract the saved CKShare (has .url populated)
+        var savedShare = share
+        for (_, result) in shareResults {
+            if case .success(let record) = result, let returnedShare = record as? CKShare {
+                savedShare = returnedShare
+            }
+        }
+
+        // 5. Save child records
+        var childRecords: [CKRecord] = []
+        for activity in baby.activities ?? [] {
+            childRecords.append(activity.toCKRecord(in: zone))
+        }
+        for growth in baby.growthRecords ?? [] {
+            childRecords.append(growth.toCKRecord(in: zone))
+        }
+        for health in baby.healthRecords ?? [] {
+            childRecords.append(health.toCKRecord(in: zone))
+        }
+        if !childRecords.isEmpty {
+            try await saveRecords(childRecords, to: database)
+        }
+
+        // 6. Update local state
+        baby.ckRecordName = babyRecord.recordID.recordName
+        baby.isShared = true
+        try? context.save()
+
+        sharedBabyIDs.insert(baby.id)
+        saveSharedBabyIDs()
+        activeShare = savedShare
+        participants = savedShare.participants.filter { $0.role != .owner }
+        sharingStatus = .active
+
+        logger.info("Fresh share created for baby: \(baby.displayName), URL: \(savedShare.url?.absoluteString ?? "nil")")
+        return savedShare
+    }
+
+    /// Legacy alias — redirects to getOrCreateShare
+    func createShare(for baby: Baby, in context: ModelContext) async throws -> CKShare {
+        try await getOrCreateShare(for: baby, in: context)
     }
 
     // MARK: - Accept Share

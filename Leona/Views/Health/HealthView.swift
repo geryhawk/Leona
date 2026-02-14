@@ -10,7 +10,6 @@ struct HealthView: View {
     @State private var showAddRecord = false
     @State private var editingRecord: HealthRecord?
     @State private var recordToDelete: HealthRecord?
-    @State private var showDeleteConfirm = false
     
     private var babyRecords: [HealthRecord] {
         allRecords.filter { $0.baby?.id == baby.id }
@@ -65,13 +64,16 @@ struct HealthView: View {
             .sheet(item: $editingRecord) { record in
                 HealthDetailView(record: record)
             }
-            .alert(String(localized: "delete_record"), isPresented: $showDeleteConfirm) {
+            .alert(String(localized: "delete_record"), isPresented: Binding<Bool>(
+                get: { recordToDelete != nil },
+                set: { if !$0 { recordToDelete = nil } }
+            )) {
                 Button(String(localized: "delete"), role: .destructive) {
                     if let record = recordToDelete {
                         modelContext.delete(record)
                         try? modelContext.save()
-                        recordToDelete = nil
                     }
+                    recordToDelete = nil
                 }
                 Button(String(localized: "cancel"), role: .cancel) {
                     recordToDelete = nil
@@ -145,7 +147,6 @@ struct HealthView: View {
                 .contextMenu {
                     Button(role: .destructive) {
                         recordToDelete = record
-                        showDeleteConfirm = true
                     } label: {
                         Label(String(localized: "delete"), systemImage: "trash")
                     }
@@ -263,7 +264,6 @@ struct HealthView: View {
                 .contextMenu {
                     Button(role: .destructive) {
                         recordToDelete = record
-                        showDeleteConfirm = true
                     } label: {
                         Label(String(localized: "delete"), systemImage: "trash")
                     }
