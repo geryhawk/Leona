@@ -12,7 +12,11 @@ final class HealthRecord {
     var baby: Baby?
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
-    
+
+    // CloudKit sharing metadata
+    var ckRecordName: String?
+    var ckChangeTag: String?
+
     // Embedded data (stored as JSON-encoded arrays)
     var symptomsData: Data?
     var medicationsData: Data?

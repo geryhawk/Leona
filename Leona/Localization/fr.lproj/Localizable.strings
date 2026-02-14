@@ -427,3 +427,19 @@
 /* Sharing */
 "invite_partner" = "Partager avec le partenaire";
 "icloud_sync_partner_desc" = "Connectez-vous au même compte iCloud sur les deux appareils. Toutes les données du bébé se synchronisent automatiquement.";
+"partner_sharing" = "Partage parental";
+"share_description" = "Partager les données de ce bébé avec votre partenaire";
+"share_explanation" = "Votre partenaire recevra un lien à accepter. Une fois accepté, toutes les activités, la croissance et les données de santé se synchronisent automatiquement entre les deux comptes.";
+"share_with_partner_button" = "Partager avec le partenaire";
+"sharing_active_label" = "Partage actif";
+"shared_by %@" = "Partagé par %@";
+"you_are_sharing" = "Vous partagez ce profil";
+"stop_sharing" = "Arrêter le partage";
+"stop_sharing_title" = "Arrêter le partage ?";
+"stop_sharing_message" = "Votre partenaire n'aura plus accès aux données de ce bébé. Sa copie locale sera supprimée.";
+"participant_accepted" = "Accepté";
+"participant_pending" = "En attente";
+"participant_removed" = "Supprimé";
+"participant_unknown" = "Inconnu";
+"partner" = "Partenaire";
+"share_tap_to_invite" = "Appuyez pour inviter votre partenaire";

@@ -183,18 +183,24 @@ struct SettingsView: View {
                 }
             }
             
-            // Sync info
+            // Partner sharing
             if settings.iCloudSyncEnabled && cloudKit.iCloudAvailable {
-                Label {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(String(localized: "invite_partner"))
-                        Text(String(localized: "icloud_sync_partner_desc"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                NavigationLink {
+                    ShareStatusView(baby: baby)
+                } label: {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(String(localized: "invite_partner"))
+                            Text(baby.isShared
+                                 ? String(localized: "sharing_active_label")
+                                 : String(localized: "share_tap_to_invite"))
+                                .font(.caption)
+                                .foregroundStyle(baby.isShared ? .green : .secondary)
+                        }
+                    } icon: {
+                        Image(systemName: baby.isShared ? "person.2.fill" : "person.badge.plus")
+                            .foregroundStyle(baby.isShared ? .green : .leonaPrimary)
                     }
-                } icon: {
-                    Image(systemName: "person.2.fill")
-                        .foregroundStyle(.leonaPrimary)
                 }
             }
         } header: {

@@ -154,10 +154,18 @@ struct DashboardView: View {
             .overlay(Circle().stroke(Color.leonaPink.opacity(0.3), lineWidth: 2))
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(baby.displayName)
-                    .font(.title2.bold())
-                    .foregroundStyle(.primary)
-                
+                HStack(spacing: 6) {
+                    Text(baby.displayName)
+                        .font(.title2.bold())
+                        .foregroundStyle(.primary)
+
+                    if baby.isShared {
+                        Image(systemName: "person.2.fill")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+                }
+
                 Text(baby.ageDescription)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)

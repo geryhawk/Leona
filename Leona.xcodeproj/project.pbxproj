@@ -54,6 +54,11 @@
 		E75D4C7B4D75E7B617B59CA2 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = AAAAAAAAAAAAAAAAAAAAAAAC /* Localizable.strings */; };
 		LANG001EE98C336737A103FB5 /* Leona/Extensions/Bundle+Language.swift in Sources */ = {isa = PBXBuildFile; fileRef = LANG002CAAD2562224932A2B9 /* Leona/Extensions/Bundle+Language.swift */; };
 		SPLASH001FF74B15904C44EE4 /* Leona/Views/SplashScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SPLASH002497B8F171349BE29 /* Leona/Views/SplashScreenView.swift */; };
+		SHARE001A1B2C3D4E5F67890 /* Leona/Services/CKRecordConvertible.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHARE002A1B2C3D4E5F67890 /* Leona/Services/CKRecordConvertible.swift */; };
+		SHARE003A1B2C3D4E5F67890 /* Leona/Services/SharingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHARE004A1B2C3D4E5F67890 /* Leona/Services/SharingManager.swift */; };
+		SHARE005A1B2C3D4E5F67890 /* Leona/Services/SyncEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHARE006A1B2C3D4E5F67890 /* Leona/Services/SyncEngine.swift */; };
+		SHARE007A1B2C3D4E5F67890 /* Leona/Views/Sharing/ShareBabyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHARE008A1B2C3D4E5F67890 /* Leona/Views/Sharing/ShareBabyView.swift */; };
+		SHARE009A1B2C3D4E5F67890 /* Leona/Views/Sharing/ShareStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHARE00AA1B2C3D4E5F67890 /* Leona/Views/Sharing/ShareStatusView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -109,6 +114,11 @@
 		FFFFFFFFFFFFFFFFFFFFFFFF /* Leona.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Leona.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		LANG002CAAD2562224932A2B9 /* Leona/Extensions/Bundle+Language.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Extensions/Bundle+Language.swift"; sourceTree = SOURCE_ROOT; };
 		SPLASH002497B8F171349BE29 /* Leona/Views/SplashScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Leona/Views/SplashScreenView.swift; sourceTree = SOURCE_ROOT; };
+		SHARE002A1B2C3D4E5F67890 /* Leona/Services/CKRecordConvertible.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Leona/Services/CKRecordConvertible.swift; sourceTree = SOURCE_ROOT; };
+		SHARE004A1B2C3D4E5F67890 /* Leona/Services/SharingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Leona/Services/SharingManager.swift; sourceTree = SOURCE_ROOT; };
+		SHARE006A1B2C3D4E5F67890 /* Leona/Services/SyncEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Leona/Services/SyncEngine.swift; sourceTree = SOURCE_ROOT; };
+		SHARE008A1B2C3D4E5F67890 /* Leona/Views/Sharing/ShareBabyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Leona/Views/Sharing/ShareBabyView.swift; sourceTree = SOURCE_ROOT; };
+		SHARE00AA1B2C3D4E5F67890 /* Leona/Views/Sharing/ShareStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Leona/Views/Sharing/ShareStatusView.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -152,6 +162,9 @@
 				851723E545E3DBB9B8A525CE /* Leona/Services/NotificationManager.swift */,
 				605C37D008EFB4F12A677E86 /* Leona/Services/StatisticsEngine.swift */,
 				9DD923DF98722C690F5B92C8 /* Leona/Services/WHODataService.swift */,
+				SHARE002A1B2C3D4E5F67890 /* Leona/Services/CKRecordConvertible.swift */,
+				SHARE004A1B2C3D4E5F67890 /* Leona/Services/SharingManager.swift */,
+				SHARE006A1B2C3D4E5F67890 /* Leona/Services/SyncEngine.swift */,
 				8162F8D0294AADDF038F6BE3 /* Leona/Views/Components/ConfettiView.swift */,
 				2988B260F028345324C4DF05 /* Leona/Views/Components/EmptyStateView.swift */,
 				7272E3F3ADD04DC57B498DEF /* Leona/Views/Dashboard/ActivityCardView.swift */,
@@ -175,6 +188,8 @@
 				F55B19D4840EC8ECF8FDEE13 /* Leona/Views/Profile/BabySelectorView.swift */,
 				38C3AB0DD2E086037B5DB392 /* Leona/Views/Settings/SettingsView.swift */,
 				0E930D7D3E9C2D710015F4C9 /* Leona/Views/Sleep/SleepTrackingView.swift */,
+				SHARE008A1B2C3D4E5F67890 /* Leona/Views/Sharing/ShareBabyView.swift */,
+				SHARE00AA1B2C3D4E5F67890 /* Leona/Views/Sharing/ShareStatusView.swift */,
 				9233E3C95EB62643F4DEFFC6 /* Leona/Views/Stats/StatsView.swift */,
 				A30C70A8BBDC9EC678F6B3E8 /* Leona/Info.plist */,
 				3CCAFA9F181D09328A61224B /* Leona/Leona.entitlements */,
@@ -314,6 +329,11 @@
 				66D7348DC59818F5529E5BE7 /* Leona/Views/Settings/SettingsView.swift in Sources */,
 				43D324CC39F70962BA0BF3FC /* Leona/Views/Sleep/SleepTrackingView.swift in Sources */,
 				D0E7EB6E7C11CABDAC67D41C /* Leona/Views/Stats/StatsView.swift in Sources */,
+				SHARE001A1B2C3D4E5F67890 /* Leona/Services/CKRecordConvertible.swift in Sources */,
+				SHARE003A1B2C3D4E5F67890 /* Leona/Services/SharingManager.swift in Sources */,
+				SHARE005A1B2C3D4E5F67890 /* Leona/Services/SyncEngine.swift in Sources */,
+				SHARE007A1B2C3D4E5F67890 /* Leona/Views/Sharing/ShareBabyView.swift in Sources */,
+				SHARE009A1B2C3D4E5F67890 /* Leona/Views/Sharing/ShareStatusView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

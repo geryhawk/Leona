@@ -11,6 +11,10 @@ final class GrowthRecord {
     var baby: Baby?
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
+
+    // CloudKit sharing metadata
+    var ckRecordName: String?
+    var ckChangeTag: String?
     
     init(
         date: Date = Date(),

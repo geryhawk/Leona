@@ -17,7 +17,12 @@ final class Baby {
     var updatedAt: Date = Date()
     
     var ownerName: String?
-    
+
+    // CloudKit sharing metadata
+    var ckRecordName: String?
+    var ckChangeTag: String?
+    var isShared: Bool = false
+
     // Relationships
     @Relationship(deleteRule: .cascade, inverse: \Activity.baby)
     var activities: [Activity]? = []
@@ -112,6 +117,13 @@ final class Baby {
     var isMonthBirthday: Bool {
         let cal = Calendar.current
         return cal.component(.day, from: dateOfBirth) == cal.component(.day, from: Date())
+    }
+
+    var sharingDescription: String {
+        if isShared, let owner = ownerName {
+            return String(localized: "shared_by \(owner)")
+        }
+        return ""
     }
 }
 
