@@ -3,12 +3,24 @@ import SwiftData
 
 struct HealthView: View {
     let baby: Baby
-    
+
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \HealthRecord.startDate, order: .reverse) private var allRecords: [HealthRecord]
-    
-    @State private var showAddRecord = false
-    @State private var editingRecord: HealthRecord?
+
+    /// Unified sheet presentation to avoid SwiftUI multiple-sheet conflicts
+    enum SheetType: Identifiable {
+        case add
+        case detail(HealthRecord)
+
+        var id: String {
+            switch self {
+            case .add: return "add"
+            case .detail(let record): return record.id.uuidString
+            }
+        }
+    }
+
+    @State private var activeSheet: SheetType?
     @State private var recordToDelete: HealthRecord?
     
     private var babyRecords: [HealthRecord] {
@@ -51,18 +63,20 @@ struct HealthView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
-                        showAddRecord = true
+                        activeSheet = .add
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .foregroundStyle(.leonaPink)
                     }
                 }
             }
-            .sheet(isPresented: $showAddRecord) {
-                HealthEntryView(baby: baby)
-            }
-            .sheet(item: $editingRecord) { record in
-                HealthDetailView(record: record)
+            .sheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .add:
+                    HealthEntryView(baby: baby)
+                case .detail(let record):
+                    HealthDetailView(record: record)
+                }
             }
             .alert(String(localized: "delete_record"), isPresented: Binding<Bool>(
                 get: { recordToDelete != nil },
@@ -94,7 +108,7 @@ struct HealthView: View {
             
             ForEach(activeRecords) { record in
                 Button {
-                    editingRecord = record
+                    activeSheet = .detail(record)
                 } label: {
                     HStack(spacing: 12) {
                         Image(systemName: record.illnessType.icon)
@@ -204,7 +218,7 @@ struct HealthView: View {
                 .multilineTextAlignment(.center)
             
             Button {
-                showAddRecord = true
+                activeSheet = .add
             } label: {
                 Label(String(localized: "add_health_record"), systemImage: "plus.circle.fill")
             }
@@ -223,7 +237,7 @@ struct HealthView: View {
             
             ForEach(pastRecords) { record in
                 Button {
-                    editingRecord = record
+                    activeSheet = .detail(record)
                 } label: {
                     HStack(spacing: 12) {
                         Image(systemName: record.illnessType.icon)
