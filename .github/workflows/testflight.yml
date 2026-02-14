@@ -18,23 +18,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode 26
-        run: |
-          ls /Applications/Xcode*.app/Contents/Developer || true
-          sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer || \
-          sudo xcode-select -s /Applications/Xcode_26.1.1.app/Contents/Developer || \
-          sudo xcode-select -s /Applications/Xcode_26.0.1.app/Contents/Developer || \
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-
-      - name: Install iOS Simulator Runtime
-        run: |
-          xcodebuild -downloadPlatform iOS || true
-          xcrun simctl list runtimes
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26'
 
       - name: Show build environment
         run: |
           xcodebuild -version
           swift --version
+          xcode-select -p
+          ls /Applications/Xcode*.app || true
 
       - name: Install App Store Connect API key
         env:
@@ -51,6 +45,7 @@ jobs:
 
       - name: Archive
         run: |
+          set -o pipefail
           xcodebuild archive \
             -project Leona.xcodeproj \
             -scheme Leona \
@@ -61,7 +56,20 @@ jobs:
             -authenticationKeyID ${{ secrets.ASC_API_KEY_ID }} \
             -authenticationKeyIssuerID ${{ secrets.ASC_API_ISSUER_ID }} \
             CODE_SIGN_STYLE=Automatic \
-            DEVELOPMENT_TEAM=HLUMLG6SWA
+            DEVELOPMENT_TEAM=HLUMLG6SWA \
+            2>&1 | tee /tmp/build.log
+
+      - name: Show build errors on failure
+        if: failure()
+        run: |
+          echo "## Build Failed" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -i "error:" /tmp/build.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No error: lines found" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "### Last 100 lines" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -100 /tmp/build.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No build log found" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Export and Upload to TestFlight
         run: |
