@@ -465,3 +465,4 @@
 "role_invited" = "Kutsuttu";
 "role_removed" = "Poistettu";
 "delete_record_message" = "Tämä terveystietue ja kaikki sen tiedot poistetaan pysyvästi.";
+"share_fetch_error" = "Jakamistietoja ei voitu hakea. Yritä uudelleen.";

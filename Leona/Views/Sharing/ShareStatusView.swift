@@ -1,10 +1,6 @@
 import SwiftUI
 import CloudKit
 
-extension URL: @retroactive Identifiable {
-    public var id: String { absoluteString }
-}
-
 struct ShareStatusView: View {
     let baby: Baby
 
@@ -13,12 +9,12 @@ struct ShareStatusView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var isCreatingShare = false
+    @State private var showShareSheet = false
+    @State private var pendingShare: CKShare?
     @State private var showStopConfirm = false
     @State private var showRemoveConfirm = false
     @State private var participantToRemove: CKShare.Participant?
     @State private var errorMessage: String?
-    @State private var inviteEmail = ""
-    @State private var pendingShareURL: URL?
     @State private var isLoading = false
 
     var body: some View {
@@ -26,7 +22,7 @@ struct ShareStatusView: View {
             if baby.isShared {
                 sharedSection
             } else {
-                inviteSection
+                notSharedSection
             }
 
             if let error = errorMessage {
@@ -39,6 +35,20 @@ struct ShareStatusView: View {
         }
         .navigationTitle(String(localized: "partner_sharing"))
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showShareSheet) {
+            if let share = pendingShare {
+                CloudSharingView(
+                    share: share,
+                    container: sharing.container,
+                    baby: baby,
+                    onDismiss: {
+                        showShareSheet = false
+                        // Refresh share info after the sharing controller closes
+                        Task { await sharing.fetchShareInfo(for: baby) }
+                    }
+                )
+            }
+        }
         .alert(String(localized: "stop_sharing_title"), isPresented: $showStopConfirm) {
             Button(String(localized: "stop_sharing"), role: .destructive) {
                 stopSharing()
@@ -59,9 +69,6 @@ struct ShareStatusView: View {
         } message: {
             Text(String(localized: "remove_participant_message"))
         }
-        .sheet(item: $pendingShareURL) { url in
-            ShareLinkSheet(url: url, babyName: baby.displayName)
-        }
         .task {
             if baby.isShared {
                 isLoading = true
@@ -71,97 +78,53 @@ struct ShareStatusView: View {
         }
     }
 
-    // MARK: - Not Shared — Invite
+    // MARK: - Not Shared
 
-    private var inviteSection: some View {
-        Group {
-            Section {
-                VStack(spacing: 16) {
-                    Image(systemName: "person.2.circle.fill")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.leonaPrimary)
-
+    private var notSharedSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                Label {
                     Text(String(localized: "share_description"))
                         .font(.subheadline)
-                        .multilineTextAlignment(.center)
-
-                    Text(String(localized: "share_explanation"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .listRowBackground(Color.clear)
-            }
-
-            // Invite by email
-            Section {
-                HStack(spacing: 12) {
-                    Image(systemName: "envelope.fill")
+                } icon: {
+                    Image(systemName: "person.2.fill")
                         .foregroundStyle(.leonaPrimary)
-                    TextField(String(localized: "share_email_placeholder"), text: $inviteEmail)
-                        .textContentType(.emailAddress)
-                        .keyboardType(.emailAddress)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
                 }
 
-                Button {
-                    inviteByEmail()
-                } label: {
-                    HStack {
-                        Spacer()
-                        if isCreatingShare {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Label(String(localized: "share_invite_by_email"), systemImage: "paperplane.fill")
-                        }
-                        Spacer()
-                    }
-                    .padding(.vertical, 4)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(isCreatingShare || !isValidEmail(inviteEmail))
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-            } header: {
-                Text(String(localized: "share_invite_header"))
-            } footer: {
-                Text(String(localized: "share_invite_footer"))
+                Text(String(localized: "share_explanation"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
+            .padding(.vertical, 4)
 
-            // Or share link
-            Section {
-                Button {
-                    shareViaLink()
-                } label: {
-                    Label {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(String(localized: "share_send_link"))
-                                .font(.subheadline.weight(.medium))
-                            Text(String(localized: "share_send_link_desc"))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    } icon: {
-                        Image(systemName: "link.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(.leonaPrimary)
+            Button {
+                createAndShare()
+            } label: {
+                HStack {
+                    Spacer()
+                    if isCreatingShare {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Label(String(localized: "share_with_partner_button"), systemImage: "square.and.arrow.up")
                     }
+                    Spacer()
                 }
-                .disabled(isCreatingShare)
-            } header: {
-                Text(String(localized: "share_or"))
+                .padding(.vertical, 8)
             }
+            .buttonStyle(.borderedProminent)
+            .disabled(isCreatingShare)
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+        } header: {
+            Text(String(localized: "partner_sharing"))
         }
     }
 
-    // MARK: - Shared State
+    // MARK: - Shared
 
     private var sharedSection: some View {
         Group {
-            // Status banner
+            // Status
             Section {
                 HStack(spacing: 12) {
                     Image(systemName: "checkmark.circle.fill")
@@ -185,7 +148,7 @@ struct ShareStatusView: View {
                 }
             }
 
-            // Participants list
+            // Participants
             Section {
                 if isLoading {
                     HStack {
@@ -228,51 +191,22 @@ struct ShareStatusView: View {
                 }
             }
 
-            // Add more parents (owner only)
+            // Add more / Re-share (owner only)
             if baby.ownerName == nil {
-                Section(String(localized: "share_add_parent")) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "envelope.fill")
-                            .foregroundStyle(.leonaPrimary)
-                        TextField(String(localized: "share_email_placeholder"), text: $inviteEmail)
-                            .textContentType(.emailAddress)
-                            .keyboardType(.emailAddress)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                    }
-
+                Section {
                     Button {
-                        inviteByEmail()
-                    } label: {
-                        HStack {
-                            Spacer()
-                            if isCreatingShare {
-                                ProgressView()
-                                    .tint(.white)
-                            } else {
-                                Label(String(localized: "share_invite_by_email"), systemImage: "paperplane.fill")
-                            }
-                            Spacer()
-                        }
-                        .padding(.vertical, 4)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(isCreatingShare || !isValidEmail(inviteEmail))
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-
-                    Button {
-                        shareViaLink()
+                        reshare()
                     } label: {
                         Label {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(String(localized: "share_send_link"))
+                                Text(String(localized: "share_add_parent"))
                                     .font(.subheadline.weight(.medium))
                                 Text(String(localized: "share_send_link_desc"))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                         } icon: {
-                            Image(systemName: "link.circle.fill")
+                            Image(systemName: "person.badge.plus")
                                 .font(.title2)
                                 .foregroundStyle(.leonaPrimary)
                         }
@@ -280,7 +214,6 @@ struct ShareStatusView: View {
                     .disabled(isCreatingShare)
                 }
 
-                // Stop sharing
                 Section {
                     Button(role: .destructive) {
                         showStopConfirm = true
@@ -308,14 +241,14 @@ struct ShareStatusView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(participantName(participant))
                     .font(.subheadline.weight(.medium))
-                Text(participantStatus(participant))
+                Text(participantStatusText(participant))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             Spacer()
 
-            Text(participantRoleLabel(participant))
+            Text(participantBadge(participant))
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(participantColor(participant))
                 .padding(.horizontal, 8)
@@ -328,22 +261,17 @@ struct ShareStatusView: View {
 
     // MARK: - Actions
 
-    private func inviteByEmail() {
+    private func createAndShare() {
         isCreatingShare = true
         errorMessage = nil
 
         Task {
             do {
-                let share = try await sharing.getOrCreateShare(for: baby, in: modelContext)
-
-                guard let url = share.url else {
-                    throw SharingError.shareCreationFailed
-                }
-
+                let share = try await sharing.createShare(for: baby, in: modelContext)
                 await MainActor.run {
-                    pendingShareURL = url
+                    pendingShare = share
+                    showShareSheet = true
                     isCreatingShare = false
-                    inviteEmail = ""
                 }
             } catch {
                 await MainActor.run {
@@ -354,29 +282,27 @@ struct ShareStatusView: View {
         }
     }
 
-    private func shareViaLink() {
-        isCreatingShare = true
-        errorMessage = nil
-
-        Task {
-            do {
-                let share = try await sharing.getOrCreateShare(for: baby, in: modelContext)
-
-                guard let url = share.url else {
-                    throw SharingError.shareCreationFailed
-                }
-
+    private func reshare() {
+        guard let share = sharing.activeShare else {
+            // No active share in memory — fetch it first then show
+            isCreatingShare = true
+            Task {
+                await sharing.fetchShareInfo(for: baby)
                 await MainActor.run {
-                    pendingShareURL = url
-                    isCreatingShare = false
-                }
-            } catch {
-                await MainActor.run {
-                    errorMessage = error.localizedDescription
+                    if let share = sharing.activeShare {
+                        pendingShare = share
+                        showShareSheet = true
+                    } else {
+                        errorMessage = String(localized: "share_fetch_error")
+                    }
                     isCreatingShare = false
                 }
             }
+            return
         }
+
+        pendingShare = share
+        showShareSheet = true
     }
 
     private func removeParticipant(_ participant: CKShare.Participant) {
@@ -407,12 +333,6 @@ struct ShareStatusView: View {
 
     // MARK: - Helpers
 
-    private func isValidEmail(_ email: String) -> Bool {
-        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return false }
-        return trimmed.contains("@") && trimmed.contains(".")
-    }
-
     private func participantName(_ participant: CKShare.Participant) -> String {
         if let name = participant.userIdentity.nameComponents?.formatted() {
             return name
@@ -423,7 +343,7 @@ struct ShareStatusView: View {
         return String(localized: "partner")
     }
 
-    private func participantStatus(_ participant: CKShare.Participant) -> String {
+    private func participantStatusText(_ participant: CKShare.Participant) -> String {
         switch participant.acceptanceStatus {
         case .accepted: return String(localized: "participant_accepted")
         case .pending: return String(localized: "participant_pending")
@@ -432,21 +352,12 @@ struct ShareStatusView: View {
         }
     }
 
-    private func participantRoleLabel(_ participant: CKShare.Participant) -> String {
+    private func participantBadge(_ participant: CKShare.Participant) -> String {
         switch participant.acceptanceStatus {
         case .accepted: return String(localized: "role_active")
         case .pending: return String(localized: "role_invited")
         case .removed: return String(localized: "role_removed")
         default: return String(localized: "participant_unknown")
-        }
-    }
-
-    private func participantIcon(_ participant: CKShare.Participant) -> String {
-        switch participant.acceptanceStatus {
-        case .accepted: return "checkmark.circle.fill"
-        case .pending: return "clock.fill"
-        case .removed: return "xmark.circle.fill"
-        default: return "questionmark.circle"
         }
     }
 
@@ -456,94 +367,6 @@ struct ShareStatusView: View {
         case .pending: return .orange
         case .removed: return .red
         default: return .secondary
-        }
-    }
-}
-
-// MARK: - Share Link Sheet
-
-struct ShareLinkSheet: View {
-    let url: URL
-    let babyName: String
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var copied = false
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 24) {
-                Spacer()
-
-                Image(systemName: "link.circle.fill")
-                    .font(.system(size: 64))
-                    .foregroundStyle(.leonaPrimary)
-
-                VStack(spacing: 8) {
-                    Text(String(localized: "share_link_ready"))
-                        .font(.title3.bold())
-                    Text(String(localized: "share_link_explanation"))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                }
-
-                // Link preview
-                HStack {
-                    Image(systemName: "link")
-                        .foregroundStyle(.secondary)
-                    Text(url.absoluteString)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-                .padding()
-                .background(Color(.systemGray6))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .padding(.horizontal)
-
-                // Share button
-                ShareLink(
-                    item: url,
-                    subject: Text("Leona"),
-                    message: Text(String(localized: "share_link_message \(babyName)"))
-                ) {
-                    HStack {
-                        Spacer()
-                        Label(String(localized: "share_send_link"), systemImage: "square.and.arrow.up")
-                            .font(.headline)
-                        Spacer()
-                    }
-                    .padding(.vertical, 12)
-                }
-                .buttonStyle(.borderedProminent)
-                .padding(.horizontal)
-
-                // Copy link
-                Button {
-                    UIPasteboard.general.url = url
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
-                    copied = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copied = false }
-                } label: {
-                    Label(
-                        copied ? String(localized: "share_link_copied") : String(localized: "share_copy_link"),
-                        systemImage: copied ? "checkmark" : "doc.on.doc"
-                    )
-                    .font(.subheadline)
-                    .animation(.easeInOut, value: copied)
-                }
-
-                Spacer()
-            }
-            .navigationTitle(String(localized: "partner_sharing"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "done")) { dismiss() }
-                }
-            }
         }
     }
 }
