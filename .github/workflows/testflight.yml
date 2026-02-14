@@ -66,6 +66,8 @@ jobs:
           ls -la ~/private_keys/
 
       - name: Archive
+        id: archive
+        continue-on-error: true
         run: |
           xcodebuild archive \
             -project Leona.xcodeproj \
@@ -78,7 +80,17 @@ jobs:
             -authenticationKeyIssuerID ${{ secrets.ASC_API_ISSUER_ID }} \
             CODE_SIGN_STYLE=Automatic \
             DEVELOPMENT_TEAM=HLUMLG6SWA \
-            2>&1 | tail -30 > /tmp/archive_error.txt; exit ${PIPESTATUS[0]}
+            2>&1 | tee /tmp/archive_output.txt
+
+      - name: Check archive result
+        if: steps.archive.outcome == 'failure'
+        run: |
+          echo "Archive failed! Last 50 lines:"
+          tail -50 /tmp/archive_output.txt
+          echo "---"
+          echo "Error lines:"
+          grep -i "error" /tmp/archive_output.txt || echo "None found"
+          exit 1
 
       - name: Report archive error
         if: failure()
@@ -88,16 +100,21 @@ jobs:
             const fs = require('fs');
             let errorContent = 'No error file found';
             try {
-              errorContent = fs.readFileSync('/tmp/archive_error.txt', 'utf8');
-            } catch (e) {}
-            const title = `Build ${context.runNumber} archive failed`;
-            const body = `## Archive Error\n\`\`\`\n${errorContent}\n\`\`\`\n\nCommit: ${context.sha}\nRun: ${context.runId}`;
+              errorContent = fs.readFileSync('/tmp/archive_output.txt', 'utf8');
+              // Only keep last 3000 chars to fit in issue body
+              if (errorContent.length > 3000) {
+                errorContent = '...\n' + errorContent.slice(-3000);
+              }
+            } catch (e) {
+              errorContent = `Error reading file: ${e.message}`;
+            }
+            const title = `CI Build ${context.runNumber}: archive failed`;
+            const body = `## Archive Error Output\n\`\`\`\n${errorContent}\n\`\`\`\n\nCommit: ${context.sha}\nRun: https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: title,
-              body: body,
-              labels: ['bug', 'ci']
+              body: body
             });
 
       - name: Export and Upload to TestFlight
