@@ -58,7 +58,7 @@ jobs:
             CODE_SIGN_STYLE=Automatic \
             DEVELOPMENT_TEAM=HLUMLG6SWA
 
-      - name: Export IPA
+      - name: Export and Upload to TestFlight
         run: |
           cat > $RUNNER_TEMP/ExportOptions.plist << 'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
@@ -69,10 +69,12 @@ jobs:
               <string>app-store-connect</string>
               <key>destination</key>
               <string>upload</string>
-              <key>teamID</key>
-              <string>HLUMLG6SWA</string>
               <key>signingStyle</key>
               <string>automatic</string>
+              <key>teamID</key>
+              <string>HLUMLG6SWA</string>
+              <key>uploadSymbols</key>
+              <true/>
           </dict>
           </plist>
           PLIST
@@ -85,13 +87,3 @@ jobs:
             -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8 \
             -authenticationKeyID ${{ secrets.ASC_API_KEY_ID }} \
             -authenticationKeyIssuerID ${{ secrets.ASC_API_ISSUER_ID }}
-
-      - name: Upload to TestFlight
-        run: |
-          xcrun altool --upload-app \
-            --type ios \
-            --file "$RUNNER_TEMP/export/Leona.ipa" \
-            --apiKey ${{ secrets.ASC_API_KEY_ID }} \
-            --apiIssuer ${{ secrets.ASC_API_ISSUER_ID }}
-        env:
-          API_KEY_PATH: ~/private_keys
