@@ -14,9 +14,12 @@ struct ShareStatusView: View {
 
     @State private var isCreatingShare = false
     @State private var showStopConfirm = false
+    @State private var showRemoveConfirm = false
+    @State private var participantToRemove: CKShare.Participant?
     @State private var errorMessage: String?
     @State private var inviteEmail = ""
     @State private var pendingShareURL: URL?
+    @State private var isLoading = false
 
     var body: some View {
         List {
@@ -44,12 +47,26 @@ struct ShareStatusView: View {
         } message: {
             Text(String(localized: "stop_sharing_message"))
         }
+        .alert(String(localized: "remove_participant_title"), isPresented: $showRemoveConfirm) {
+            Button(String(localized: "remove"), role: .destructive) {
+                if let participant = participantToRemove {
+                    removeParticipant(participant)
+                }
+            }
+            Button(String(localized: "cancel"), role: .cancel) {
+                participantToRemove = nil
+            }
+        } message: {
+            Text(String(localized: "remove_participant_message"))
+        }
         .sheet(item: $pendingShareURL) { url in
             ShareLinkSheet(url: url, babyName: baby.displayName)
         }
         .task {
             if baby.isShared {
+                isLoading = true
                 await sharing.fetchShareInfo(for: baby)
+                isLoading = false
             }
         }
     }
@@ -144,6 +161,7 @@ struct ShareStatusView: View {
 
     private var sharedSection: some View {
         Group {
+            // Status banner
             Section {
                 HStack(spacing: 12) {
                     Image(systemName: "checkmark.circle.fill")
@@ -167,46 +185,102 @@ struct ShareStatusView: View {
                 }
             }
 
-            if !sharing.participants.isEmpty {
-                Section(String(localized: "share_participants")) {
+            // Participants list
+            Section {
+                if isLoading {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                        Spacer()
+                    }
+                } else if sharing.participants.isEmpty {
+                    HStack(spacing: 12) {
+                        Image(systemName: "person.slash")
+                            .foregroundStyle(.secondary)
+                        Text(String(localized: "no_participants_yet"))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
                     ForEach(sharing.participants, id: \.userIdentity.userRecordID) { participant in
-                        HStack(spacing: 12) {
-                            ZStack {
-                                Circle()
-                                    .fill(participantColor(participant).opacity(0.15))
-                                    .frame(width: 36, height: 36)
-                                Image(systemName: "person.fill")
-                                    .foregroundStyle(participantColor(participant))
+                        participantRow(participant)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                if baby.ownerName == nil {
+                                    Button(role: .destructive) {
+                                        participantToRemove = participant
+                                        showRemoveConfirm = true
+                                    } label: {
+                                        Label(String(localized: "remove"), systemImage: "trash")
+                                    }
+                                }
                             }
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(participant.userIdentity.nameComponents?.formatted() ?? String(localized: "partner"))
-                                    .font(.subheadline.weight(.medium))
-                                Text(participantStatus(participant))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Spacer()
-
-                            Image(systemName: participantIcon(participant))
-                                .foregroundStyle(participantColor(participant))
-                        }
+                    }
+                }
+            } header: {
+                HStack {
+                    Text(String(localized: "share_participants"))
+                    Spacer()
+                    if !sharing.participants.isEmpty {
+                        Text("\(sharing.participants.count)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
 
-            // Re-share link (owner only)
+            // Add more parents (owner only)
             if baby.ownerName == nil {
-                Section {
+                Section(String(localized: "share_add_parent")) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "envelope.fill")
+                            .foregroundStyle(.leonaPrimary)
+                        TextField(String(localized: "share_email_placeholder"), text: $inviteEmail)
+                            .textContentType(.emailAddress)
+                            .keyboardType(.emailAddress)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                    }
+
+                    Button {
+                        inviteByEmail()
+                    } label: {
+                        HStack {
+                            Spacer()
+                            if isCreatingShare {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Label(String(localized: "share_invite_by_email"), systemImage: "paperplane.fill")
+                            }
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isCreatingShare || !isValidEmail(inviteEmail))
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+
                     Button {
                         shareViaLink()
                     } label: {
-                        Label(String(localized: "share_send_link"), systemImage: "link.circle.fill")
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(String(localized: "share_send_link"))
+                                    .font(.subheadline.weight(.medium))
+                                Text(String(localized: "share_send_link_desc"))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "link.circle.fill")
+                                .font(.title2)
+                                .foregroundStyle(.leonaPrimary)
+                        }
                     }
                     .disabled(isCreatingShare)
                 }
 
+                // Stop sharing
                 Section {
                     Button(role: .destructive) {
                         showStopConfirm = true
@@ -216,6 +290,40 @@ struct ShareStatusView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Participant Row
+
+    private func participantRow(_ participant: CKShare.Participant) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(participantColor(participant).opacity(0.15))
+                    .frame(width: 40, height: 40)
+                Image(systemName: "person.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(participantColor(participant))
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(participantName(participant))
+                    .font(.subheadline.weight(.medium))
+                Text(participantStatus(participant))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Text(participantRoleLabel(participant))
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(participantColor(participant))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(participantColor(participant).opacity(0.12))
+                .clipShape(Capsule())
+        }
+        .padding(.vertical, 2)
     }
 
     // MARK: - Actions
@@ -281,6 +389,20 @@ struct ShareStatusView: View {
         }
     }
 
+    private func removeParticipant(_ participant: CKShare.Participant) {
+        Task {
+            do {
+                try await sharing.removeParticipant(participant, for: baby)
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            } catch {
+                await MainActor.run {
+                    errorMessage = error.localizedDescription
+                }
+            }
+            participantToRemove = nil
+        }
+    }
+
     private func stopSharing() {
         Task {
             do {
@@ -301,11 +423,30 @@ struct ShareStatusView: View {
         return trimmed.contains("@") && trimmed.contains(".")
     }
 
+    private func participantName(_ participant: CKShare.Participant) -> String {
+        if let name = participant.userIdentity.nameComponents?.formatted() {
+            return name
+        }
+        if let email = participant.userIdentity.lookupInfo?.emailAddress {
+            return email
+        }
+        return String(localized: "partner")
+    }
+
     private func participantStatus(_ participant: CKShare.Participant) -> String {
         switch participant.acceptanceStatus {
         case .accepted: return String(localized: "participant_accepted")
         case .pending: return String(localized: "participant_pending")
         case .removed: return String(localized: "participant_removed")
+        default: return String(localized: "participant_unknown")
+        }
+    }
+
+    private func participantRoleLabel(_ participant: CKShare.Participant) -> String {
+        switch participant.acceptanceStatus {
+        case .accepted: return String(localized: "role_active")
+        case .pending: return String(localized: "role_invited")
+        case .removed: return String(localized: "role_removed")
         default: return String(localized: "participant_unknown")
         }
     }

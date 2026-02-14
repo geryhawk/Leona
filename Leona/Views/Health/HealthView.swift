@@ -9,6 +9,8 @@ struct HealthView: View {
     
     @State private var showAddRecord = false
     @State private var editingRecord: HealthRecord?
+    @State private var recordToDelete: HealthRecord?
+    @State private var showDeleteConfirm = false
     
     private var babyRecords: [HealthRecord] {
         allRecords.filter { $0.baby?.id == baby.id }
@@ -62,6 +64,20 @@ struct HealthView: View {
             }
             .sheet(item: $editingRecord) { record in
                 HealthDetailView(record: record)
+            }
+            .alert(String(localized: "delete_record"), isPresented: $showDeleteConfirm) {
+                Button(String(localized: "delete"), role: .destructive) {
+                    if let record = recordToDelete {
+                        modelContext.delete(record)
+                        try? modelContext.save()
+                        recordToDelete = nil
+                    }
+                }
+                Button(String(localized: "cancel"), role: .cancel) {
+                    recordToDelete = nil
+                }
+            } message: {
+                Text(String(localized: "delete_record_message"))
             }
         }
     }
@@ -126,10 +142,18 @@ struct HealthView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .contextMenu {
+                    Button(role: .destructive) {
+                        recordToDelete = record
+                        showDeleteConfirm = true
+                    } label: {
+                        Label(String(localized: "delete"), systemImage: "trash")
+                    }
+                }
             }
         }
     }
-    
+
     // MARK: - Temperature Alert
     
     private func temperatureAlert(temperature: Double) -> some View {
@@ -238,7 +262,8 @@ struct HealthView: View {
                 .buttonStyle(.plain)
                 .contextMenu {
                     Button(role: .destructive) {
-                        modelContext.delete(record)
+                        recordToDelete = record
+                        showDeleteConfirm = true
                     } label: {
                         Label(String(localized: "delete"), systemImage: "trash")
                     }

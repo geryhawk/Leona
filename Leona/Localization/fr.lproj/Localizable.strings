@@ -456,3 +456,12 @@
 "share_link_message %@" = "Rejoins-moi sur Leona pour suivre les activités de %@ ensemble !";
 "share_copy_link" = "Copier le lien";
 "share_link_copied" = "Copié !";
+"share_add_parent" = "Ajouter un autre parent";
+"no_participants_yet" = "Aucun participant pour le moment";
+"remove" = "Supprimer";
+"remove_participant_title" = "Supprimer le participant ?";
+"remove_participant_message" = "Cette personne n'aura plus accès aux données de ce bébé.";
+"role_active" = "Actif";
+"role_invited" = "Invité";
+"role_removed" = "Supprimé";
+"delete_record_message" = "Ce dossier de santé et toutes ses données seront définitivement supprimés.";

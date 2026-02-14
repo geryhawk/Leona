@@ -456,3 +456,12 @@
 "share_link_message %@" = "Liity mukaani Leonaan seuraamaan yhdessä %@:n toimintoja!";
 "share_copy_link" = "Kopioi linkki";
 "share_link_copied" = "Kopioitu!";
+"share_add_parent" = "Lisää toinen vanhempi";
+"no_participants_yet" = "Ei osallistujia vielä";
+"remove" = "Poista";
+"remove_participant_title" = "Poista osallistuja?";
+"remove_participant_message" = "Tällä henkilöllä ei ole enää pääsyä tämän vauvan tietoihin.";
+"role_active" = "Aktiivinen";
+"role_invited" = "Kutsuttu";
+"role_removed" = "Poistettu";
+"delete_record_message" = "Tämä terveystietue ja kaikki sen tiedot poistetaan pysyvästi.";

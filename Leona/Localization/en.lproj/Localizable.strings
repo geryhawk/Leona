@@ -456,3 +456,12 @@
 "share_link_message %@" = "Join me on Leona to track %@'s activities together!";
 "share_copy_link" = "Copy Link";
 "share_link_copied" = "Copied!";
+"share_add_parent" = "Add Another Parent";
+"no_participants_yet" = "No participants yet";
+"remove" = "Remove";
+"remove_participant_title" = "Remove Participant?";
+"remove_participant_message" = "This person will no longer have access to this baby's data.";
+"role_active" = "Active";
+"role_invited" = "Invited";
+"role_removed" = "Removed";
+"delete_record_message" = "This health record and all its data will be permanently deleted.";

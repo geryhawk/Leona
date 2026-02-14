@@ -78,10 +78,16 @@ struct HealthDetailView: View {
             }
             .alert(String(localized: "delete_record"), isPresented: $showDeleteConfirm) {
                 Button(String(localized: "delete"), role: .destructive) {
-                    modelContext.delete(record)
+                    let recordToDelete = record
                     dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        modelContext.delete(recordToDelete)
+                        try? modelContext.save()
+                    }
                 }
                 Button(String(localized: "cancel"), role: .cancel) {}
+            } message: {
+                Text(String(localized: "delete_record_message"))
             }
         }
     }
