@@ -50,14 +50,15 @@ jobs:
           xcodebuild archive \
             -project Leona.xcodeproj \
             -scheme Leona \
-            -destination "generic/platform=iOS" \
+            -sdk iphoneos \
             -archivePath $RUNNER_TEMP/Leona.xcarchive \
             -allowProvisioningUpdates \
             -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8 \
             -authenticationKeyID ${{ secrets.ASC_API_KEY_ID }} \
             -authenticationKeyIssuerID ${{ secrets.ASC_API_ISSUER_ID }} \
             CODE_SIGN_STYLE=Automatic \
-            DEVELOPMENT_TEAM=HLUMLG6SWA
+            DEVELOPMENT_TEAM=HLUMLG6SWA \
+            COMPILER_INDEX_STORE_ENABLE=NO
 
       - name: Export IPA
         run: |
