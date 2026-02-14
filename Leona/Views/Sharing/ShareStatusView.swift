@@ -232,20 +232,6 @@ struct ShareStatusView: View {
                     share = try await sharing.createShare(for: baby, in: modelContext)
                 }
 
-                // Look up and add participant by email
-                let lookupInfo = CKUserIdentity.LookupInfo(emailAddress: inviteEmail)
-                let identities = try await sharing.container.userIdentities(matching: [lookupInfo])
-
-                if let identity = identities.first?.1 {
-                    let participant = CKShare.Participant()
-                    share.addParticipant(participant)
-                    try await sharing.container.privateCloudDatabase.modifyRecords(
-                        saving: [share],
-                        deleting: [],
-                        savePolicy: .changedKeys
-                    )
-                }
-
                 await MainActor.run {
                     pendingShare = share
                     showShareLink = true
