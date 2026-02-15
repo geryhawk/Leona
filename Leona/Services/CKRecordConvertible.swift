@@ -3,11 +3,11 @@ import CloudKit
 
 // MARK: - CKRecord Convertible Protocol
 
-protocol CKRecordConvertible {
+protocol CKRecordConvertible: AnyObject {
     static var ckRecordType: String { get }
     var id: UUID { get }
     func toCKRecord(in zone: CKRecordZone.ID) -> CKRecord
-    mutating func applyCKRecord(_ record: CKRecord)
+    func applyCKRecord(_ record: CKRecord)
 }
 
 // MARK: - Baby + CKRecord

@@ -437,6 +437,7 @@
 "stop_sharing" = "Stop Sharing";
 "stop_sharing_title" = "Stop Sharing?";
 "stop_sharing_message" = "Your partner will no longer have access to this baby's data. Their local copy will be removed.";
+"share_error_title" = "Sharing Error";
 "participant_accepted" = "Accepted";
 "participant_pending" = "Pending";
 "participant_removed" = "Removed";

@@ -437,6 +437,7 @@
 "stop_sharing" = "Lopeta jakaminen";
 "stop_sharing_title" = "Lopeta jakaminen?";
 "stop_sharing_message" = "Kumppanillasi ei ole enää pääsyä tämän vauvan tietoihin. Hänen paikallinen kopionsa poistetaan.";
+"share_error_title" = "Jakamisvirhe";
 "participant_accepted" = "Hyväksytty";
 "participant_pending" = "Odottaa";
 "participant_removed" = "Poistettu";

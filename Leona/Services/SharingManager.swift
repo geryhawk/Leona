@@ -194,6 +194,7 @@ final class SharingManager {
     // MARK: - Accept Share
 
     /// Accepts a CloudKit share and syncs the shared baby data into SwiftData.
+    /// Handles re-acceptance gracefully by updating existing records instead of duplicating.
     func acceptShare(metadata: CKShare.Metadata, in context: ModelContext) async throws {
         sharingStatus = .preparing
 
@@ -224,59 +225,78 @@ final class SharingManager {
                 throw SharingError.noBabyFound
             }
 
-            // 4. Create or update Baby in SwiftData
+            // 4. Create or update Baby in SwiftData — avoid duplicates
             let babyID = UUID(uuidString: babyRecord.recordID.recordName) ?? UUID()
-            let baby = Baby(firstName: "", dateOfBirth: Date())
-            baby.id = babyID
+            let ownerName = metadata.ownerIdentity.nameComponents?.formatted() ?? "Partner"
+
+            let baby: Baby
+            let existingDescriptor = FetchDescriptor<Baby>(predicate: #Predicate { $0.id == babyID })
+            if let existingBaby = try context.fetch(existingDescriptor).first {
+                baby = existingBaby
+                logger.info("Found existing baby \(baby.displayName), updating instead of duplicating")
+            } else {
+                baby = Baby(firstName: "", dateOfBirth: Date())
+                baby.id = babyID
+                context.insert(baby)
+                logger.info("Created new baby record for shared baby")
+            }
+
             baby.applyCKRecord(babyRecord)
             baby.isShared = true
-            baby.ownerName = metadata.ownerIdentity.nameComponents?.formatted() ?? "Partner"
+            baby.ownerName = ownerName
 
-            context.insert(baby)
-
-            // 5. Create child records
+            // 5. Create or update child records — avoid duplicates
             for record in childRecords {
                 switch record.recordType {
                 case Activity.ckRecordType:
-                    let activity = Activity(type: .note, baby: baby)
-                    if let recordID = UUID(uuidString: record.recordID.recordName) {
-                        activity.id = recordID
+                    let recordID = UUID(uuidString: record.recordID.recordName)
+                    if let id = recordID, let existing = (baby.activities ?? []).first(where: { $0.id == id }) {
+                        existing.applyCKRecord(record)
+                    } else {
+                        let activity = Activity(type: .note, baby: baby)
+                        if let id = recordID { activity.id = id }
+                        activity.applyCKRecord(record)
+                        activity.baby = baby
+                        context.insert(activity)
                     }
-                    activity.applyCKRecord(record)
-                    activity.baby = baby
-                    context.insert(activity)
 
                 case GrowthRecord.ckRecordType:
-                    let growth = GrowthRecord(baby: baby)
-                    if let recordID = UUID(uuidString: record.recordID.recordName) {
-                        growth.id = recordID
+                    let recordID = UUID(uuidString: record.recordID.recordName)
+                    if let id = recordID, let existing = (baby.growthRecords ?? []).first(where: { $0.id == id }) {
+                        existing.applyCKRecord(record)
+                    } else {
+                        let growth = GrowthRecord(baby: baby)
+                        if let id = recordID { growth.id = id }
+                        growth.applyCKRecord(record)
+                        growth.baby = baby
+                        context.insert(growth)
                     }
-                    growth.applyCKRecord(record)
-                    growth.baby = baby
-                    context.insert(growth)
 
                 case HealthRecord.ckRecordType:
-                    let health = HealthRecord(baby: baby)
-                    if let recordID = UUID(uuidString: record.recordID.recordName) {
-                        health.id = recordID
+                    let recordID = UUID(uuidString: record.recordID.recordName)
+                    if let id = recordID, let existing = (baby.healthRecords ?? []).first(where: { $0.id == id }) {
+                        existing.applyCKRecord(record)
+                    } else {
+                        let health = HealthRecord(baby: baby)
+                        if let id = recordID { health.id = id }
+                        health.applyCKRecord(record)
+                        health.baby = baby
+                        context.insert(health)
                     }
-                    health.applyCKRecord(record)
-                    health.baby = baby
-                    context.insert(health)
 
                 default:
                     break
                 }
             }
 
-            try? context.save()
+            try context.save()
 
             sharedBabyIDs.insert(baby.id)
             saveSharedBabyIDs()
             activeShare = metadata.share
             sharingStatus = .active
 
-            logger.info("Shared baby imported: \(baby.displayName) with \(childRecords.count) child records")
+            logger.info("Shared baby imported/updated: \(baby.displayName) with \(childRecords.count) child records")
         } catch {
             sharingStatus = .error(error.localizedDescription)
             logger.error("Failed to accept share: \(error.localizedDescription)")
@@ -293,13 +313,17 @@ final class SharingManager {
         let zoneID: CKRecordZone.ID
         if baby.ownerName != nil {
             // We're the participant — fetch from shared database
-            // Use the zone from the baby's ckRecordName
             let zones = try await container.sharedCloudDatabase.allRecordZones()
-            guard let zone = zones.first(where: { $0.zoneID.zoneName.contains(baby.id.uuidString) }) else {
-                logger.warning("No shared zone found for baby \(baby.id)")
+            let expectedZoneName = "SharedBaby-\(baby.id.uuidString)"
+
+            // Try exact match first, then fallback to contains
+            if let zone = zones.first(where: { $0.zoneID.zoneName == expectedZoneName })
+                ?? zones.first(where: { $0.zoneID.zoneName.contains(baby.id.uuidString) }) {
+                zoneID = zone.zoneID
+            } else {
+                logger.warning("No shared zone found for baby \(baby.id) among \(zones.count) zones")
                 return
             }
-            zoneID = zone.zoneID
         } else {
             // We're the owner — shared zone is in our private database
             zoneID = self.zoneID(for: baby.id)

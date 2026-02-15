@@ -45,6 +45,17 @@ jobs:
           BUILD_NUMBER=${{ github.run_number }}
           agvtool new-version -all $BUILD_NUMBER
 
+      - name: Verify build
+        run: |
+          xcodebuild -project Leona.xcodeproj \
+            -scheme Leona \
+            -destination "generic/platform=iOS" \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tail -5
+
       - name: Archive
         run: |
           xcodebuild archive \

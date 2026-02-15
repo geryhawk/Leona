@@ -44,6 +44,7 @@ struct LeonaApp: App {
     @State private var notifications = NotificationManager.shared
     @State private var sharing = SharingManager.shared
     @State private var containerError: String?
+    @State private var shareAcceptError: String?
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -93,6 +94,17 @@ struct LeonaApp: App {
                         processPendingShare()
                     }
                 }
+                .alert(
+                    String(localized: "share_error_title"),
+                    isPresented: Binding(
+                        get: { shareAcceptError != nil },
+                        set: { if !$0 { shareAcceptError = nil } }
+                    )
+                ) {
+                    Button(String(localized: "ok")) { shareAcceptError = nil }
+                } message: {
+                    Text(shareAcceptError ?? "")
+                }
         }
         .modelContainer(sharedModelContainer)
     }
@@ -128,6 +140,9 @@ struct LeonaApp: App {
             logger.info("Share accepted via URL")
         } catch {
             logger.error("Failed to handle share URL: \(error.localizedDescription)")
+            await MainActor.run {
+                shareAcceptError = error.localizedDescription
+            }
         }
     }
 
@@ -136,8 +151,16 @@ struct LeonaApp: App {
         LeonaAppDelegate.pendingShareMetadata = nil
 
         Task {
-            let context = ModelContext(sharedModelContainer)
-            try? await sharing.acceptShare(metadata: metadata, in: context)
+            do {
+                let context = ModelContext(sharedModelContainer)
+                try await sharing.acceptShare(metadata: metadata, in: context)
+                logger.info("Pending share accepted successfully")
+            } catch {
+                logger.error("Failed to process pending share: \(error.localizedDescription)")
+                await MainActor.run {
+                    shareAcceptError = error.localizedDescription
+                }
+            }
         }
     }
 }

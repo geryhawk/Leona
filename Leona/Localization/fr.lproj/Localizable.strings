@@ -437,6 +437,7 @@
 "stop_sharing" = "Arrêter le partage";
 "stop_sharing_title" = "Arrêter le partage ?";
 "stop_sharing_message" = "Votre partenaire n'aura plus accès aux données de ce bébé. Sa copie locale sera supprimée.";
+"share_error_title" = "Erreur de partage";
 "participant_accepted" = "Accepté";
 "participant_pending" = "En attente";
 "participant_removed" = "Supprimé";
