@@ -8,14 +8,23 @@ struct ShareStatusView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    @State private var isCreatingShare = false
+    // Email invitation state
+    @State private var partnerEmail = ""
+    @State private var isInviting = false
+    @State private var inviteSuccess = false
+
+    // Link sharing state
+    @State private var isGeneratingLink = false
+    @State private var shareURL: URL?
+    @State private var linkCopied = false
+    @State private var showShareSheet = false
+
+    // General state
+    @State private var isLoading = false
+    @State private var errorMessage: String?
     @State private var showStopConfirm = false
     @State private var showRemoveConfirm = false
     @State private var participantToRemove: CKShare.Participant?
-    @State private var errorMessage: String?
-    @State private var pendingShare: CKShare?
-    @State private var showCloudSharing = false
-    @State private var isLoading = false
 
     var body: some View {
         List {
@@ -55,19 +64,15 @@ struct ShareStatusView: View {
         } message: {
             Text(String(localized: "remove_participant_message"))
         }
-        .sheet(isPresented: $showCloudSharing) {
-            if let share = pendingShare {
-                CloudSharingView(
-                    share: share,
-                    container: sharing.container,
-                    baby: baby,
+        .sheet(isPresented: $showShareSheet) {
+            if let url = shareURL {
+                ShareActivityView(
+                    activityItems: [
+                        String(localized: "share_link_message \(baby.displayName)"),
+                        url
+                    ],
                     onDismiss: {
-                        showCloudSharing = false
-                        pendingShare = nil
-                        // Refresh share info after dismissing
-                        Task {
-                            await sharing.fetchShareInfo(for: baby)
-                        }
+                        showShareSheet = false
                     }
                 )
             }
@@ -85,6 +90,7 @@ struct ShareStatusView: View {
 
     private var inviteSection: some View {
         Group {
+            // Description header
             Section {
                 VStack(spacing: 16) {
                     Image(systemName: "person.2.circle.fill")
@@ -105,29 +111,131 @@ struct ShareStatusView: View {
                 .listRowBackground(Color.clear)
             }
 
-            // Share button — opens Apple's UICloudSharingController
+            // Invite by email
             Section {
-                Button {
-                    startSharing()
-                } label: {
-                    HStack {
-                        Spacer()
-                        if isCreatingShare {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Label(String(localized: "share_with_partner"), systemImage: "person.badge.plus")
-                                .font(.headline)
-                        }
-                        Spacer()
+                VStack(spacing: 12) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "envelope.fill")
+                            .foregroundStyle(.leonaPrimary)
+                            .frame(width: 24)
+
+                        TextField(String(localized: "share_email_placeholder"), text: $partnerEmail)
+                            .textContentType(.emailAddress)
+                            .keyboardType(.emailAddress)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .disabled(isInviting)
                     }
-                    .padding(.vertical, 8)
+
+                    Button {
+                        inviteByEmail()
+                    } label: {
+                        HStack {
+                            Spacer()
+                            if isInviting {
+                                ProgressView()
+                                    .tint(.white)
+                                Text(String(localized: "share_invite_sending"))
+                                    .font(.subheadline.weight(.semibold))
+                            } else if inviteSuccess {
+                                Image(systemName: "checkmark.circle.fill")
+                                Text(String(localized: "share_invite_success"))
+                                    .font(.subheadline.weight(.semibold))
+                            } else {
+                                Image(systemName: "paperplane.fill")
+                                Text(String(localized: "share_invite_by_email"))
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            Spacer()
+                        }
+                        .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(inviteSuccess ? .green : .leonaPrimary)
+                    .disabled(isInviting || !isValidEmail(partnerEmail))
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(isCreatingShare)
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            } header: {
+                Label(String(localized: "share_invite_header"), systemImage: "person.badge.plus")
             } footer: {
                 Text(String(localized: "share_invite_footer"))
+            }
+
+            // Or share a link
+            Section {
+                Button {
+                    generateAndShareLink()
+                } label: {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(String(localized: "share_send_link"))
+                                .font(.subheadline.weight(.medium))
+                            Text(String(localized: "share_send_link_desc"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        if isGeneratingLink {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "link.badge.plus")
+                                .font(.title2)
+                                .foregroundStyle(.leonaPrimary)
+                        }
+                    }
+                }
+                .disabled(isGeneratingLink)
+            } header: {
+                Label(String(localized: "share_or"), systemImage: "arrow.left.arrow.right")
+            }
+
+            // Show share URL if generated
+            if let url = shareURL {
+                Section {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label(String(localized: "share_link_ready"), systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.subheadline.weight(.semibold))
+
+                        Text(url.absoluteString)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                            .textSelection(.enabled)
+
+                        HStack(spacing: 12) {
+                            Button {
+                                UIPasteboard.general.url = url
+                                withAnimation {
+                                    linkCopied = true
+                                }
+                                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    withAnimation { linkCopied = false }
+                                }
+                            } label: {
+                                Label(
+                                    linkCopied ? String(localized: "share_link_copied") : String(localized: "share_copy_link"),
+                                    systemImage: linkCopied ? "checkmark" : "doc.on.doc"
+                                )
+                                .font(.caption.weight(.medium))
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(linkCopied ? .green : .leonaPrimary)
+
+                            Button {
+                                showShareSheet = true
+                            } label: {
+                                Label(String(localized: "share_send_link"), systemImage: "square.and.arrow.up")
+                                    .font(.caption.weight(.medium))
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(.leonaPrimary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                } footer: {
+                    Text(String(localized: "share_link_explanation"))
+                }
             }
         }
     }
@@ -203,31 +311,127 @@ struct ShareStatusView: View {
                 }
             }
 
-            // Add more parents / manage sharing (owner only)
+            // Add more parents (owner only)
             if baby.ownerName == nil {
-                Section(String(localized: "share_add_parent")) {
+                // Invite by email
+                Section {
+                    VStack(spacing: 12) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "envelope.fill")
+                                .foregroundStyle(.leonaPrimary)
+                                .frame(width: 24)
+
+                            TextField(String(localized: "share_email_placeholder"), text: $partnerEmail)
+                                .textContentType(.emailAddress)
+                                .keyboardType(.emailAddress)
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
+                                .disabled(isInviting)
+                        }
+
+                        Button {
+                            inviteByEmail()
+                        } label: {
+                            HStack {
+                                Spacer()
+                                if isInviting {
+                                    ProgressView()
+                                        .tint(.white)
+                                    Text(String(localized: "share_invite_sending"))
+                                        .font(.subheadline.weight(.semibold))
+                                } else if inviteSuccess {
+                                    Image(systemName: "checkmark.circle.fill")
+                                    Text(String(localized: "share_invite_success"))
+                                        .font(.subheadline.weight(.semibold))
+                                } else {
+                                    Image(systemName: "paperplane.fill")
+                                    Text(String(localized: "share_invite_by_email"))
+                                        .font(.subheadline.weight(.semibold))
+                                }
+                                Spacer()
+                            }
+                            .padding(.vertical, 8)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(inviteSuccess ? .green : .leonaPrimary)
+                        .disabled(isInviting || !isValidEmail(partnerEmail))
+                    }
+                } header: {
+                    Label(String(localized: "share_add_parent"), systemImage: "person.badge.plus")
+                } footer: {
+                    Text(String(localized: "share_invite_footer"))
+                }
+
+                // Share link
+                Section {
                     Button {
-                        startSharing()
+                        generateAndShareLink()
                     } label: {
                         Label {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(String(localized: "share_with_partner"))
+                                Text(String(localized: "share_send_link"))
                                     .font(.subheadline.weight(.medium))
                                 Text(String(localized: "share_send_link_desc"))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                         } icon: {
-                            if isCreatingShare {
+                            if isGeneratingLink {
                                 ProgressView()
                             } else {
-                                Image(systemName: "person.badge.plus")
+                                Image(systemName: "link.badge.plus")
                                     .font(.title2)
                                     .foregroundStyle(.leonaPrimary)
                             }
                         }
                     }
-                    .disabled(isCreatingShare)
+                    .disabled(isGeneratingLink)
+                }
+
+                // Show share URL if generated
+                if let url = shareURL {
+                    Section {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label(String(localized: "share_link_ready"), systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                                .font(.subheadline.weight(.semibold))
+
+                            Text(url.absoluteString)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                                .textSelection(.enabled)
+
+                            HStack(spacing: 12) {
+                                Button {
+                                    UIPasteboard.general.url = url
+                                    withAnimation { linkCopied = true }
+                                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                        withAnimation { linkCopied = false }
+                                    }
+                                } label: {
+                                    Label(
+                                        linkCopied ? String(localized: "share_link_copied") : String(localized: "share_copy_link"),
+                                        systemImage: linkCopied ? "checkmark" : "doc.on.doc"
+                                    )
+                                    .font(.caption.weight(.medium))
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(linkCopied ? .green : .leonaPrimary)
+
+                                Button {
+                                    showShareSheet = true
+                                } label: {
+                                    Label(String(localized: "share_send_link"), systemImage: "square.and.arrow.up")
+                                        .font(.caption.weight(.medium))
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(.leonaPrimary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
                 }
 
                 // Stop sharing
@@ -278,24 +482,65 @@ struct ShareStatusView: View {
 
     // MARK: - Actions
 
-    /// Creates or fetches CKShare and presents UICloudSharingController
-    private func startSharing() {
-        isCreatingShare = true
+    /// Invites a partner by their iCloud email address
+    private func inviteByEmail() {
+        let email = partnerEmail.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        guard isValidEmail(email) else {
+            errorMessage = String(localized: "share_error_invalid_email")
+            return
+        }
+
+        isInviting = true
+        errorMessage = nil
+        inviteSuccess = false
+
+        Task {
+            do {
+                try await sharing.addParticipantByEmail(email, for: baby, in: modelContext)
+
+                await MainActor.run {
+                    isInviting = false
+                    inviteSuccess = true
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                }
+
+                // Reset success state after a delay
+                try? await Task.sleep(for: .seconds(3))
+                await MainActor.run {
+                    inviteSuccess = false
+                    partnerEmail = ""
+                }
+            } catch {
+                await MainActor.run {
+                    isInviting = false
+                    errorMessage = error.localizedDescription
+                    UINotificationFeedbackGenerator().notificationOccurred(.error)
+                }
+            }
+        }
+    }
+
+    /// Generates a share link and opens the system share sheet
+    private func generateAndShareLink() {
+        isGeneratingLink = true
         errorMessage = nil
 
         Task {
             do {
-                let share = try await sharing.getOrCreateShare(for: baby, in: modelContext)
+                let url = try await sharing.getShareURL(for: baby, in: modelContext)
 
                 await MainActor.run {
-                    pendingShare = share
-                    showCloudSharing = true
-                    isCreatingShare = false
+                    shareURL = url
+                    isGeneratingLink = false
+                    showShareSheet = true
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
                 }
             } catch {
                 await MainActor.run {
+                    isGeneratingLink = false
                     errorMessage = error.localizedDescription
-                    isCreatingShare = false
+                    UINotificationFeedbackGenerator().notificationOccurred(.error)
                 }
             }
         }
@@ -325,6 +570,18 @@ struct ShareStatusView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Validation
+
+    private func isValidEmail(_ email: String) -> Bool {
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        // Simple but effective email validation
+        let parts = trimmed.split(separator: "@")
+        guard parts.count == 2 else { return false }
+        let domain = parts[1]
+        return domain.contains(".") && domain.count >= 3
     }
 
     // MARK: - Helpers

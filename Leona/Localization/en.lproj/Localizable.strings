@@ -466,3 +466,13 @@
 "role_invited" = "Invited";
 "role_removed" = "Removed";
 "delete_record_message" = "This health record and all its data will be permanently deleted.";
+
+/* Sharing - Invitation flow */
+"share_invite_sending" = "Sending...";
+"share_invite_success" = "Invitation sent!";
+"share_error_no_baby" = "No baby profile found in shared data";
+"share_error_creation_failed" = "Failed to create sharing link";
+"share_error_url_missing" = "Share link could not be generated. Please try again.";
+"share_error_sync_failed" = "Failed to sync shared data";
+"share_error_participant_not_found" = "No iCloud user found with this email address. Please check the address and try again.";
+"share_error_invalid_email" = "Invalid email address";

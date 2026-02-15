@@ -492,6 +492,103 @@ final class SharingManager {
         logger.info("Shared database subscription set up")
     }
 
+    // MARK: - Add Participant by Email
+
+    /// Looks up a CloudKit participant by their iCloud email address.
+    private func lookupShareParticipant(email: String) async throws -> CKShare.Participant {
+        let lookupInfo = CKUserIdentity.LookupInfo(emailAddress: email)
+
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<CKShare.Participant, Error>) in
+            let lock = NSLock()
+            var hasResumed = false
+
+            func resumeOnce(with result: Result<CKShare.Participant, Error>) {
+                lock.lock()
+                defer { lock.unlock() }
+                guard !hasResumed else { return }
+                hasResumed = true
+                switch result {
+                case .success(let value):
+                    continuation.resume(returning: value)
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+
+            let operation = CKFetchShareParticipantsOperation(userIdentityLookupInfos: [lookupInfo])
+            operation.qualityOfService = .userInitiated
+
+            operation.perShareParticipantResultBlock = { _, result in
+                resumeOnce(with: result)
+            }
+
+            operation.fetchShareParticipantsResultBlock = { result in
+                switch result {
+                case .failure(let error):
+                    resumeOnce(with: .failure(error))
+                case .success:
+                    resumeOnce(with: .failure(SharingError.participantNotFound))
+                }
+            }
+
+            self.container.add(operation)
+        }
+    }
+
+    /// Adds a participant to the baby's CKShare by their iCloud email address.
+    /// Creates the share if it doesn't exist yet.
+    func addParticipantByEmail(_ email: String, for baby: Baby, in context: ModelContext) async throws {
+        logger.info("Looking up participant for email: \(email)")
+
+        // 1. Get or create the share
+        let share = try await getOrCreateShare(for: baby, in: context)
+
+        // 2. Look up the participant by email
+        let participant: CKShare.Participant
+        do {
+            participant = try await lookupShareParticipant(email: email)
+        } catch {
+            logger.error("Participant lookup failed for \(email): \(error.localizedDescription)")
+            throw SharingError.participantNotFound
+        }
+
+        // 3. Configure and add participant
+        participant.permission = .readWrite
+        share.addParticipant(participant)
+
+        // 4. Save the updated share
+        let database = container.privateCloudDatabase
+        let (savedResults, _) = try await database.modifyRecords(
+            saving: [share],
+            deleting: [],
+            savePolicy: .changedKeys
+        )
+
+        // 5. Update local state with the saved share
+        for (_, result) in savedResults {
+            if case .success(let record) = result, let updatedShare = record as? CKShare {
+                await MainActor.run {
+                    self.activeShare = updatedShare
+                    self.participants = updatedShare.participants.filter { $0.role != .owner }
+                    self.sharingStatus = .active
+                }
+            }
+        }
+
+        logger.info("Successfully invited \(email) for baby: \(baby.displayName)")
+    }
+
+    /// Returns the share URL for link sharing. Creates the share if needed.
+    func getShareURL(for baby: Baby, in context: ModelContext) async throws -> URL {
+        let share = try await getOrCreateShare(for: baby, in: context)
+        guard let url = share.url else {
+            logger.error("Share created but URL is nil for baby: \(baby.displayName)")
+            throw SharingError.shareURLMissing
+        }
+        logger.info("Share URL ready: \(url.absoluteString)")
+        return url
+    }
+
     // MARK: - Helpers
 
     private func saveRecords(_ records: [CKRecord], to database: CKDatabase) async throws {
@@ -541,13 +638,19 @@ final class SharingManager {
 enum SharingError: LocalizedError {
     case noBabyFound
     case shareCreationFailed
+    case shareURLMissing
     case syncFailed
+    case participantNotFound
+    case invalidEmail
 
     var errorDescription: String? {
         switch self {
-        case .noBabyFound: return "No baby profile found in shared data"
-        case .shareCreationFailed: return "Failed to create sharing link"
-        case .syncFailed: return "Failed to sync shared data"
+        case .noBabyFound: return String(localized: "share_error_no_baby")
+        case .shareCreationFailed: return String(localized: "share_error_creation_failed")
+        case .shareURLMissing: return String(localized: "share_error_url_missing")
+        case .syncFailed: return String(localized: "share_error_sync_failed")
+        case .participantNotFound: return String(localized: "share_error_participant_not_found")
+        case .invalidEmail: return String(localized: "share_error_invalid_email")
         }
     }
 }

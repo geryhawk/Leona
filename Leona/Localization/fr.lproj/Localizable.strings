@@ -466,3 +466,13 @@
 "role_invited" = "Invité";
 "role_removed" = "Supprimé";
 "delete_record_message" = "Ce dossier de santé et toutes ses données seront définitivement supprimés.";
+
+/* Sharing - Invitation flow */
+"share_invite_sending" = "Envoi en cours...";
+"share_invite_success" = "Invitation envoyée !";
+"share_error_no_baby" = "Aucun profil bébé trouvé dans les données partagées";
+"share_error_creation_failed" = "Impossible de créer le lien de partage";
+"share_error_url_missing" = "Le lien de partage n'a pas pu être généré. Réessayez.";
+"share_error_sync_failed" = "La synchronisation des données partagées a échoué";
+"share_error_participant_not_found" = "Aucun utilisateur iCloud trouvé avec cette adresse email. Vérifiez l'adresse et réessayez.";
+"share_error_invalid_email" = "Adresse email invalide";

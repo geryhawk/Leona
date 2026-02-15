@@ -466,3 +466,13 @@
 "role_invited" = "Kutsuttu";
 "role_removed" = "Poistettu";
 "delete_record_message" = "Tämä terveystietue ja kaikki sen tiedot poistetaan pysyvästi.";
+
+/* Sharing - Invitation flow */
+"share_invite_sending" = "Lähetetään...";
+"share_invite_success" = "Kutsu lähetetty!";
+"share_error_no_baby" = "Jaetuista tiedoista ei löytynyt vauvaprofiilia";
+"share_error_creation_failed" = "Jakolinkin luominen epäonnistui";
+"share_error_url_missing" = "Jakolinkkiä ei voitu luoda. Yritä uudelleen.";
+"share_error_sync_failed" = "Jaettujen tietojen synkronointi epäonnistui";
+"share_error_participant_not_found" = "Tällä sähköpostiosoitteella ei löytynyt iCloud-käyttäjää. Tarkista osoite ja yritä uudelleen.";
+"share_error_invalid_email" = "Virheellinen sähköpostiosoite";

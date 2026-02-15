@@ -5,6 +5,10 @@ import os.log
 
 private let logger = Logger(subsystem: "com.leona.app", category: "App")
 
+extension Notification.Name {
+    static let didAcceptCloudKitShare = Notification.Name("didAcceptCloudKitShare")
+}
+
 // MARK: - App Delegate for CloudKit Share Acceptance
 
 class LeonaAppDelegate: NSObject, UIApplicationDelegate {
@@ -23,11 +27,11 @@ class LeonaAppDelegate: NSObject, UIApplicationDelegate {
     }
 
     func application(_ application: UIApplication, userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata) {
-        Task { @MainActor in
-            logger.info("User accepted CloudKit share")
-            // Store metadata for processing once the container is ready
-            LeonaAppDelegate.pendingShareMetadata = cloudKitShareMetadata
-        }
+        logger.info("User accepted CloudKit share via delegate")
+        // Store metadata immediately (no async dispatch — avoids race condition with processPendingShare)
+        LeonaAppDelegate.pendingShareMetadata = cloudKitShareMetadata
+        // Post notification so the app can process it right away
+        NotificationCenter.default.post(name: .didAcceptCloudKitShare, object: cloudKitShareMetadata)
     }
 
     static var pendingShareMetadata: CKShare.Metadata?
@@ -94,6 +98,15 @@ struct LeonaApp: App {
                         processPendingShare()
                     }
                 }
+                .onReceive(NotificationCenter.default.publisher(for: .didAcceptCloudKitShare)) { notification in
+                    // Process share immediately when accepted via app delegate
+                    if let metadata = notification.object as? CKShare.Metadata {
+                        LeonaAppDelegate.pendingShareMetadata = nil
+                        Task {
+                            await acceptShareMetadata(metadata)
+                        }
+                    }
+                }
                 .alert(
                     String(localized: "share_error_title"),
                     isPresented: Binding(
@@ -133,13 +146,12 @@ struct LeonaApp: App {
 
     private func handleShareURL(_ url: URL) async {
         do {
+            logger.info("Handling share URL: \(url.absoluteString)")
             let metadata = try await CKContainer(identifier: "iCloud.com.leona.app")
                 .shareMetadata(for: url)
-            let context = ModelContext(sharedModelContainer)
-            try await sharing.acceptShare(metadata: metadata, in: context)
-            logger.info("Share accepted via URL")
+            await acceptShareMetadata(metadata)
         } catch {
-            logger.error("Failed to handle share URL: \(error.localizedDescription)")
+            logger.error("Failed to get share metadata from URL: \(error.localizedDescription)")
             await MainActor.run {
                 shareAcceptError = error.localizedDescription
             }
@@ -149,17 +161,26 @@ struct LeonaApp: App {
     private func processPendingShare() {
         guard let metadata = LeonaAppDelegate.pendingShareMetadata else { return }
         LeonaAppDelegate.pendingShareMetadata = nil
+        logger.info("Processing pending share from app delegate")
 
         Task {
-            do {
-                let context = ModelContext(sharedModelContainer)
-                try await sharing.acceptShare(metadata: metadata, in: context)
-                logger.info("Pending share accepted successfully")
-            } catch {
-                logger.error("Failed to process pending share: \(error.localizedDescription)")
-                await MainActor.run {
-                    shareAcceptError = error.localizedDescription
-                }
+            await acceptShareMetadata(metadata)
+        }
+    }
+
+    /// Centralized share acceptance — used by URL handler, pending share processor, and delegate notification
+    private func acceptShareMetadata(_ metadata: CKShare.Metadata) async {
+        do {
+            let context = ModelContext(sharedModelContainer)
+            try await sharing.acceptShare(metadata: metadata, in: context)
+            logger.info("Share accepted successfully")
+
+            // Trigger a sync to ensure UI refreshes
+            triggerSharedSync()
+        } catch {
+            logger.error("Failed to accept share: \(error.localizedDescription)")
+            await MainActor.run {
+                shareAcceptError = error.localizedDescription
             }
         }
     }

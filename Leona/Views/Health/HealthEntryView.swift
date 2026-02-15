@@ -35,13 +35,17 @@ struct HealthEntryView: View {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                         ForEach(IllnessType.allCases) { type in
                             Button {
-                                withAnimation { illnessType = type }
+                                withAnimation(.easeInOut(duration: 0.2)) { illnessType = type }
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             } label: {
                                 HStack(spacing: 8) {
                                     Image(systemName: type.icon)
                                         .foregroundStyle(type.color)
+                                        .font(.subheadline)
                                     Text(type.displayName)
-                                        .font(.caption)
+                                        .font(.caption.weight(illnessType == type ? .semibold : .regular))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(10)
@@ -51,7 +55,9 @@ struct HealthEntryView: View {
                                     RoundedRectangle(cornerRadius: 10)
                                         .stroke(illnessType == type ? type.color : .clear, lineWidth: 1.5)
                                 )
+                                .scaleEffect(illnessType == type ? 1.02 : 1.0)
                             }
+                            .buttonStyle(.borderless)
                             .foregroundStyle(.primary)
                         }
                     }
