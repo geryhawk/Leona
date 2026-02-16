@@ -59,7 +59,6 @@ final class SharingManager {
     /// Handles all edge cases: first time, app restart, partial failures.
     func getOrCreateShare(for baby: Baby, in context: ModelContext) async throws -> CKShare {
         sharingStatus = .preparing
-        let database = container.privateCloudDatabase
 
         do {
             // Try to fetch existing share first
@@ -71,7 +70,6 @@ final class SharingManager {
                     self.sharingStatus = .active
                 }
 
-                // Make sure local state is correct
                 if !baby.isShared {
                     baby.isShared = true
                     try? context.save()
@@ -80,8 +78,17 @@ final class SharingManager {
                 return existingShare
             }
 
-            // No existing share — create fresh
-            logger.info("No existing share found, creating new one for baby: \(baby.displayName)")
+            // No existing share found on CloudKit — reset stale local state
+            if baby.isShared {
+                logger.info("Baby marked as shared locally but no share on CloudKit — resetting state")
+                baby.isShared = false
+                baby.ckRecordName = nil
+                baby.ckChangeTag = nil
+                try? context.save()
+            }
+
+            // Create fresh share
+            logger.info("Creating new share for baby: \(baby.displayName)")
             return try await createFreshShare(for: baby, in: context)
         } catch {
             sharingStatus = .error(error.localizedDescription)
@@ -117,6 +124,8 @@ final class SharingManager {
     }
 
     /// Creates a brand new share from scratch (clean zone, records, share).
+    /// IMPORTANT: The rootRecord (baby) and CKShare MUST be saved in the same
+    /// modifyRecords operation — CloudKit rejects orphaned shares.
     private func createFreshShare(for baby: Baby, in context: ModelContext) async throws -> CKShare {
         let zone = zoneID(for: baby.id)
         let database = container.privateCloudDatabase
@@ -126,7 +135,6 @@ final class SharingManager {
             try await database.deleteRecordZone(withID: zone)
             logger.info("Cleaned up leftover zone: \(zone.zoneName)")
         } catch {
-            // Zone didn't exist — that's fine
             logger.info("No leftover zone to clean: \(zone.zoneName)")
         }
 
@@ -135,28 +143,42 @@ final class SharingManager {
         _ = try await database.save(newZone)
         logger.info("Created fresh zone: \(zone.zoneName)")
 
-        // 3. Convert baby to CKRecord + create share together
+        // 3. Build rootRecord + share
         let babyRecord = baby.toCKRecord(in: zone)
         let share = CKShare(rootRecord: babyRecord)
         share[CKShare.SystemFieldKey.title] = baby.displayName as CKRecordValue
         share.publicPermission = .readWrite
 
-        // 4. Save baby + share in ONE operation
-        let (shareResults, _) = try await database.modifyRecords(
-            saving: [babyRecord, share],
-            deleting: [],
-            savePolicy: .allKeys
-        )
+        // 4. Save rootRecord + share in ONE atomic operation (mandatory)
+        let saveOp = CKModifyRecordsOperation(recordsToSave: [babyRecord, share], recordIDsToDelete: nil)
+        saveOp.savePolicy = .allKeys
+        saveOp.isAtomic = true
+        saveOp.qualityOfService = .userInitiated
 
-        // Extract the saved CKShare (has .url populated)
-        var savedShare = share
-        for (_, result) in shareResults {
-            if case .success(let record) = result, let returnedShare = record as? CKShare {
-                savedShare = returnedShare
+        let savedShare: CKShare = try await withCheckedThrowingContinuation { continuation in
+            var resultShare: CKShare?
+
+            saveOp.perRecordSaveBlock = { recordID, result in
+                if case .success(let record) = result, let s = record as? CKShare {
+                    resultShare = s
+                }
             }
+
+            saveOp.modifyRecordsResultBlock = { result in
+                switch result {
+                case .success:
+                    continuation.resume(returning: resultShare ?? share)
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+
+            database.add(saveOp)
         }
 
-        // 5. Save child records
+        logger.info("Root record + share saved atomically")
+
+        // 5. Save child records (separate operation — these don't need atomic with share)
         var childRecords: [CKRecord] = []
         for activity in baby.activities ?? [] {
             childRecords.append(activity.toCKRecord(in: zone))
@@ -441,8 +463,14 @@ final class SharingManager {
         let database = container.privateCloudDatabase
 
         // Delete the zone (removes all records and the share)
-        try await database.deleteRecordZone(withID: zone)
+        do {
+            try await database.deleteRecordZone(withID: zone)
+            logger.info("Deleted shared zone: \(zone.zoneName)")
+        } catch let error as CKError where error.code == .zoneNotFound {
+            logger.info("Zone already gone: \(zone.zoneName)")
+        }
 
+        // Always clean up local state regardless of CloudKit result
         baby.isShared = false
         baby.ckRecordName = nil
         baby.ckChangeTag = nil
@@ -556,23 +584,43 @@ final class SharingManager {
         participant.permission = .readWrite
         share.addParticipant(participant)
 
-        // 4. Save the updated share
-        let database = container.privateCloudDatabase
-        let (savedResults, _) = try await database.modifyRecords(
-            saving: [share],
-            deleting: [],
-            savePolicy: .changedKeys
-        )
+        // 4. Save the updated share together with the rootRecord
+        //    CloudKit requires the rootRecord to be present when modifying a share.
+        let zone = zoneID(for: baby.id)
+        let babyRecord = baby.toCKRecord(in: zone)
 
-        // 5. Update local state with the saved share
-        for (_, result) in savedResults {
-            if case .success(let record) = result, let updatedShare = record as? CKShare {
-                await MainActor.run {
-                    self.activeShare = updatedShare
-                    self.participants = updatedShare.participants.filter { $0.role != .owner }
-                    self.sharingStatus = .active
+        let database = container.privateCloudDatabase
+        let saveOp = CKModifyRecordsOperation(recordsToSave: [babyRecord, share], recordIDsToDelete: nil)
+        saveOp.savePolicy = .changedKeys
+        saveOp.isAtomic = true
+        saveOp.qualityOfService = .userInitiated
+
+        let updatedShare: CKShare = try await withCheckedThrowingContinuation { continuation in
+            var resultShare: CKShare?
+
+            saveOp.perRecordSaveBlock = { _, result in
+                if case .success(let record) = result, let s = record as? CKShare {
+                    resultShare = s
                 }
             }
+
+            saveOp.modifyRecordsResultBlock = { result in
+                switch result {
+                case .success:
+                    continuation.resume(returning: resultShare ?? share)
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+
+            database.add(saveOp)
+        }
+
+        // 5. Update local state
+        await MainActor.run {
+            self.activeShare = updatedShare
+            self.participants = updatedShare.participants.filter { $0.role != .owner }
+            self.sharingStatus = .active
         }
 
         logger.info("Successfully invited \(email) for baby: \(baby.displayName)")

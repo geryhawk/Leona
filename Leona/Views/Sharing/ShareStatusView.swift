@@ -26,9 +26,23 @@ struct ShareStatusView: View {
     @State private var showRemoveConfirm = false
     @State private var participantToRemove: CKShare.Participant?
 
+    /// Whether we have a confirmed active share (not just stale local flag)
+    private var hasActiveShare: Bool {
+        baby.isShared && sharing.activeShare != nil
+    }
+
     var body: some View {
         List {
-            if baby.isShared {
+            if isLoading {
+                Section {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                            .padding()
+                        Spacer()
+                    }
+                }
+            } else if hasActiveShare {
                 sharedSection
             } else {
                 inviteSection
@@ -81,6 +95,8 @@ struct ShareStatusView: View {
             if baby.isShared {
                 isLoading = true
                 await sharing.fetchShareInfo(for: baby)
+                // If fetchShareInfo didn't find a share, the baby's isShared is stale
+                // getOrCreateShare will clean it up on next action
                 isLoading = false
             }
         }
