@@ -86,21 +86,6 @@ final class AppSettings {
         didSet { defaults.set(useMetric, forKey: "useMetric") }
     }
     
-    // MARK: - Language
-    
-    var language: AppLanguage {
-        didSet {
-            defaults.set(language.rawValue, forKey: "appLanguage")
-            // Apply language change immediately via bundle swizzle
-            switch language {
-            case .system: Bundle.setLanguage(nil)
-            case .english: Bundle.setLanguage("en")
-            case .french: Bundle.setLanguage("fr")
-            case .finnish: Bundle.setLanguage("fi")
-            }
-        }
-    }
-    
     // MARK: - Notification Preferences
     
     var feedingReminderInterval: TimeInterval {
@@ -150,9 +135,6 @@ final class AppSettings {
         useCelsius = defaults.object(forKey: "useCelsius") as? Bool ?? true
         useMetric = defaults.object(forKey: "useMetric") as? Bool ?? true
         
-        // Language
-        language = AppLanguage(rawValue: defaults.string(forKey: "appLanguage") ?? "system") ?? .system
-        
         // Notifications
         feedingReminderInterval = defaults.object(forKey: "feedingReminderInterval") as? TimeInterval ?? 10800
         enableFeedingReminders = defaults.object(forKey: "enableFeedingReminders") as? Bool ?? true
@@ -162,14 +144,10 @@ final class AppSettings {
         
         // Onboarding
         hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
-        
-        // Apply saved language on startup (didSet won't fire during init)
-        switch language {
-        case .system: Bundle.setLanguage(nil)
-        case .english: Bundle.setLanguage("en")
-        case .french: Bundle.setLanguage("fr")
-        case .finnish: Bundle.setLanguage("fi")
-        }
+
+        // Clean up any leftover language override from previous versions
+        defaults.removeObject(forKey: "AppleLanguages")
+        defaults.removeObject(forKey: "appLanguage")
     }
 }
 
@@ -255,44 +233,6 @@ enum AppAccentColor: String, CaseIterable, Identifiable {
         case .violet: return Color(red: 0.4, green: 0.25, blue: 0.6)
         case .vert: return Color(red: 0.2, green: 0.5, blue: 0.35)
         case .orange: return Color(red: 0.75, green: 0.4, blue: 0.15)
-        }
-    }
-}
-
-// MARK: - Language
-
-enum AppLanguage: String, CaseIterable, Identifiable {
-    case system
-    case english = "en"
-    case french = "fr"
-    case finnish = "fi"
-    
-    var id: String { rawValue }
-    
-    var displayName: String {
-        switch self {
-        case .system: return String(localized: "language_system")
-        case .english: return "English"
-        case .french: return "Français"
-        case .finnish: return "Suomi"
-        }
-    }
-    
-    var flag: String {
-        switch self {
-        case .system: return "🌐"
-        case .english: return "🇬🇧"
-        case .french: return "🇫🇷"
-        case .finnish: return "🇫🇮"
-        }
-    }
-    
-    var locale: Locale? {
-        switch self {
-        case .system: return nil
-        case .english: return Locale(identifier: "en")
-        case .french: return Locale(identifier: "fr")
-        case .finnish: return Locale(identifier: "fi")
         }
     }
 }

@@ -14,7 +14,6 @@ struct BreastfeedingView: View {
     @State private var elapsedTime: TimeInterval = 0
     @State private var timer: Timer?
     @State private var isRunning = false
-    @State private var showSavedConfirmation = false
     
     private var ongoingSession: Activity? {
         allActivities.first {

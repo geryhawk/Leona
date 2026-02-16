@@ -21,6 +21,7 @@
 
 /* Onboarding */
 "onboarding_subtitle" = "Le compagnon de votre bébé";
+"splash_tagline" = "Le compagnon des parents";
 "onboarding_feature_sleep" = "Suivez les cycles de sommeil";
 "onboarding_feature_feeding" = "Surveillez les repas";
 "onboarding_feature_growth" = "Enregistrez la croissance";
@@ -360,9 +361,6 @@
 "accent_purple" = "Violet";
 "accent_green" = "Vert";
 "accent_orange" = "Orange";
-"language" = "Langue";
-"app_language" = "Langue de l'application";
-"language_system" = "Système";
 "notifications" = "Notifications";
 "feeding_reminders" = "Rappels de repas";
 "reminder_interval" = "Intervalle de rappel";
@@ -381,7 +379,6 @@
 "about" = "À propos";
 "version" = "Version";
 "app_name" = "Nom de l'app";
-"source_code" = "Code source";
 
 /* Export */
 "export_title" = "Exporter les données";
@@ -459,7 +456,6 @@
 "share_link_copied" = "Copié !";
 "share_add_parent" = "Ajouter un autre parent";
 "no_participants_yet" = "Aucun participant pour le moment";
-"remove" = "Supprimer";
 "remove_participant_title" = "Supprimer le participant ?";
 "remove_participant_message" = "Cette personne n'aura plus accès aux données de ce bébé.";
 "role_active" = "Actif";

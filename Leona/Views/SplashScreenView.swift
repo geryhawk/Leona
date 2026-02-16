@@ -1,82 +1,100 @@
 import SwiftUI
 
 struct SplashScreenView: View {
-    @State private var logoScale: CGFloat = 0.3
-    @State private var logoOpacity: Double = 0
-    @State private var textOpacity: Double = 0
-    @State private var subtitleOpacity: Double = 0
+    @Environment(\.colorScheme) private var colorScheme
+
+    @State private var iconScale: CGFloat = 0.5
+    @State private var iconOpacity: Double = 0
+    @State private var titleOpacity: Double = 0
+    @State private var taglineOpacity: Double = 0
+    @State private var glowScale: CGFloat = 0.8
     @State private var backgroundOpacity: Double = 1
-    @State private var heartBeat = false
-    
+
     let onFinished: () -> Void
-    
+
     var body: some View {
         ZStack {
-            // Solid opaque background - warm gradient
-            LinearGradient(
-                colors: [
-                    Color(red: 0.98, green: 0.94, blue: 0.96),
-                    Color(red: 0.95, green: 0.93, blue: 0.97),
-                    Color(red: 0.96, green: 0.96, blue: 0.99)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
-            VStack(spacing: 24) {
+            // Background — adapts to color scheme
+            backgroundGradient
+                .ignoresSafeArea()
+
+            VStack(spacing: 0) {
                 Spacer()
-                
-                // Heart logo
+
+                // App icon with glow
                 ZStack {
-                    // Soft glow
+                    // Soft radial glow behind icon
                     Circle()
                         .fill(
                             RadialGradient(
-                                colors: [Color.leonaPrimary.opacity(0.25), Color.clear],
+                                colors: [
+                                    Color.leonaPrimary.opacity(0.2),
+                                    Color.leonaPrimary.opacity(0.05),
+                                    Color.clear
+                                ],
                                 center: .center,
-                                startRadius: 20,
-                                endRadius: 100
+                                startRadius: 30,
+                                endRadius: 120
                             )
                         )
-                        .frame(width: 200, height: 200)
-                        .scaleEffect(logoScale * 1.2)
-                        .opacity(logoOpacity * 0.5)
-                    
-                    // Heart icon
-                    Image(systemName: "heart.fill")
-                        .font(.system(size: 80, weight: .regular))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Color.leonaPrimaryLight, Color.leonaPrimary, Color.leonaPrimaryDark],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .scaleEffect(logoScale * (heartBeat ? 1.08 : 1.0))
-                        .opacity(logoOpacity)
-                        .shadow(color: Color.leonaPrimary.opacity(0.3), radius: 12, x: 0, y: 4)
+                        .frame(width: 240, height: 240)
+                        .scaleEffect(glowScale)
+                        .opacity(iconOpacity * 0.6)
+
+                    // App icon (loaded from bundle)
+                    Group {
+                        if let uiImage = UIImage(named: "AppIcon") {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 120, height: 120)
+                                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                        } else {
+                            // Fallback: styled heart icon
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 60, weight: .regular))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [Color.leonaPrimaryLight, Color.leonaPrimary, Color.leonaPrimaryDark],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 120, height: 120)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                        .fill(colorScheme == .dark ? Color(white: 0.12) : Color.white)
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                        }
+                    }
+                    .shadow(color: Color.leonaPrimary.opacity(colorScheme == .dark ? 0.4 : 0.25), radius: 20, x: 0, y: 8)
+                    .scaleEffect(iconScale)
+                    .opacity(iconOpacity)
                 }
-                
+
+                Spacer().frame(height: 32)
+
                 // App name
-                VStack(spacing: 8) {
-                    Text("Leona")
-                        .font(.system(size: 48, weight: .bold, design: .rounded))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Color.leonaPrimary, Color.leonaPrimaryDark],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
+                Text("Leona")
+                    .font(.system(size: 42, weight: .bold, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.leonaPrimary, Color.leonaPrimaryDark],
+                            startPoint: .leading,
+                            endPoint: .trailing
                         )
-                        .opacity(textOpacity)
-                    
-                    Text(String(localized: "onboarding_subtitle"))
-                        .font(.title3.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .opacity(subtitleOpacity)
-                }
-                
+                    )
+                    .opacity(titleOpacity)
+
+                Spacer().frame(height: 10)
+
+                // Tagline
+                Text(String(localized: "splash_tagline"))
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .opacity(taglineOpacity)
+
                 Spacer()
                 Spacer()
             }
@@ -86,35 +104,65 @@ struct SplashScreenView: View {
             startAnimation()
         }
     }
-    
+
+    // MARK: - Background
+
+    private var backgroundGradient: some View {
+        Group {
+            if colorScheme == .dark {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.08, green: 0.08, blue: 0.12),
+                        Color(red: 0.10, green: 0.09, blue: 0.16),
+                        Color(red: 0.08, green: 0.08, blue: 0.14)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            } else {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.98, green: 0.96, blue: 0.97),
+                        Color(red: 0.96, green: 0.95, blue: 0.98),
+                        Color(red: 0.97, green: 0.97, blue: 0.99)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        }
+    }
+
+    // MARK: - Animation
+
     private func startAnimation() {
-        // Phase 1: Logo appears with spring
-        withAnimation(.spring(response: 0.7, dampingFraction: 0.6).delay(0.15)) {
-            logoScale = 1.0
-            logoOpacity = 1.0
+        // Phase 1: Icon springs in
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.1)) {
+            iconScale = 1.0
+            iconOpacity = 1.0
         }
-        
-        // Phase 1b: Heart beat pulse
-        withAnimation(.easeInOut(duration: 0.4).delay(0.7).repeatCount(3, autoreverses: true)) {
-            heartBeat = true
+
+        // Glow breathes
+        withAnimation(.easeInOut(duration: 1.5).delay(0.3).repeatCount(2, autoreverses: true)) {
+            glowScale = 1.15
         }
-        
-        // Phase 2: Text fades in
-        withAnimation(.easeOut(duration: 0.5).delay(0.5)) {
-            textOpacity = 1.0
+
+        // Phase 2: Title fades in
+        withAnimation(.easeOut(duration: 0.4).delay(0.4)) {
+            titleOpacity = 1.0
         }
-        
-        // Phase 3: Subtitle fades in
-        withAnimation(.easeOut(duration: 0.4).delay(0.8)) {
-            subtitleOpacity = 1.0
+
+        // Phase 3: Tagline fades in
+        withAnimation(.easeOut(duration: 0.4).delay(0.7)) {
+            taglineOpacity = 1.0
         }
-        
-        // Phase 4: Transition out
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            withAnimation(.easeInOut(duration: 0.35)) {
+
+        // Phase 4: Fade out and finish
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+            withAnimation(.easeInOut(duration: 0.3)) {
                 backgroundOpacity = 0
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 onFinished()
             }
         }

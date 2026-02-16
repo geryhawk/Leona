@@ -157,18 +157,36 @@ final class SharingManager {
 
         let savedShare: CKShare = try await withCheckedThrowingContinuation { continuation in
             var resultShare: CKShare?
+            var recordErrors: [CKRecord.ID: Error] = [:]
 
             saveOp.perRecordSaveBlock = { recordID, result in
-                if case .success(let record) = result, let s = record as? CKShare {
-                    resultShare = s
+                switch result {
+                case .success(let record):
+                    if let s = record as? CKShare {
+                        resultShare = s
+                    }
+                    logger.info("Saved record: \(recordID.recordName) (type: \(record.recordType))")
+                case .failure(let error):
+                    recordErrors[recordID] = error
+                    logger.error("Failed to save record \(recordID.recordName): \(error.localizedDescription)")
                 }
             }
 
             saveOp.modifyRecordsResultBlock = { result in
                 switch result {
                 case .success:
-                    continuation.resume(returning: resultShare ?? share)
+                    if let savedShare = resultShare {
+                        logger.info("Atomic save succeeded — share has changeTag: \(savedShare.recordChangeTag ?? "nil")")
+                        continuation.resume(returning: savedShare)
+                    } else {
+                        logger.error("Atomic save succeeded but CKShare not found in results")
+                        continuation.resume(throwing: SharingError.shareCreationFailed)
+                    }
                 case .failure(let error):
+                    logger.error("Atomic save FAILED: \(error.localizedDescription)")
+                    for (id, err) in recordErrors {
+                        logger.error("  Record \(id.recordName): \(err.localizedDescription)")
+                    }
                     continuation.resume(throwing: error)
                 }
             }
@@ -176,7 +194,7 @@ final class SharingManager {
             database.add(saveOp)
         }
 
-        logger.info("Root record + share saved atomically")
+        logger.info("Root record + share saved atomically, URL: \(savedShare.url?.absoluteString ?? "nil")")
 
         // 5. Save child records (separate operation — these don't need atomic with share)
         var childRecords: [CKRecord] = []
@@ -568,13 +586,15 @@ final class SharingManager {
     func addParticipantByEmail(_ email: String, for baby: Baby, in context: ModelContext) async throws {
         logger.info("Looking up participant for email: \(email)")
 
-        // 1. Get or create the share
+        // 1. Get or create the share (this ensures rootRecord + share exist on CloudKit)
         let share = try await getOrCreateShare(for: baby, in: context)
+        logger.info("Share ready, recordChangeTag: \(share.recordChangeTag ?? "nil")")
 
         // 2. Look up the participant by email
         let participant: CKShare.Participant
         do {
             participant = try await lookupShareParticipant(email: email)
+            logger.info("Participant found: \(participant.userIdentity.nameComponents?.formatted() ?? email)")
         } catch {
             logger.error("Participant lookup failed for \(email): \(error.localizedDescription)")
             throw SharingError.participantNotFound
@@ -584,42 +604,29 @@ final class SharingManager {
         participant.permission = .readWrite
         share.addParticipant(participant)
 
-        // 4. Save the updated share together with the rootRecord
-        //    CloudKit requires the rootRecord to be present when modifying a share.
-        let zone = zoneID(for: baby.id)
-        let babyRecord = baby.toCKRecord(in: zone)
-
+        // 4. Save ONLY the share — the rootRecord already exists on CloudKit
+        //    (it was saved atomically during createFreshShare or was already there)
+        //    Re-saving a new CKRecord without server metadata causes serverRecordChanged errors.
         let database = container.privateCloudDatabase
-        let saveOp = CKModifyRecordsOperation(recordsToSave: [babyRecord, share], recordIDsToDelete: nil)
-        saveOp.savePolicy = .changedKeys
-        saveOp.isAtomic = true
-        saveOp.qualityOfService = .userInitiated
+        let (savedResults, _) = try await database.modifyRecords(
+            saving: [share],
+            deleting: [],
+            savePolicy: .changedKeys
+        )
 
-        let updatedShare: CKShare = try await withCheckedThrowingContinuation { continuation in
-            var resultShare: CKShare?
-
-            saveOp.perRecordSaveBlock = { _, result in
-                if case .success(let record) = result, let s = record as? CKShare {
-                    resultShare = s
-                }
+        // Extract the server-returned share
+        var savedShare = share
+        for (_, result) in savedResults {
+            if case .success(let record) = result, let s = record as? CKShare {
+                savedShare = s
             }
-
-            saveOp.modifyRecordsResultBlock = { result in
-                switch result {
-                case .success:
-                    continuation.resume(returning: resultShare ?? share)
-                case .failure(let error):
-                    continuation.resume(throwing: error)
-                }
-            }
-
-            database.add(saveOp)
         }
 
         // 5. Update local state
+        let finalShare = savedShare
         await MainActor.run {
-            self.activeShare = updatedShare
-            self.participants = updatedShare.participants.filter { $0.role != .owner }
+            self.activeShare = finalShare
+            self.participants = finalShare.participants.filter { $0.role != .owner }
             self.sharingStatus = .active
         }
 
@@ -649,20 +656,38 @@ final class SharingManager {
         }
     }
 
+    /// Fetches ALL records in a zone using CKFetchRecordZoneChangesOperation.
+    /// This does NOT require queryable indexes or pre-existing record types.
     private func fetchAllRecords(in zoneID: CKRecordZone.ID, from database: CKDatabase) async throws -> [CKRecord] {
-        var allRecords: [CKRecord] = []
+        try await withCheckedThrowingContinuation { continuation in
+            var allRecords: [CKRecord] = []
 
-        for recordType in [Baby.ckRecordType, Activity.ckRecordType, GrowthRecord.ckRecordType, HealthRecord.ckRecordType] {
-            let query = CKQuery(recordType: recordType, predicate: NSPredicate(value: true))
-            let (results, _) = try await database.records(matching: query, inZoneWith: zoneID)
-            for (_, result) in results {
+            let config = CKFetchRecordZoneChangesOperation.ZoneConfiguration()
+            config.previousServerChangeToken = nil
+
+            let operation = CKFetchRecordZoneChangesOperation(
+                recordZoneIDs: [zoneID],
+                configurationsByRecordZoneID: [zoneID: config]
+            )
+            operation.qualityOfService = .userInitiated
+
+            operation.recordWasChangedBlock = { _, result in
                 if case .success(let record) = result {
                     allRecords.append(record)
                 }
             }
-        }
 
-        return allRecords
+            operation.fetchRecordZoneChangesResultBlock = { result in
+                switch result {
+                case .success:
+                    continuation.resume(returning: allRecords)
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+
+            database.add(operation)
+        }
     }
 
     // MARK: - Persistence

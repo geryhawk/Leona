@@ -12,7 +12,6 @@ struct FormulaView: View {
     @State private var volume: Double = 90
     @State private var dateTime: Date = Date()
     @State private var noteText = ""
-    @State private var showTimePicker = false
     
     private var lastFormulaVolume: Double? {
         allActivities

@@ -88,9 +88,9 @@ extension TimeInterval {
         let hours = Int(self) / 3600
         let minutes = (Int(self) % 3600) / 60
         if hours > 0 {
-            return "\(hours)h \(minutes)m"
+            return String(localized: "duration_hours_minutes \(hours) \(minutes)")
         }
-        return "\(minutes)m"
+        return String(localized: "duration_minutes \(minutes)")
     }
     
     var hoursMinutesSecondsFormatted: String {
@@ -107,8 +107,8 @@ extension TimeInterval {
         let hours = Int(self) / 3600
         let minutes = (Int(self) % 3600) / 60
         if hours > 0 {
-            return minutes > 0 ? "\(hours)h\(minutes)m" : "\(hours)h"
+            return String(localized: "duration_hours_minutes \(hours) \(minutes)")
         }
-        return "\(minutes)m"
+        return String(localized: "duration_minutes \(minutes)")
     }
 }

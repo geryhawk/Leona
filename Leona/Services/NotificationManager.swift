@@ -7,7 +7,6 @@ final class NotificationManager {
     static let shared = NotificationManager()
     
     var isAuthorized = false
-    var pendingNotifications: [UNNotificationRequest] = []
     
     private let center = UNUserNotificationCenter.current()
     

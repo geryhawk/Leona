@@ -21,6 +21,7 @@
 
 /* Onboarding */
 "onboarding_subtitle" = "Your baby's companion";
+"splash_tagline" = "The parents' companion";
 "onboarding_feature_sleep" = "Track sleep patterns";
 "onboarding_feature_feeding" = "Monitor feeding sessions";
 "onboarding_feature_growth" = "Record growth milestones";
@@ -360,9 +361,6 @@
 "accent_purple" = "Purple";
 "accent_green" = "Green";
 "accent_orange" = "Orange";
-"language" = "Language";
-"app_language" = "App Language";
-"language_system" = "System";
 "notifications" = "Notifications";
 "feeding_reminders" = "Feeding Reminders";
 "reminder_interval" = "Reminder Interval";
@@ -381,7 +379,6 @@
 "about" = "About";
 "version" = "Version";
 "app_name" = "App Name";
-"source_code" = "Source Code";
 
 /* Export */
 "export_title" = "Export Baby Data";
@@ -459,7 +456,6 @@
 "share_link_copied" = "Copied!";
 "share_add_parent" = "Add Another Parent";
 "no_participants_yet" = "No participants yet";
-"remove" = "Remove";
 "remove_participant_title" = "Remove Participant?";
 "remove_participant_message" = "This person will no longer have access to this baby's data.";
 "role_active" = "Active";

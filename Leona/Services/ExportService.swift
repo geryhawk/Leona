@@ -1,7 +1,6 @@
 import Foundation
-import UniformTypeIdentifiers
 
-/// Exports baby data to CSV and PDF formats
+/// Exports baby data to CSV, XML, and full report formats
 struct ExportService {
     
     // MARK: - CSV Export
@@ -80,29 +79,6 @@ struct ExportService {
         xml += "</baby_data>\n"
         
         return xml
-    }
-    
-    // MARK: - Growth Export
-    
-    static func exportGrowthToCSV(baby: Baby, records: [GrowthRecord]) -> String {
-        var csv = "Date,Age(months),Weight(kg),Height(cm),Head Circumference(cm)\n"
-        
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        
-        let sorted = records.sorted { $0.date > $1.date }
-        
-        for record in sorted {
-            let date = dateFormatter.string(from: record.date)
-            let age = record.ageInMonthsAtMeasurement.map { String(format: "%.1f", $0) } ?? ""
-            let weight = record.weightKg.map { String(format: "%.2f", $0) } ?? ""
-            let height = record.heightCm.map { String(format: "%.1f", $0) } ?? ""
-            let head = record.headCircumferenceCm.map { String(format: "%.1f", $0) } ?? ""
-            
-            csv += "\(date),\(age),\(weight),\(height),\(head)\n"
-        }
-        
-        return csv
     }
     
     // MARK: - Full Report

@@ -47,7 +47,6 @@ struct LeonaApp: App {
     @State private var cloudKit = CloudKitManager.shared
     @State private var notifications = NotificationManager.shared
     @State private var sharing = SharingManager.shared
-    @State private var containerError: String?
     @State private var shareAcceptError: String?
 
     @Environment(\.scenePhase) private var scenePhase
@@ -66,7 +65,7 @@ struct LeonaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            contentWithLocale
+            ContentView()
                 .environment(settings)
                 .environment(cloudKit)
                 .environment(notifications)
@@ -89,6 +88,9 @@ struct LeonaApp: App {
                 .task {
                     // Set up sharing subscriptions
                     try? await sharing.setupSubscriptions()
+
+                    // Schema init and cleanup are available via SharingManager
+                    // but no longer run automatically at startup.
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active {
@@ -120,19 +122,6 @@ struct LeonaApp: App {
                 }
         }
         .modelContainer(sharedModelContainer)
-    }
-
-    @ViewBuilder
-    private var contentWithLocale: some View {
-        let langID = "lang-\(settings.language.rawValue)"
-        if let locale = settings.language.locale {
-            ContentView()
-                .environment(\.locale, locale)
-                .id(langID)
-        } else {
-            ContentView()
-                .id(langID)
-        }
     }
 
     // MARK: - Sharing Helpers

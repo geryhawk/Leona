@@ -21,6 +21,7 @@
 
 /* Onboarding */
 "onboarding_subtitle" = "Vauvasi kumppani";
+"splash_tagline" = "Vanhempien kumppani";
 "onboarding_feature_sleep" = "Seuraa unirytmiä";
 "onboarding_feature_feeding" = "Seuraa ruokailuja";
 "onboarding_feature_growth" = "Kirjaa kasvun virstanpylväät";
@@ -360,9 +361,6 @@
 "accent_purple" = "Violetti";
 "accent_green" = "Vihreä";
 "accent_orange" = "Oranssi";
-"language" = "Kieli";
-"app_language" = "Sovelluksen kieli";
-"language_system" = "Järjestelmä";
 "notifications" = "Ilmoitukset";
 "feeding_reminders" = "Ruokailumuistutukset";
 "reminder_interval" = "Muistutusväli";
@@ -381,7 +379,6 @@
 "about" = "Tietoja";
 "version" = "Versio";
 "app_name" = "Sovelluksen nimi";
-"source_code" = "Lähdekoodi";
 
 /* Export */
 "export_title" = "Vie vauvan tiedot";
@@ -459,7 +456,6 @@
 "share_link_copied" = "Kopioitu!";
 "share_add_parent" = "Lisää toinen vanhempi";
 "no_participants_yet" = "Ei osallistujia vielä";
-"remove" = "Poista";
 "remove_participant_title" = "Poista osallistuja?";
 "remove_participant_message" = "Tällä henkilöllä ei ole enää pääsyä tämän vauvan tietoihin.";
 "role_active" = "Aktiivinen";

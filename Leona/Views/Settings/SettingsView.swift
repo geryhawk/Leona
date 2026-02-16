@@ -31,9 +31,6 @@ struct SettingsView: View {
                 // Appearance
                 appearanceSection
                 
-                // Language
-                languageSection
-                
                 // Feature Toggles
                 featureTogglesSection
                 
@@ -276,21 +273,6 @@ struct SettingsView: View {
                 )
             }
             .tint(.leonaPrimary)
-        }
-    }
-    
-    // MARK: - Language
-    
-    private var languageSection: some View {
-        Section(String(localized: "language")) {
-            Picker(selection: Binding(get: { settings.language }, set: { settings.language = $0 })) {
-                ForEach(AppLanguage.allCases) { lang in
-                    Text("\(lang.flag) \(lang.displayName)")
-                        .tag(lang)
-                }
-            } label: {
-                Label(String(localized: "app_language"), systemImage: "globe")
-            }
         }
     }
     

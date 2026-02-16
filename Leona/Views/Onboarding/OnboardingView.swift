@@ -10,7 +10,6 @@ struct OnboardingView: View {
     @State private var babyLastName = ""
     @State private var dateOfBirth = Date()
     @State private var gender: BabyGender = .unspecified
-    @State private var showDatePicker = false
     @State private var appearAnimated = false
     
     private let totalPages = 3

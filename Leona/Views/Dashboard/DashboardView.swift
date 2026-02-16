@@ -20,6 +20,7 @@ struct DashboardView: View {
     @State private var showMealForecast = false
     @State private var showConfetti = false
     @State private var filterCategory: ActivityCategory? = nil
+    @State private var showFeedingMenu = false
     
     private var babyActivities: [Activity] {
         allActivities
@@ -59,14 +60,14 @@ struct DashboardView: View {
                         ongoingStatusSection
                     }
                     
-                    // Quick action grid
-                    quickActionSection
+                    // Action cards (Feeding, Sleep, Diaper)
+                    actionCardsSection
                         .slideInFromBottom(delay: 0.1)
-                    
-                    // Daily summary
-                    dailySummarySection
+
+                    // Note button
+                    noteButton
                         .slideInFromBottom(delay: 0.15)
-                    
+
                     // Meal forecast
                     if settings.showFeedingTracking {
                         mealForecastButton
@@ -127,84 +128,66 @@ struct DashboardView: View {
     // MARK: - Baby Header
     
     private var babyHeaderSection: some View {
-        VStack(spacing: 0) {
-            // Top bar: App name + notification bell
-            HStack {
-                Text("Leona")
-                    .font(.title.bold())
-                    .foregroundStyle(.primary)
+        Button { showBabySelector = true } label: {
+            HStack(spacing: 14) {
+                // Profile image
+                ZStack {
+                    if let image = baby.profileImage {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Image(systemName: "person.crop.circle.fill")
+                            .resizable()
+                            .foregroundStyle(Color.leonaPink.opacity(0.6))
+                    }
+                }
+                .frame(width: 52, height: 52)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.leonaPink.opacity(0.3), lineWidth: 2))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(baby.displayName)
+                            .font(.title3.bold())
+                            .foregroundStyle(.primary)
+
+                        if baby.isShared {
+                            Image(systemName: "person.2.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.green)
+                        }
+
+                        Image(systemName: "chevron.down")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+
+                    Text(baby.ageDescription)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
 
                 Spacer()
 
-                Button {
-                    // Show notifications
-                } label: {
+                // Quick status badge OR notification bell
+                if let sleep = ongoingSleep {
+                    sleepingBadge(since: sleep.startTime)
+                } else if let bf = ongoingBreastfeeding {
+                    breastfeedingBadge(since: bf.startTime)
+                } else {
                     Image(systemName: "bell.fill")
-                        .font(.body)
+                        .font(.subheadline)
                         .foregroundStyle(.leonaPink)
                         .frame(width: 36, height: 36)
                         .background(Color.leonaPink.opacity(0.1))
                         .clipShape(Circle())
                 }
             }
-            .padding(.horizontal, 4)
-            .padding(.bottom, 12)
-
-            // Baby card (tappable for baby selector)
-            Button { showBabySelector = true } label: {
-                HStack(spacing: 16) {
-                    // Profile image
-                    ZStack {
-                        if let image = baby.profileImage {
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        } else {
-                            Image(systemName: "person.crop.circle.fill")
-                                .resizable()
-                                .foregroundStyle(Color.leonaPink.opacity(0.6))
-                        }
-                    }
-                    .frame(width: 56, height: 56)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.leonaPink.opacity(0.3), lineWidth: 2))
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 6) {
-                            Text(baby.displayName)
-                                .font(.title2.bold())
-                                .foregroundStyle(.primary)
-
-                            if baby.isShared {
-                                Image(systemName: "person.2.fill")
-                                    .font(.caption)
-                                    .foregroundStyle(.green)
-                            }
-
-                            Image(systemName: "chevron.down")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.tertiary)
-                        }
-
-                        Text(baby.ageDescription)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Spacer()
-
-                    // Quick status
-                    if let sleep = ongoingSleep {
-                        sleepingBadge(since: sleep.startTime)
-                    } else if let bf = ongoingBreastfeeding {
-                        breastfeedingBadge(since: bf.startTime)
-                    }
-                }
-                .padding()
-                .leonaCard()
-            }
-            .buttonStyle(.plain)
+            .padding(14)
+            .leonaCard()
         }
+        .buttonStyle(CardPressStyle())
     }
     
     // MARK: - Ongoing Status
@@ -232,108 +215,149 @@ struct DashboardView: View {
         }
     }
     
-    // MARK: - Quick Actions
-    
-    private var quickActionSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "quick_actions"))
-                .font(.headline)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 4)
-            
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                if settings.showBreastfeeding {
-                    QuickActionButton(
-                        icon: "heart.fill",
-                        label: String(localized: "action_breastfeed"),
-                        color: .pink,
-                        isActive: ongoingBreastfeeding != nil
-                    ) { showBreastfeeding = true }
-                }
-                
-                if settings.showFeedingTracking {
-                    QuickActionButton(
-                        icon: "cup.and.saucer.fill",
-                        label: String(localized: "action_formula"),
-                        color: .orange
-                    ) { showFormula = true }
-                    
-                    QuickActionButton(
-                        icon: "drop.fill",
-                        label: String(localized: "action_moms_milk"),
-                        color: .purple
-                    ) { showMomsMilk = true }
-                    
-                    QuickActionButton(
-                        icon: "fork.knife",
-                        label: String(localized: "action_solid"),
-                        color: .green
-                    ) { showSolidFood = true }
-                }
-                
-                if settings.showSleepTracking {
-                    QuickActionButton(
-                        icon: ongoingSleep != nil ? "sun.max.fill" : "moon.fill",
-                        label: ongoingSleep != nil ? String(localized: "action_wake") : String(localized: "action_sleep"),
-                        color: .indigo,
-                        isActive: ongoingSleep != nil
-                    ) { showSleepTracking = true }
-                }
-                
-                if settings.showDiaperTracking {
-                    QuickActionButton(
-                        icon: "humidity.fill",
-                        label: String(localized: "action_diaper"),
-                        color: .cyan
-                    ) { showDiaper = true }
-                }
-                
-                QuickActionButton(
-                    icon: "note.text",
-                    label: String(localized: "action_note"),
-                    color: .gray
-                ) { showNote = true }
-            }
-        }
-    }
-    
-    // MARK: - Daily Summary
-    
-    private var dailySummarySection: some View {
+    // MARK: - Action Cards
+
+    private var actionCardsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(String(localized: "today_summary"))
                 .font(.headline)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 4)
-            
+
             HStack(spacing: 12) {
-                DailySummaryCard(
-                    icon: "fork.knife",
-                    value: "\(todayActivities.filter { $0.type.category == .feeding }.count)",
-                    label: String(localized: "summary_feedings"),
-                    color: .orange
-                )
-                
-                DailySummaryCard(
-                    icon: "moon.fill",
-                    value: todaySleepDuration,
-                    label: String(localized: "summary_sleep"),
-                    color: .indigo
-                )
-                
-                DailySummaryCard(
-                    icon: "humidity.fill",
-                    value: "\(todayActivities.filter { $0.type == .diaper }.count)",
-                    label: String(localized: "summary_diapers"),
-                    color: .cyan
-                )
+                // Feeding card
+                if settings.showFeedingTracking || settings.showBreastfeeding {
+                    ActionSummaryCard(
+                        icon: "fork.knife",
+                        value: "\(todayActivities.filter { $0.type.category == .feeding }.count)",
+                        label: String(localized: "summary_feedings"),
+                        color: .orange,
+                        isActive: ongoingBreastfeeding != nil
+                    ) {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                            showFeedingMenu.toggle()
+                        }
+                    }
+                }
+
+                // Sleep card
+                if settings.showSleepTracking {
+                    ActionSummaryCard(
+                        icon: ongoingSleep != nil ? "sun.max.fill" : "moon.fill",
+                        value: todaySleepDuration,
+                        label: String(localized: "summary_sleep"),
+                        color: .indigo,
+                        isActive: ongoingSleep != nil
+                    ) {
+                        showSleepTracking = true
+                    }
+                }
+
+                // Diaper card
+                if settings.showDiaperTracking {
+                    ActionSummaryCard(
+                        icon: "humidity.fill",
+                        value: "\(todayActivities.filter { $0.type == .diaper }.count)",
+                        label: String(localized: "summary_diapers"),
+                        color: .cyan
+                    ) {
+                        showDiaper = true
+                    }
+                }
+            }
+            .padding(.bottom, 10)
+
+            // Feeding type picker (expands below cards)
+            if showFeedingMenu {
+                feedingTypePicker
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.8, anchor: .top).combined(with: .opacity),
+                        removal: .scale(scale: 0.9, anchor: .top).combined(with: .opacity)
+                    ))
             }
         }
+    }
+
+    // MARK: - Feeding Type Picker
+
+    private var feedingTypePicker: some View {
+        HStack(spacing: 10) {
+            if settings.showBreastfeeding {
+                FeedingTypeButton(
+                    icon: "heart.fill",
+                    label: String(localized: "action_breastfeed"),
+                    color: .pink,
+                    isActive: ongoingBreastfeeding != nil
+                ) {
+                    showFeedingMenu = false
+                    showBreastfeeding = true
+                }
+            }
+
+            FeedingTypeButton(
+                icon: "cup.and.saucer.fill",
+                label: String(localized: "action_formula"),
+                color: .orange
+            ) {
+                showFeedingMenu = false
+                showFormula = true
+            }
+
+            FeedingTypeButton(
+                icon: "drop.fill",
+                label: String(localized: "action_moms_milk"),
+                color: .purple
+            ) {
+                showFeedingMenu = false
+                showMomsMilk = true
+            }
+
+            FeedingTypeButton(
+                icon: "fork.knife",
+                label: String(localized: "action_solid"),
+                color: .green
+            ) {
+                showFeedingMenu = false
+                showSolidFood = true
+            }
+        }
+        .padding(.vertical, 14)
+        .padding(.horizontal, 16)
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 4)
+    }
+
+    // MARK: - Note Button
+
+    private var noteButton: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            showNote = true
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "note.text")
+                    .font(.subheadline)
+                    .foregroundStyle(.gray)
+                    .frame(width: 32, height: 32)
+                    .background(Color.gray.opacity(0.1))
+                    .clipShape(Circle())
+
+                Text(String(localized: "action_note"))
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                Image(systemName: "plus")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .leonaCard()
+        }
+        .buttonStyle(.plain)
     }
     
     private var todaySleepDuration: String {
@@ -485,69 +509,108 @@ struct DashboardView: View {
     }
 }
 
-// MARK: - Quick Action Button
+// MARK: - Action Summary Card (with + button overlay)
 
-struct QuickActionButton: View {
+struct ActionSummaryCard: View {
+    let icon: String
+    let value: String
+    let label: String
+    let color: Color
+    var isActive: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            action()
+        } label: {
+            VStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundStyle(color)
+                    .if(isActive) { view in
+                        view.symbolEffect(.pulse, options: .repeating)
+                    }
+
+                Text(value)
+                    .font(.title2.bold().monospacedDigit())
+
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 16)
+            .padding(.bottom, 24)
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 2)
+            .overlay(alignment: .bottom) {
+                ZStack {
+                    Circle()
+                        .fill(color.gradient)
+                        .frame(width: 36, height: 36)
+                        .shadow(color: color.opacity(0.35), radius: 6, x: 0, y: 3)
+
+                    Image(systemName: "plus")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                .offset(y: 18)
+            }
+        }
+        .buttonStyle(CardPressStyle())
+    }
+}
+
+/// A press-down style for cards
+struct CardPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Feeding Type Button
+
+struct FeedingTypeButton: View {
     let icon: String
     let label: String
     let color: Color
     var isActive: Bool = false
     let action: () -> Void
-    
+
     var body: some View {
-        Button(action: {
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             action()
-        }) {
-            VStack(spacing: 8) {
+        } label: {
+            VStack(spacing: 6) {
                 ZStack {
                     Circle()
                         .fill(isActive ? color : color.opacity(0.12))
-                        .frame(width: 52, height: 52)
-                    
+                        .frame(width: 48, height: 48)
+
                     Image(systemName: icon)
-                        .font(.title3)
+                        .font(.body)
                         .foregroundStyle(isActive ? .white : color)
                         .if(isActive) { view in
                             view.symbolEffect(.pulse, options: .repeating)
                         }
                 }
-                
+
                 Text(label)
-                    .font(.caption2)
+                    .font(.caption2.weight(.medium))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .minimumScaleFactor(0.7)
             }
+            .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Daily Summary Card
-
-struct DailySummaryCard: View {
-    let icon: String
-    let value: String
-    let label: String
-    let color: Color
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(color)
-            
-            Text(value)
-                .font(.title2.bold().monospacedDigit())
-            
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .leonaCard()
+        .buttonStyle(CardPressStyle())
     }
 }
 

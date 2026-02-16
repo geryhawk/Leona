@@ -26,6 +26,7 @@ struct ShareStatusView: View {
     @State private var showRemoveConfirm = false
     @State private var participantToRemove: CKShare.Participant?
 
+
     /// Whether we have a confirmed active share (not just stale local flag)
     private var hasActiveShare: Bool {
         baby.isShared && sharing.activeShare != nil
