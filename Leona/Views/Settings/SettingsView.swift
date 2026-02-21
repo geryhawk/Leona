@@ -379,7 +379,7 @@ struct SettingsView: View {
     
     private var aboutSection: some View {
         Section(String(localized: "about")) {
-            Link(destination: URL(string: "https://leona-baby.com/privacy")!) {
+            Link(destination: URL(string: "https://geryhawk.github.io/Leona/privacy.html")!) {
                 Label {
                     Text(String(localized: "privacy_policy"))
                         .foregroundStyle(.primary)

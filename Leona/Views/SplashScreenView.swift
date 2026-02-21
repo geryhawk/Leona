@@ -41,33 +41,12 @@ struct SplashScreenView: View {
                         .scaleEffect(glowScale)
                         .opacity(iconOpacity * 0.6)
 
-                    // App icon (loaded from bundle)
-                    Group {
-                        if let uiImage = UIImage(named: "AppIcon") {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 120, height: 120)
-                                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                        } else {
-                            // Fallback: styled heart icon
-                            Image(systemName: "heart.fill")
-                                .font(.system(size: 60, weight: .regular))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [Color.leonaPrimaryLight, Color.leonaPrimary, Color.leonaPrimaryDark],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 120, height: 120)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                                        .fill(colorScheme == .dark ? Color(white: 0.12) : Color.white)
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                        }
-                    }
+                    // App icon
+                    Image("AppIconImage")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 120, height: 120)
+                        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                     .shadow(color: Color.leonaPrimary.opacity(colorScheme == .dark ? 0.4 : 0.25), radius: 20, x: 0, y: 8)
                     .scaleEffect(iconScale)
                     .opacity(iconOpacity)
