@@ -113,7 +113,7 @@ struct MomsMilkView: View {
             }
             .background(
                 LinearGradient(
-                    colors: [.purple.opacity(0.08), .white],
+                    colors: [.purple.opacity(0.08), Color(.systemBackground)],
                     startPoint: .top,
                     endPoint: .bottom
                 )

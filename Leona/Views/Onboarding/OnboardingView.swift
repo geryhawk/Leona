@@ -56,11 +56,11 @@ struct OnboardingView: View {
     private var backgroundColors: [Color] {
         switch currentPage {
         case 0:
-            return [.leonaPinkLight.opacity(0.3), .leonaBlue.opacity(0.15), .white]
+            return [.leonaPinkLight.opacity(0.3), .leonaBlue.opacity(0.15), Color(.systemBackground)]
         case 1:
-            return [.leonaBlue.opacity(0.2), .leonaPurple.opacity(0.1), .white]
+            return [.leonaBlue.opacity(0.2), .leonaPurple.opacity(0.1), Color(.systemBackground)]
         default:
-            return [.leonaPinkLight.opacity(0.2), .leonaOrange.opacity(0.1), .white]
+            return [.leonaPinkLight.opacity(0.2), .leonaOrange.opacity(0.1), Color(.systemBackground)]
         }
     }
     

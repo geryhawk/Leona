@@ -76,7 +76,7 @@ struct SleepTrackingView: View {
             if isRunning {
                 if isDaytime {
                     LinearGradient(
-                        colors: [.blue.opacity(0.15), .cyan.opacity(0.08), .white],
+                        colors: [.blue.opacity(0.15), .cyan.opacity(0.08), Color(.systemBackground)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -93,7 +93,7 @@ struct SleepTrackingView: View {
                 }
             } else {
                 LinearGradient(
-                    colors: [.indigo.opacity(0.08), .white],
+                    colors: [.indigo.opacity(0.08), Color(.systemBackground)],
                     startPoint: .top,
                     endPoint: .bottom
                 )

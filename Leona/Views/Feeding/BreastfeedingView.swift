@@ -51,7 +51,7 @@ struct BreastfeedingView: View {
             }
             .background(
                 LinearGradient(
-                    colors: [.pink.opacity(0.08), .white],
+                    colors: [.pink.opacity(0.08), Color(.systemBackground)],
                     startPoint: .top,
                     endPoint: .bottom
                 )

@@ -108,7 +108,7 @@ struct DiaperEntryView: View {
             }
             .background(
                 LinearGradient(
-                    colors: [.cyan.opacity(0.08), .white],
+                    colors: [.cyan.opacity(0.08), Color(.systemBackground)],
                     startPoint: .top,
                     endPoint: .bottom
                 )

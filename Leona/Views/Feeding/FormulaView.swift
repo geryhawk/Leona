@@ -53,7 +53,7 @@ struct FormulaView: View {
             }
             .background(
                 LinearGradient(
-                    colors: [.orange.opacity(0.08), .white],
+                    colors: [.orange.opacity(0.08), Color(.systemBackground)],
                     startPoint: .top,
                     endPoint: .bottom
                 )
