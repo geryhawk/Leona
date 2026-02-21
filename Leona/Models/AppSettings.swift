@@ -140,7 +140,7 @@ final class AppSettings {
         enableFeedingReminders = defaults.object(forKey: "enableFeedingReminders") as? Bool ?? true
         
         // iCloud
-        iCloudSyncEnabled = defaults.object(forKey: "iCloudSyncEnabled") as? Bool ?? true
+        iCloudSyncEnabled = defaults.object(forKey: "iCloudSyncEnabled") as? Bool ?? false
         
         // Onboarding
         hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")

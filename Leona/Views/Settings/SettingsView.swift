@@ -17,6 +17,7 @@ struct SettingsView: View {
     @State private var showDeleteAllConfirm = false
     @State private var showBabySelector = false
     @State private var showRestartAlert = false
+    @State private var showiCloudConsentAlert = false
     @State private var pendingCloudValue = false
     
     var body: some View {
@@ -57,6 +58,14 @@ struct SettingsView: View {
                 Button(String(localized: "cancel"), role: .cancel) { }
             } message: {
                 Text(String(localized: "icloud_restart_note"))
+            }
+            .alert(String(localized: "icloud_consent_title"), isPresented: $showiCloudConsentAlert) {
+                Button(String(localized: "icloud_consent_accept")) {
+                    settings.iCloudSyncEnabled = true
+                }
+                Button(String(localized: "cancel"), role: .cancel) { }
+            } message: {
+                Text(String(localized: "icloud_consent_message"))
             }
         }
     }
@@ -122,7 +131,11 @@ struct SettingsView: View {
                 get: { settings.iCloudSyncEnabled },
                 set: { newValue in
                     pendingCloudValue = newValue
-                    showRestartAlert = true
+                    if newValue {
+                        showiCloudConsentAlert = true
+                    } else {
+                        showRestartAlert = true
+                    }
                 }
             )) {
                 Label {
@@ -366,13 +379,23 @@ struct SettingsView: View {
     
     private var aboutSection: some View {
         Section(String(localized: "about")) {
+            Link(destination: URL(string: "https://leona-baby.com/privacy")!) {
+                Label {
+                    Text(String(localized: "privacy_policy"))
+                        .foregroundStyle(.primary)
+                } icon: {
+                    Image(systemName: "hand.raised.fill")
+                        .foregroundStyle(.blue)
+                }
+            }
+
             HStack {
                 Label(String(localized: "version"), systemImage: "info.circle")
                 Spacer()
                 Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0")
                     .foregroundStyle(.secondary)
             }
-            
+
             HStack {
                 Label(String(localized: "app_name"), systemImage: "heart.fill")
                 Spacer()

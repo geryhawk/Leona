@@ -472,3 +472,9 @@
 "share_error_sync_failed" = "Jaettujen tietojen synkronointi epäonnistui";
 "share_error_participant_not_found" = "Tällä sähköpostiosoitteella ei löytynyt iCloud-käyttäjää. Tarkista osoite ja yritä uudelleen.";
 "share_error_invalid_email" = "Virheellinen sähköpostiosoite";
+
+/* Privacy & Consent */
+"privacy_policy" = "Tietosuojakäytäntö";
+"icloud_consent_title" = "Ota iCloud-synkronointi käyttöön";
+"icloud_consent_accept" = "Ota käyttöön";
+"icloud_consent_message" = "Kun tämä on käytössä, vauvasi tiedot (nimi, syntymäaika, toiminnot, kasvu- ja terveystiedot) tallennetaan henkilökohtaiseen iCloud-tiliisi, jota hallinnoi Apple. Tämä mahdollistaa synkronoinnin laitteidesi välillä ja jakamisen kumppanisi kanssa. Tietoja ei lähetetä kolmansille osapuolille. Voit poistaa tämän käytöstä milloin tahansa.";

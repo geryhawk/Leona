@@ -472,3 +472,9 @@
 "share_error_sync_failed" = "La synchronisation des données partagées a échoué";
 "share_error_participant_not_found" = "Aucun utilisateur iCloud trouvé avec cette adresse email. Vérifiez l'adresse et réessayez.";
 "share_error_invalid_email" = "Adresse email invalide";
+
+/* Privacy & Consent */
+"privacy_policy" = "Politique de confidentialité";
+"icloud_consent_title" = "Activer la synchronisation iCloud";
+"icloud_consent_accept" = "Activer";
+"icloud_consent_message" = "Lorsqu'elle est activée, les données de votre bébé (nom, date de naissance, activités, croissance et dossiers médicaux) seront stockées dans votre compte iCloud personnel géré par Apple. Cela permet la synchronisation entre vos appareils et le partage avec votre partenaire. Aucune donnée n'est envoyée à des tiers. Vous pouvez désactiver cette option à tout moment.";

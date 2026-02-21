@@ -472,3 +472,9 @@
 "share_error_sync_failed" = "Failed to sync shared data";
 "share_error_participant_not_found" = "No iCloud user found with this email address. Please check the address and try again.";
 "share_error_invalid_email" = "Invalid email address";
+
+/* Privacy & Consent */
+"privacy_policy" = "Privacy Policy";
+"icloud_consent_title" = "Enable iCloud Sync";
+"icloud_consent_accept" = "Enable";
+"icloud_consent_message" = "When enabled, your baby's data (name, date of birth, activities, growth, and health records) will be stored in your personal iCloud account managed by Apple. This allows syncing across your devices and sharing with your partner. No data is sent to third parties. You can disable this at any time.";
