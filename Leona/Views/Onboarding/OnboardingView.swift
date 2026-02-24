@@ -109,16 +109,12 @@ struct OnboardingView: View {
                     )
                     .frame(width: 200, height: 200)
                 
-                Image(systemName: "figure.and.child.holdinghands")
-                    .font(.system(size: 80, weight: .light))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.leonaPink, .leonaPinkDark],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .symbolEffect(.pulse, options: .repeating.speed(0.5))
+                Image("AppIconImage")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 120, height: 120)
+                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                    .shadow(color: .leonaPink.opacity(0.4), radius: 20, x: 0, y: 8)
             }
             .scaleEffect(appearAnimated ? 1.0 : 0.5)
             .opacity(appearAnimated ? 1.0 : 0)
@@ -144,7 +140,7 @@ struct OnboardingView: View {
             // Feature cards with glassmorphism
             VStack(spacing: 12) {
                 featureCard(icon: "moon.stars.fill", color: .indigo, text: String(localized: "onboarding_feature_sleep"), delay: 0)
-                featureCard(icon: "cup.and.saucer.fill", color: .orange, text: String(localized: "onboarding_feature_feeding"), delay: 0.1)
+                featureCard(icon: "waterbottle.fill", color: .orange, text: String(localized: "onboarding_feature_feeding"), delay: 0.1)
                 featureCard(icon: "chart.line.uptrend.xyaxis", color: .green, text: String(localized: "onboarding_feature_growth"), delay: 0.2)
                 featureCard(icon: "icloud.fill", color: .blue, text: String(localized: "onboarding_feature_sync"), delay: 0.3)
             }

@@ -77,6 +77,24 @@ final class AppSettings {
     var accentColor: AppAccentColor {
         didSet { defaults.set(accentColor.rawValue, forKey: "accentColor") }
     }
+
+    var customAccentColor: Color {
+        get {
+            let r = defaults.double(forKey: "customAccentR")
+            let g = defaults.double(forKey: "customAccentG")
+            let b = defaults.double(forKey: "customAccentB")
+            if r == 0 && g == 0 && b == 0 { return Color(red: 0.863, green: 0.518, blue: 0.639) }
+            return Color(red: r, green: g, blue: b)
+        }
+        set {
+            let uiColor = UIColor(newValue)
+            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
+            uiColor.getRed(&r, green: &g, blue: &b, alpha: nil)
+            defaults.set(Double(r), forKey: "customAccentR")
+            defaults.set(Double(g), forKey: "customAccentG")
+            defaults.set(Double(b), forKey: "customAccentB")
+        }
+    }
     
     var useCelsius: Bool {
         didSet { defaults.set(useCelsius, forKey: "useCelsius") }
@@ -193,9 +211,12 @@ enum AppAccentColor: String, CaseIterable, Identifiable {
     case violet
     case vert
     case orange
-    
+    case corail
+    case ardoise
+    case custom
+
     var id: String { rawValue }
-    
+
     var displayName: String {
         switch self {
         case .rose: return String(localized: "accent_rose")
@@ -203,9 +224,12 @@ enum AppAccentColor: String, CaseIterable, Identifiable {
         case .violet: return String(localized: "accent_purple")
         case .vert: return String(localized: "accent_green")
         case .orange: return String(localized: "accent_orange")
+        case .corail: return String(localized: "accent_coral")
+        case .ardoise: return String(localized: "accent_slate")
+        case .custom: return String(localized: "accent_custom")
         }
     }
-    
+
     var color: Color {
         switch self {
         case .rose: return Color(red: 0.863, green: 0.518, blue: 0.639)
@@ -213,9 +237,12 @@ enum AppAccentColor: String, CaseIterable, Identifiable {
         case .violet: return Color(red: 0.6, green: 0.4, blue: 0.8)
         case .vert: return Color(red: 0.34, green: 0.7, blue: 0.53)
         case .orange: return Color(red: 0.95, green: 0.6, blue: 0.3)
+        case .corail: return Color(red: 0.96, green: 0.45, blue: 0.45)
+        case .ardoise: return Color(red: 0.42, green: 0.48, blue: 0.55)
+        case .custom: return AppSettings.shared.customAccentColor
         }
     }
-    
+
     var colorLight: Color {
         switch self {
         case .rose: return Color(red: 0.949, green: 0.784, blue: 0.847)
@@ -223,9 +250,12 @@ enum AppAccentColor: String, CaseIterable, Identifiable {
         case .violet: return Color(red: 0.8, green: 0.7, blue: 0.93)
         case .vert: return Color(red: 0.7, green: 0.9, blue: 0.78)
         case .orange: return Color(red: 0.98, green: 0.82, blue: 0.6)
+        case .corail: return Color(red: 0.99, green: 0.75, blue: 0.72)
+        case .ardoise: return Color(red: 0.72, green: 0.76, blue: 0.80)
+        case .custom: return AppSettings.shared.customAccentColor.opacity(0.5)
         }
     }
-    
+
     var colorDark: Color {
         switch self {
         case .rose: return Color(red: 0.694, green: 0.361, blue: 0.478)
@@ -233,6 +263,9 @@ enum AppAccentColor: String, CaseIterable, Identifiable {
         case .violet: return Color(red: 0.4, green: 0.25, blue: 0.6)
         case .vert: return Color(red: 0.2, green: 0.5, blue: 0.35)
         case .orange: return Color(red: 0.75, green: 0.4, blue: 0.15)
+        case .corail: return Color(red: 0.70, green: 0.25, blue: 0.25)
+        case .ardoise: return Color(red: 0.25, green: 0.30, blue: 0.35)
+        case .custom: return AppSettings.shared.customAccentColor
         }
     }
 }

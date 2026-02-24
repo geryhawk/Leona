@@ -57,7 +57,7 @@ struct ContentView: View {
             case .dashboard: return "house.fill"
             case .stats: return "chart.bar.fill"
             case .growth: return "chart.line.uptrend.xyaxis"
-            case .health: return "heart.text.clipboard.fill"
+            case .health: return "cross.case.fill"
             case .settings: return "gearshape.fill"
             }
         }

@@ -51,14 +51,14 @@ struct ChartDataPoint: Identifiable {
 }
 
 struct GrowthChartPoint: Identifiable {
-    let id = UUID()
+    var id: Double { ageInMonths }
     let ageInMonths: Double
     let value: Double
     let percentile: String?
 }
 
 struct WHOPercentilePoint: Identifiable {
-    let id = UUID()
+    var id: Double { ageInMonths }
     let ageInMonths: Double
     let p3: Double
     let p15: Double

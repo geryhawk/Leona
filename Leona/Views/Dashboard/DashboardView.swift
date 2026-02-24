@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import PhotosUI
 
 struct DashboardView: View {
     let baby: Baby
@@ -17,6 +18,8 @@ struct DashboardView: View {
     @State private var showDiaper = false
     @State private var showNote = false
     @State private var showBabySelector = false
+    @State private var showBabyProfile = false
+    @State private var selectedPhoto: PhotosPickerItem?
     @State private var showMealForecast = false
     @State private var showConfetti = false
     @State private var filterCategory: ActivityCategory? = nil
@@ -25,11 +28,11 @@ struct DashboardView: View {
     private var babyActivities: [Activity] {
         allActivities
             .filter { $0.baby?.id == baby.id }
-            .sorted { $0.startTime > $1.startTime }
+            .sorted { $0.sortTime > $1.sortTime }
     }
-    
+
     private var todayActivities: [Activity] {
-        babyActivities.filter { $0.startTime.isToday }
+        babyActivities.filter { $0.sortTime.isToday }
     }
     
     private var ongoingSleep: Activity? {
@@ -119,6 +122,14 @@ struct DashboardView: View {
                         .allowsHitTesting(false)
                 }
             }
+            .onChange(of: selectedPhoto) { _, newItem in
+                Task {
+                    if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                        baby.profileImageData = data
+                        try? modelContext.save()
+                    }
+                }
+            }
             .onAppear {
                 checkMilestones()
             }
@@ -130,21 +141,33 @@ struct DashboardView: View {
     private var babyHeaderSection: some View {
         Button { showBabySelector = true } label: {
             HStack(spacing: 14) {
-                // Profile image
-                ZStack {
-                    if let image = baby.profileImage {
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } else {
-                        Image(systemName: "person.crop.circle.fill")
-                            .resizable()
-                            .foregroundStyle(Color.leonaPink.opacity(0.6))
+                // Profile image — tappable to change photo
+                PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                    ZStack {
+                        if let image = baby.profileImage {
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } else {
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
+                                .foregroundStyle(Color.leonaPink.opacity(0.6))
+                        }
+                    }
+                    .frame(width: 52, height: 52)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.leonaPink.opacity(0.3), lineWidth: 2))
+                    .overlay(alignment: .bottomTrailing) {
+                        // Small camera badge
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(4)
+                            .background(Color.leonaPink.gradient)
+                            .clipShape(Circle())
+                            .offset(x: 2, y: 2)
                     }
                 }
-                .frame(width: 52, height: 52)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Color.leonaPink.opacity(0.3), lineWidth: 2))
 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
@@ -199,14 +222,14 @@ struct DashboardView: View {
                 icon: "moon.fill",
                 title: String(localized: "status_sleeping"),
                 subtitle: String(localized: "status_since \(sleep.startTime.timeString)"),
-                color: .indigo,
+                color: .leonaSleep,
                 action: { showSleepTracking = true }
             )
         }
         
         if let bf = ongoingBreastfeeding {
             OngoingStatusBanner(
-                icon: "heart.fill",
+                icon: "drop.circle.fill",
                 title: String(localized: "status_breastfeeding"),
                 subtitle: String(localized: "status_since \(bf.startTime.timeString)"),
                 color: .pink,
@@ -228,10 +251,10 @@ struct DashboardView: View {
                 // Feeding card
                 if settings.showFeedingTracking || settings.showBreastfeeding {
                     ActionSummaryCard(
-                        icon: "fork.knife",
+                        icon: ongoingBreastfeeding != nil ? "drop.circle.fill" : "fork.knife",
                         value: "\(todayActivities.filter { $0.type.category == .feeding }.count)",
                         label: String(localized: "summary_feedings"),
-                        color: .orange,
+                        color: ongoingBreastfeeding != nil ? .pink : .orange,
                         isActive: ongoingBreastfeeding != nil
                     ) {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
@@ -243,10 +266,10 @@ struct DashboardView: View {
                 // Sleep card
                 if settings.showSleepTracking {
                     ActionSummaryCard(
-                        icon: ongoingSleep != nil ? "sun.max.fill" : "moon.fill",
+                        icon: "moon.fill",
                         value: todaySleepDuration,
                         label: String(localized: "summary_sleep"),
-                        color: .indigo,
+                        color: .leonaSleep,
                         isActive: ongoingSleep != nil
                     ) {
                         showSleepTracking = true
@@ -284,7 +307,7 @@ struct DashboardView: View {
         HStack(spacing: 10) {
             if settings.showBreastfeeding {
                 FeedingTypeButton(
-                    icon: "heart.fill",
+                    icon: "drop.circle.fill",
                     label: String(localized: "action_breastfeed"),
                     color: .pink,
                     isActive: ongoingBreastfeeding != nil
@@ -295,7 +318,7 @@ struct DashboardView: View {
             }
 
             FeedingTypeButton(
-                icon: "cup.and.saucer.fill",
+                icon: "waterbottle.fill",
                 label: String(localized: "action_formula"),
                 color: .orange
             ) {
@@ -465,19 +488,22 @@ struct DashboardView: View {
         HStack(spacing: 4) {
             Image(systemName: "moon.fill")
                 .font(.caption)
+                .foregroundStyle(.white)
+                .shadow(color: .white.opacity(0.8), radius: 4)
+                .symbolEffect(.pulse, options: .repeating)
             Text(since.timeAgo())
                 .font(.caption)
+                .foregroundStyle(.white.opacity(0.9))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(.indigo.opacity(0.15))
+        .background(.leonaSleep.gradient)
         .clipShape(Capsule())
-        .foregroundStyle(.indigo)
     }
     
     private func breastfeedingBadge(since: Date) -> some View {
         HStack(spacing: 4) {
-            Image(systemName: "heart.fill")
+            Image(systemName: "drop.circle.fill")
                 .font(.caption)
                 .symbolEffect(.pulse, options: .repeating)
             Text(since.timeAgo())
@@ -492,13 +518,26 @@ struct DashboardView: View {
     
     private func groupActivitiesByDay(_ activities: [Activity]) -> [(Date, [Activity])] {
         let grouped = Dictionary(grouping: activities) { activity in
-            Calendar.current.startOfDay(for: activity.startTime)
+            Calendar.current.startOfDay(for: activity.sortTime)
         }
         return grouped.sorted { $0.key > $1.key }
     }
     
     private func checkMilestones() {
-        if baby.isBirthday && baby.isBorn {
+        guard baby.isBorn else { return }
+        let cal = Calendar.current
+        let today = Date()
+        let dayMatch = cal.component(.day, from: baby.dateOfBirth) == cal.component(.day, from: today)
+        guard dayMatch else { return }
+
+        let components = cal.dateComponents([.year, .month], from: baby.dateOfBirth, to: today)
+        let totalMonths = (components.year ?? 0) * 12 + (components.month ?? 0)
+
+        // Show confetti for: monthly milestones (1-11 months) and yearly birthdays (1y, 2y, 3y…)
+        let isMonthlyMilestone = totalMonths >= 1 && totalMonths <= 11 && baby.isMonthBirthday
+        let isYearlyBirthday = totalMonths >= 12 && baby.isBirthday
+
+        if isMonthlyMilestone || isYearlyBirthday {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 showConfetti = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
@@ -525,26 +564,34 @@ struct ActionSummaryCard: View {
             action()
         } label: {
             VStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundStyle(color)
-                    .if(isActive) { view in
-                        view.symbolEffect(.pulse, options: .repeating)
-                    }
+                if isActive {
+                    // Active state: white icon with soft glow halo
+                    Image(systemName: icon)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .shadow(color: .white.opacity(0.9), radius: 8)
+                        .shadow(color: color.opacity(0.6), radius: 12)
+                        .symbolEffect(.pulse, options: .repeating)
+                } else {
+                    Image(systemName: icon)
+                        .font(.title3)
+                        .foregroundStyle(color)
+                }
 
                 Text(value)
                     .font(.title2.bold().monospacedDigit())
+                    .foregroundStyle(isActive ? .white : .primary)
 
                 Text(label)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(isActive ? .white.opacity(0.8) : .secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
             .frame(maxWidth: .infinity)
             .padding(.top, 16)
             .padding(.bottom, 24)
-            .background(.regularMaterial)
+            .background(isActive ? AnyShapeStyle(color.gradient) : AnyShapeStyle(.regularMaterial))
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 2)
             .overlay(alignment: .bottom) {
@@ -650,6 +697,7 @@ struct OngoingStatusBanner: View {
                 Image(systemName: icon)
                     .font(.title2)
                     .foregroundStyle(.white)
+                    .shadow(color: .white.opacity(0.9), radius: 8)
                     .symbolEffect(.pulse, options: .repeating)
                 
                 VStack(alignment: .leading, spacing: 2) {

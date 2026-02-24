@@ -30,7 +30,7 @@ struct ActivityCardView: View {
             // Main card
             mainCardContent
                 .offset(x: offset)
-                .gesture(swipeGesture)
+                .simultaneousGesture(swipeGesture)
         }
         .sheet(isPresented: $showEditSheet) {
             EditActivityView(activity: activity)
@@ -53,13 +53,32 @@ struct ActivityCardView: View {
         HStack(spacing: 14) {
             // Activity icon
             ZStack {
-                Circle()
-                    .fill(activity.type.color.opacity(0.15))
-                    .frame(width: 44, height: 44)
-                
-                Image(systemName: activity.type.icon)
-                    .font(.body)
-                    .foregroundStyle(activity.type.color)
+                if activity.type == .sleep {
+                    Circle()
+                        .fill(activity.type.color.gradient)
+                        .frame(width: 44, height: 44)
+                    Image(systemName: activity.type.icon)
+                        .font(.body)
+                        .foregroundStyle(.white)
+                        .shadow(color: .white.opacity(0.8), radius: 6)
+                        .if(activity.isOngoing) { view in
+                            view.symbolEffect(.pulse, options: .repeating)
+                        }
+                } else if activity.type == .diaper, let diaperType = activity.diaperType {
+                    Circle()
+                        .fill(diaperType.color.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: diaperType.icon)
+                        .font(.body)
+                        .foregroundStyle(diaperType.color)
+                } else {
+                    Circle()
+                        .fill(activity.type.color.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: activity.type.icon)
+                        .font(.body)
+                        .foregroundStyle(activity.type.color)
+                }
             }
             
             // Activity details
@@ -110,8 +129,12 @@ struct ActivityCardView: View {
     }
     
     private var swipeGesture: some Gesture {
-        DragGesture()
+        DragGesture(minimumDistance: 20, coordinateSpace: .local)
             .onChanged { value in
+                // Only handle horizontal swipes (ignore vertical to let ScrollView work)
+                let horizontal = abs(value.translation.width)
+                let vertical = abs(value.translation.height)
+                guard horizontal > vertical else { return }
                 if value.translation.width < 0 {
                     offset = max(value.translation.width, -80)
                 }
@@ -137,7 +160,7 @@ struct EditActivityView: View {
     
     @State private var editedStartTime: Date
     @State private var editedEndTime: Date
-    @State private var editedVolume: Double
+    @State private var editedDisplayVolume: Double
     @State private var editedBreastSide: BreastSide
     @State private var editedDiaperType: DiaperType
     @State private var editedNoteText: String
@@ -150,7 +173,7 @@ struct EditActivityView: View {
         self.activity = activity
         self._editedStartTime = State(initialValue: activity.startTime)
         self._editedEndTime = State(initialValue: activity.endTime ?? Date())
-        self._editedVolume = State(initialValue: activity.volumeML ?? 0)
+        self._editedDisplayVolume = State(initialValue: UnitConversion.displayVolume(activity.volumeML ?? 0))
         self._editedBreastSide = State(initialValue: activity.breastSide ?? .left)
         self._editedDiaperType = State(initialValue: activity.diaperType ?? .pee)
         self._editedNoteText = State(initialValue: activity.noteText ?? "")
@@ -182,18 +205,55 @@ struct EditActivityView: View {
                     Section(String(localized: "edit_details")) {
                         let laps = activity.breastfeedingLaps
                         if laps.count > 1 {
-                            ForEach(laps) { lap in
+                            ForEach(Array(laps.enumerated()), id: \.element.id) { index, lap in
+                                // Show break row before this lap if there's a gap
+                                if index > 0, let prevEnd = laps[index - 1].endTime {
+                                    let gap = lap.startTime.timeIntervalSince(prevEnd)
+                                    if gap > 1 {
+                                        HStack {
+                                            Image(systemName: "pause.circle.fill")
+                                                .foregroundStyle(.orange)
+                                            Text(String(localized: "break_label"))
+                                                .foregroundStyle(.orange)
+                                            Spacer()
+                                            Text(formatLapDuration(gap))
+                                                .foregroundStyle(.orange.opacity(0.7))
+                                        }
+                                        .font(.subheadline)
+                                    }
+                                }
+
                                 HStack {
                                     Image(systemName: lap.side == .left ? "arrow.left.circle.fill" : "arrow.right.circle.fill")
                                         .foregroundStyle(lap.side == .left ? .pink : .purple)
                                     Text(lap.side.displayName)
                                     Spacer()
                                     if let dur = lap.duration {
-                                        let m = Int(dur) / 60
-                                        let s = Int(dur) % 60
-                                        Text(m > 0 ? "\(m)m \(String(format: "%02d", s))s" : "\(s)s")
+                                        Text(formatLapDuration(dur))
                                             .foregroundStyle(.secondary)
                                     }
+                                }
+                            }
+
+                            // Summary row
+                            let totalFeeding = laps.compactMap(\.duration).reduce(0, +)
+                            let totalBreaks = breakDuration(from: laps)
+                            HStack {
+                                Text(String(localized: "total_feeding"))
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Text(formatLapDuration(totalFeeding))
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            if totalBreaks > 1 {
+                                HStack {
+                                    Text(String(localized: "total_breaks"))
+                                        .font(.subheadline)
+                                        .foregroundStyle(.orange)
+                                    Spacer()
+                                    Text(formatLapDuration(totalBreaks))
+                                        .font(.subheadline)
+                                        .foregroundStyle(.orange)
                                 }
                             }
                         } else {
@@ -208,13 +268,13 @@ struct EditActivityView: View {
                 case .formula, .momsMilk:
                     Section(String(localized: "edit_details")) {
                         HStack {
-                            Text(String(localized: "volume_ml"))
+                            Text(String(localized: "volume_label"))
                             Spacer()
-                            TextField("0", value: $editedVolume, format: .number)
+                            TextField("0", value: $editedDisplayVolume, format: .number)
                                 .keyboardType(.decimalPad)
                                 .multilineTextAlignment(.trailing)
                                 .frame(width: 100)
-                            Text("ml")
+                            Text(UnitConversion.volumeUnit)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -273,6 +333,23 @@ struct EditActivityView: View {
         }
     }
     
+    private func formatLapDuration(_ interval: TimeInterval) -> String {
+        let m = Int(interval) / 60
+        let s = Int(interval) % 60
+        return m > 0 ? "\(m)m \(String(format: "%02d", s))s" : "\(s)s"
+    }
+
+    private func breakDuration(from laps: [BreastfeedingLap]) -> TimeInterval {
+        var total: TimeInterval = 0
+        for i in 1..<laps.count {
+            if let prevEnd = laps[i - 1].endTime {
+                let gap = laps[i].startTime.timeIntervalSince(prevEnd)
+                if gap > 1 { total += gap }
+            }
+        }
+        return total
+    }
+
     private func saveChanges() {
         activity.startTime = editedStartTime
 
@@ -285,7 +362,8 @@ struct EditActivityView: View {
             activity.endTime = editedEndTime > editedStartTime ? editedEndTime : editedStartTime
         }
 
-        activity.volumeML = editedVolume > 0 ? editedVolume : nil
+        let storedMl = UnitConversion.storageVolume(editedDisplayVolume)
+        activity.volumeML = storedMl > 0 ? storedMl : nil
         activity.breastSide = editedBreastSide
         activity.diaperType = editedDiaperType
         activity.noteText = editedNoteText.isEmpty ? nil : editedNoteText

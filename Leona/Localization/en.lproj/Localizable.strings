@@ -123,11 +123,18 @@
 "slot_night" = "Night";
 "bf_in_progress" = "Breastfeeding in progress...";
 "slide_to_start" = "Slide to start feeding";
-"slide_to_switch" = "Slide to switch side";
+"slide_to_switch" = "Slide to switch · Center to pause";
+"slide_to_resume" = "Slide left or right to resume";
+"slide_to_resume_side" = "Slide left or right to choose breast";
 "switches" = "Switches";
 "start_session" = "Start Session";
 "stop_session" = "Stop Session";
+"pause_session" = "Break";
+"session_paused" = "Break time";
 "resume_session" = "Resume Session";
+"break_label" = "Break";
+"total_feeding" = "Total feeding";
+"total_breaks" = "Total breaks";
 "finish_session" = "Finish Session";
 "last_session" = "Last session";
 
@@ -136,11 +143,12 @@
 "moms_milk" = "Mom's Milk";
 "volume" = "Volume";
 "volume_ml" = "Volume";
+"volume_label" = "Volume";
 "quick_volume" = "Quick Select";
 "save_formula" = "Save Formula";
 "save_moms_milk" = "Save Mom's Milk";
-"formula_summary %lld" = "%lld ml formula";
-"moms_milk_summary %lld" = "%lld ml mom's milk";
+"formula_summary %@" = "%@ formula";
+"moms_milk_summary %@" = "%@ mom's milk";
 
 /* Solid Food */
 "solid_food" = "Solid Food";
@@ -218,7 +226,7 @@
 "forecast_not_enough_data" = "Need more feeding data";
 "forecast_next_meal" = "Next Ideal Meal";
 "forecast_estimated_volume" = "Estimated Volume";
-"forecast_with_bf %lld" = "With breastfeeding: ~%lld ml";
+"forecast_with_bf %@" = "With breastfeeding: ~%@";
 "forecast_avg_interval" = "Average Interval";
 "forecast_between_meals" = "Between feedings";
 "forecast_max_delay" = "Maximum Delay";
@@ -241,6 +249,7 @@
 "add_measurement" = "Add Measurement";
 "edit_measurement" = "Edit Measurement";
 "all_measurements" = "All Measurements";
+"reset_zoom" = "Reset Zoom";
 "measurement_date" = "Measurement Date";
 "measurements" = "Measurements";
 "weight" = "Weight";
@@ -279,6 +288,7 @@
 "medications" = "Medications";
 "medication_name" = "Medication";
 "dosage" = "Dosage";
+"add_medication" = "Add medication";
 "notes" = "Notes";
 "mark_resolved" = "Mark as Resolved";
 "delete_record" = "Delete Record";
@@ -364,6 +374,9 @@
 "accent_purple" = "Purple";
 "accent_green" = "Green";
 "accent_orange" = "Orange";
+"accent_coral" = "Coral";
+"accent_slate" = "Slate";
+"accent_custom" = "Custom";
 "notifications" = "Notifications";
 "feeding_reminders" = "Feeding Reminders";
 "reminder_interval" = "Reminder Interval";

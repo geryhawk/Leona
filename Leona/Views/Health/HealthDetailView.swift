@@ -7,13 +7,13 @@ struct HealthDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
-    @State private var newTemp: Double = 37.0
+    @State private var newTempDisplay: Double = UnitConversion.displayTemp(37.0)
     @State private var newSymptom = ""
     @State private var newSymptomSeverity: SymptomSeverity = .moderate
     @State private var newMedName = ""
     @State private var newMedDosage = ""
     @State private var editingTempID: UUID?
-    @State private var editingTempValue: Double = 37.0
+    @State private var editingTempDisplay: Double = UnitConversion.displayTemp(37.0)
     @State private var editingSymptomID: UUID?
     @State private var editingSymptomText = ""
     @State private var editingSymptomSeverity: SymptomSeverity = .moderate
@@ -60,12 +60,14 @@ struct HealthDetailView: View {
                 // Medications
                 medicationSection
 
-                // Delete
+                // Delete — discreet at the bottom
                 Section {
                     Button(role: .destructive) {
                         showDeleteConfirm = true
                     } label: {
-                        Label(String(localized: "delete_record"), systemImage: "trash")
+                        Text(String(localized: "delete_record"))
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity)
                     }
                 }
             }
@@ -135,15 +137,15 @@ struct HealthDetailView: View {
         Section(String(localized: "temperature_readings")) {
             ForEach(record.temperatures.sorted(by: { $0.measuredAt > $1.measuredAt })) { temp in
                 if editingTempID == temp.id {
-                    // Inline editing
+                    // Inline editing — slider in display units
                     HStack {
-                        Slider(value: $editingTempValue, in: 35...42, step: 0.1)
-                            .tint(tempColor(editingTempValue))
+                        Slider(value: $editingTempDisplay, in: UnitConversion.tempSliderMin...UnitConversion.tempSliderMax, step: 0.1)
+                            .tint(tempColor(UnitConversion.storageTemp(editingTempDisplay)))
 
-                        Text(String(format: "%.1f°C", editingTempValue))
+                        Text(String(format: "%.1f%@", editingTempDisplay, UnitConversion.tempUnit))
                             .font(.subheadline.monospacedDigit())
-                            .foregroundStyle(tempColor(editingTempValue))
-                            .frame(width: 55)
+                            .foregroundStyle(tempColor(UnitConversion.storageTemp(editingTempDisplay)))
+                            .frame(width: 65)
 
                         Button {
                             saveEditedTemp(id: temp.id)
@@ -165,7 +167,7 @@ struct HealthDetailView: View {
                         Image(systemName: temp.isHighFever ? "thermometer.high" : temp.isFever ? "thermometer.medium" : "thermometer.low")
                             .foregroundStyle(tempColor(temp.temperature))
 
-                        Text(String(format: "%.1f°C", temp.temperature))
+                        Text(UnitConversion.formatTemp(temp.temperature))
                             .font(.headline.monospacedDigit())
                             .foregroundStyle(tempColor(temp.temperature))
 
@@ -178,7 +180,7 @@ struct HealthDetailView: View {
                     .contentShape(Rectangle())
                     .onTapGesture {
                         editingTempID = temp.id
-                        editingTempValue = temp.temperature
+                        editingTempDisplay = UnitConversion.displayTemp(temp.temperature)
                     }
                 }
             }
@@ -188,16 +190,16 @@ struct HealthDetailView: View {
 
             // Add new temperature
             HStack {
-                Slider(value: $newTemp, in: 35...42, step: 0.1)
-                    .tint(tempColor(newTemp))
+                Slider(value: $newTempDisplay, in: UnitConversion.tempSliderMin...UnitConversion.tempSliderMax, step: 0.1)
+                    .tint(tempColor(UnitConversion.storageTemp(newTempDisplay)))
 
-                Text(String(format: "%.1f°C", newTemp))
+                Text(String(format: "%.1f%@", newTempDisplay, UnitConversion.tempUnit))
                     .font(.subheadline.monospacedDigit())
-                    .frame(width: 55)
+                    .frame(width: 65)
 
                 Button {
                     var temps = record.temperatures
-                    temps.append(TemperatureReading(temperature: newTemp))
+                    temps.append(TemperatureReading(temperature: UnitConversion.storageTemp(newTempDisplay)))
                     record.temperatures = temps
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 } label: {
@@ -387,7 +389,7 @@ struct HealthDetailView: View {
     private func saveEditedTemp(id: UUID) {
         var temps = record.temperatures
         if let index = temps.firstIndex(where: { $0.id == id }) {
-            temps[index].temperature = editingTempValue
+            temps[index].temperature = UnitConversion.storageTemp(editingTempDisplay)
             record.temperatures = temps
         }
         editingTempID = nil

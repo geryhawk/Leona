@@ -123,11 +123,18 @@
 "slot_night" = "Nuit";
 "bf_in_progress" = "Allaitement en cours...";
 "slide_to_start" = "Glisser pour commencer";
-"slide_to_switch" = "Glisser pour changer de côté";
+"slide_to_switch" = "Glisser pour changer · Centre pour pause";
+"slide_to_resume" = "Glisser à gauche ou droite pour reprendre";
+"slide_to_resume_side" = "Glisser pour choisir le sein";
 "switches" = "Changements";
 "start_session" = "Démarrer la tétée";
 "stop_session" = "Arrêter la tétée";
+"pause_session" = "Pause";
+"session_paused" = "En pause";
 "resume_session" = "Reprendre la tétée";
+"break_label" = "Pause";
+"total_feeding" = "Temps de tétée";
+"total_breaks" = "Temps de pause";
 "finish_session" = "Terminer la tétée";
 "last_session" = "Dernière tétée";
 
@@ -136,11 +143,12 @@
 "moms_milk" = "Lait maternel";
 "volume" = "Volume";
 "volume_ml" = "Volume";
+"volume_label" = "Volume";
 "quick_volume" = "Sélection rapide";
 "save_formula" = "Enregistrer le biberon";
 "save_moms_milk" = "Enregistrer le lait maternel";
-"formula_summary %lld" = "%lld ml de lait infantile";
-"moms_milk_summary %lld" = "%lld ml de lait maternel";
+"formula_summary %@" = "%@ de lait infantile";
+"moms_milk_summary %@" = "%@ de lait maternel";
 
 /* Solid Food */
 "solid_food" = "Alimentation solide";
@@ -218,7 +226,7 @@
 "forecast_not_enough_data" = "Plus de données nécessaires";
 "forecast_next_meal" = "Prochain repas idéal";
 "forecast_estimated_volume" = "Volume estimé";
-"forecast_with_bf %lld" = "Avec allaitement : ~%lld ml";
+"forecast_with_bf %@" = "Avec allaitement : ~%@";
 "forecast_avg_interval" = "Intervalle moyen";
 "forecast_between_meals" = "Entre les repas";
 "forecast_max_delay" = "Délai maximum";
@@ -241,6 +249,7 @@
 "add_measurement" = "Ajouter une mesure";
 "edit_measurement" = "Modifier la mesure";
 "all_measurements" = "Toutes les mesures";
+"reset_zoom" = "Réinitialiser le zoom";
 "measurement_date" = "Date de la mesure";
 "measurements" = "Mesures";
 "weight" = "Poids";
@@ -279,6 +288,7 @@
 "medications" = "Médicaments";
 "medication_name" = "Médicament";
 "dosage" = "Posologie";
+"add_medication" = "Ajouter un médicament";
 "notes" = "Notes";
 "mark_resolved" = "Marquer comme résolu";
 "delete_record" = "Supprimer le dossier";
@@ -364,6 +374,9 @@
 "accent_purple" = "Violet";
 "accent_green" = "Vert";
 "accent_orange" = "Orange";
+"accent_coral" = "Corail";
+"accent_slate" = "Ardoise";
+"accent_custom" = "Personnalisé";
 "notifications" = "Notifications";
 "feeding_reminders" = "Rappels de repas";
 "reminder_interval" = "Intervalle de rappel";

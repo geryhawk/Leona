@@ -27,10 +27,10 @@ struct MealForecastView: View {
                         
                         // Estimated volume
                         forecastCard(
-                            icon: "cup.and.saucer.fill",
+                            icon: "waterbottle.fill",
                             title: String(localized: "forecast_estimated_volume"),
-                            value: "\(Int(forecast.estimatedVolumeML)) ml",
-                            subtitle: String(localized: "forecast_with_bf \(Int(forecast.estimatedVolumeWithBreastfeedingML))"),
+                            value: UnitConversion.formatVolume(forecast.estimatedVolumeML),
+                            subtitle: String(localized: "forecast_with_bf \(UnitConversion.formatVolume(forecast.estimatedVolumeWithBreastfeedingML))"),
                             color: .orange
                         )
                         

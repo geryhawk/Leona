@@ -126,8 +126,8 @@ struct StatsView: View {
             // Summary cards
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 statCard(title: String(localized: "stat_total_feedings"), value: "\(stats.totalFeedings)", icon: "fork.knife", color: .orange)
-                statCard(title: String(localized: "stat_breastfeeding"), value: "\(stats.breastfeedingCount)", icon: "heart.fill", color: .pink)
-                statCard(title: String(localized: "stat_formula_total"), value: "\(Int(stats.totalFormulaMl)) ml", icon: "cup.and.saucer.fill", color: .orange)
+                statCard(title: String(localized: "stat_breastfeeding"), value: "\(stats.breastfeedingCount)", icon: "drop.circle.fill", color: .pink)
+                statCard(title: String(localized: "stat_formula_total"), value: UnitConversion.formatVolume(stats.totalFormulaMl), icon: "waterbottle.fill", color: .orange)
                 statCard(title: String(localized: "stat_avg_interval"), value: stats.averageInterval.compactFormatted, icon: "clock", color: .blue)
             }
             

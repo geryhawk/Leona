@@ -15,6 +15,8 @@ extension Notification.Name {
 class LeonaAppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         application.registerForRemoteNotifications()
+        // Allow scroll to pass through buttons without delay
+        UIScrollView.appearance().delaysContentTouches = false
         return true
     }
 

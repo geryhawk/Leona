@@ -220,6 +220,8 @@ struct SettingsView: View {
     
     // MARK: - Appearance
     
+    @State private var customColor: Color = AppSettings.shared.customAccentColor
+
     private var appearanceSection: some View {
         Section(String(localized: "appearance")) {
             // Theme picker - Apple-standard inline navigation picker
@@ -229,14 +231,15 @@ struct SettingsView: View {
                         .tag(scheme)
                 }
             }
-            
+
             // Accent color selector
             VStack(alignment: .leading, spacing: 12) {
                 Text(String(localized: "accent_color"))
                     .font(.body)
-                
-                HStack(spacing: 16) {
-                    ForEach(AppAccentColor.allCases) { accent in
+
+                // Preset colors row
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
+                    ForEach(AppAccentColor.allCases.filter { $0 != .custom }) { accent in
                         Button {
                             withAnimation(.spring(response: 0.3)) {
                                 settings.accentColor = accent
@@ -248,12 +251,12 @@ struct SettingsView: View {
                                     .fill(accent.color.gradient)
                                     .frame(width: 36, height: 36)
                                     .shadow(color: accent.color.opacity(0.3), radius: settings.accentColor == accent ? 4 : 0, x: 0, y: 2)
-                                
+
                                 if settings.accentColor == accent {
                                     Circle()
                                         .strokeBorder(.white, lineWidth: 2.5)
                                         .frame(width: 36, height: 36)
-                                    
+
                                     Image(systemName: "checkmark")
                                         .font(.caption.bold())
                                         .foregroundStyle(.white)
@@ -264,7 +267,40 @@ struct SettingsView: View {
                         .scaleEffect(settings.accentColor == accent ? 1.15 : 1.0)
                         .animation(.spring(response: 0.3), value: settings.accentColor)
                     }
-                    
+                }
+
+                // Custom color picker row
+                HStack(spacing: 12) {
+                    ColorPicker("", selection: $customColor, supportsOpacity: false)
+                        .labelsHidden()
+                        .frame(width: 36, height: 36)
+                        .onChange(of: customColor) { _, newColor in
+                            settings.customAccentColor = newColor
+                            settings.accentColor = .custom
+                        }
+
+                    Button {
+                        withAnimation(.spring(response: 0.3)) {
+                            settings.accentColor = .custom
+                        }
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "paintpalette.fill")
+                                .font(.caption)
+                            Text(String(localized: "accent_custom"))
+                                .font(.subheadline)
+                        }
+                        .foregroundStyle(settings.accentColor == .custom ? customColor : .secondary)
+                    }
+                    .buttonStyle(.plain)
+
+                    if settings.accentColor == .custom {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(customColor)
+                            .font(.body)
+                    }
+
                     Spacer()
                 }
             }
@@ -309,7 +345,7 @@ struct SettingsView: View {
             .tint(.cyan)
             
             Toggle(isOn: Binding(get: { settings.showBreastfeeding }, set: { settings.showBreastfeeding = $0 })) {
-                Label(String(localized: "toggle_breastfeeding"), systemImage: "heart.fill")
+                Label(String(localized: "toggle_breastfeeding"), systemImage: "drop.circle.fill")
             }
             .tint(.pink)
             
@@ -340,7 +376,7 @@ struct SettingsView: View {
             }
             
             Toggle(isOn: Binding(get: { settings.showBreastfeedingNotifications }, set: { settings.showBreastfeedingNotifications = $0 })) {
-                Label(String(localized: "bf_notifications"), systemImage: "heart.text.clipboard")
+                Label(String(localized: "bf_notifications"), systemImage: "drop.circle")
             }
             .tint(.pink)
         }
@@ -396,8 +432,13 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            HStack {
-                Label(String(localized: "app_name"), systemImage: "heart.fill")
+            HStack(spacing: 12) {
+                Image("AppIconImage")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 28, height: 28)
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                Text(String(localized: "app_name"))
                 Spacer()
                 Text("Leona")
                     .foregroundStyle(.leonaPrimary)

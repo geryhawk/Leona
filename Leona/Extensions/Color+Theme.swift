@@ -32,6 +32,7 @@ extension Color {
     static let leonaCardBackground = Color(.secondarySystemGroupedBackground)
     static let leonaNightBackground = Color(red: 0.1, green: 0.12, blue: 0.25)
     static let leonaDayBackground = Color(red: 0.85, green: 0.92, blue: 1.0)
+    static let leonaSleep = Color(red: 0.22, green: 0.2, blue: 0.52)
 }
 
 // MARK: - ShapeStyle Extensions (allows .leonaPink in foregroundStyle, stroke, etc.)
@@ -50,6 +51,7 @@ extension ShapeStyle where Self == Color {
     static var leonaCardBackground: Color { Color.leonaCardBackground }
     static var leonaNightBackground: Color { Color.leonaNightBackground }
     static var leonaDayBackground: Color { Color.leonaDayBackground }
+    static var leonaSleep: Color { Color.leonaSleep }
 }
 
 // MARK: - Dynamic Gradients

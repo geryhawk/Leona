@@ -4,94 +4,112 @@ import SwiftData
 struct GrowthEntryView: View {
     let baby: Baby
     var editingRecord: GrowthRecord?
-    
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    
+
     @State private var date: Date
-    @State private var weightKg: String
-    @State private var heightCm: String
-    @State private var headCm: String
-    
+    @State private var weightStr: String
+    @State private var heightStr: String
+    @State private var headStr: String
+
     var isEditing: Bool { editingRecord != nil }
-    
+
     init(baby: Baby, editingRecord: GrowthRecord? = nil) {
         self.baby = baby
         self.editingRecord = editingRecord
         self._date = State(initialValue: editingRecord?.date ?? Date())
-        self._weightKg = State(initialValue: editingRecord?.weightKg.map { String(format: "%.2f", $0) } ?? "")
-        self._heightCm = State(initialValue: editingRecord?.heightCm.map { String(format: "%.1f", $0) } ?? "")
-        self._headCm = State(initialValue: editingRecord?.headCircumferenceCm.map { String(format: "%.1f", $0) } ?? "")
+
+        // Convert from metric storage to display units
+        let settings = AppSettings.shared
+        if let w = editingRecord?.weightKg {
+            let display = settings.useMetric ? w : UnitConversion.kgToLbs(w)
+            self._weightStr = State(initialValue: String(format: "%.2f", display))
+        } else {
+            self._weightStr = State(initialValue: "")
+        }
+        if let h = editingRecord?.heightCm {
+            let display = settings.useMetric ? h : UnitConversion.cmToInches(h)
+            self._heightStr = State(initialValue: String(format: "%.1f", display))
+        } else {
+            self._heightStr = State(initialValue: "")
+        }
+        if let hc = editingRecord?.headCircumferenceCm {
+            let display = settings.useMetric ? hc : UnitConversion.cmToInches(hc)
+            self._headStr = State(initialValue: String(format: "%.1f", display))
+        } else {
+            self._headStr = State(initialValue: "")
+        }
     }
-    
+
     var body: some View {
         NavigationStack {
             Form {
                 Section(String(localized: "measurement_date")) {
                     DatePicker(String(localized: "date"), selection: $date, in: ...Date(), displayedComponents: .date)
                 }
-                
+
                 Section(String(localized: "measurements")) {
                     HStack {
                         Label(String(localized: "weight"), systemImage: "scalemass.fill")
                             .foregroundStyle(.blue)
                         Spacer()
-                        TextField("0.00", text: $weightKg)
+                        TextField("0.00", text: $weightStr)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 100)
-                        Text("kg")
+                        Text(UnitConversion.weightUnit)
                             .foregroundStyle(.secondary)
                     }
-                    
+
                     HStack {
                         Label(String(localized: "height"), systemImage: "ruler.fill")
                             .foregroundStyle(.green)
                         Spacer()
-                        TextField("0.0", text: $heightCm)
+                        TextField("0.0", text: $heightStr)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 100)
-                        Text("cm")
+                        Text(UnitConversion.heightUnit)
                             .foregroundStyle(.secondary)
                     }
-                    
+
                     HStack {
                         Label(String(localized: "head_circumference"), systemImage: "circle.dashed")
                             .foregroundStyle(.purple)
                         Spacer()
-                        TextField("0.0", text: $headCm)
+                        TextField("0.0", text: $headStr)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 100)
-                        Text("cm")
+                        Text(UnitConversion.heightUnit)
                             .foregroundStyle(.secondary)
                     }
                 }
-                
+
                 // Percentile preview
                 if hasAnyValue {
                     Section(String(localized: "percentiles")) {
-                        if let weight = Double(weightKg) {
+                        if let weightKg = metricWeight {
                             percentileRow(
                                 label: String(localized: "weight"),
-                                value: weight,
+                                metricValue: weightKg,
                                 type: .weight,
                                 color: .blue
                             )
                         }
-                        if let height = Double(heightCm) {
+                        if let heightCm = metricHeight {
                             percentileRow(
                                 label: String(localized: "height"),
-                                value: height,
+                                metricValue: heightCm,
                                 type: .height,
                                 color: .green
                             )
                         }
-                        if let head = Double(headCm) {
+                        if let headCm = metricHead {
                             percentileRow(
                                 label: String(localized: "head_circumference"),
-                                value: head,
+                                metricValue: headCm,
                                 type: .head,
                                 color: .purple
                             )
@@ -113,29 +131,49 @@ struct GrowthEntryView: View {
             }
         }
     }
-    
-    private var hasAnyValue: Bool {
-        !weightKg.isEmpty || !heightCm.isEmpty || !headCm.isEmpty
+
+    // MARK: - Metric Conversion
+
+    /// Convert display input to metric kg
+    private var metricWeight: Double? {
+        guard let v = Double(weightStr), v > 0 else { return nil }
+        return UnitConversion.storageWeight(v)
     }
-    
+
+    /// Convert display input to metric cm
+    private var metricHeight: Double? {
+        guard let v = Double(heightStr), v > 0 else { return nil }
+        return UnitConversion.storageHeight(v)
+    }
+
+    /// Convert display input to metric cm
+    private var metricHead: Double? {
+        guard let v = Double(headStr), v > 0 else { return nil }
+        return UnitConversion.storageHeight(v)
+    }
+
+    private var hasAnyValue: Bool {
+        !weightStr.isEmpty || !heightStr.isEmpty || !headStr.isEmpty
+    }
+
     private enum PercentileType {
         case weight, height, head
     }
-    
-    private func percentileRow(label: String, value: Double, type: PercentileType, color: Color) -> some View {
+
+    private func percentileRow(label: String, metricValue: Double, type: PercentileType, color: Color) -> some View {
         let data: [WHOPercentilePoint]
         switch type {
         case .weight: data = WHODataService.weightPercentiles(gender: baby.gender)
         case .height: data = WHODataService.heightPercentiles(gender: baby.gender)
         case .head: data = WHODataService.headCircumferencePercentiles(gender: baby.gender)
         }
-        
+
         let percentile = WHODataService.calculatePercentile(
-            value: value,
+            value: metricValue,
             ageInMonths: baby.ageInMonths,
             data: data
         )
-        
+
         return HStack {
             Text(label)
                 .foregroundStyle(color)
@@ -154,31 +192,31 @@ struct GrowthEntryView: View {
             }
         }
     }
-    
+
     private func percentileColor(_ p: Double) -> Color {
         if p < 3 || p > 97 { return .red }
         if p < 15 || p > 85 { return .orange }
         return .green
     }
-    
+
     private func save() {
         if let record = editingRecord {
             record.date = date
-            record.weightKg = Double(weightKg)
-            record.heightCm = Double(heightCm)
-            record.headCircumferenceCm = Double(headCm)
+            record.weightKg = metricWeight
+            record.heightCm = metricHeight
+            record.headCircumferenceCm = metricHead
             record.updatedAt = Date()
         } else {
             let record = GrowthRecord(
                 date: date,
-                weightKg: Double(weightKg),
-                heightCm: Double(heightCm),
-                headCircumferenceCm: Double(headCm),
+                weightKg: metricWeight,
+                heightCm: metricHeight,
+                headCircumferenceCm: metricHead,
                 baby: baby
             )
             modelContext.insert(record)
         }
-        
+
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         dismiss()
     }

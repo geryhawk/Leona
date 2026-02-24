@@ -19,6 +19,9 @@ struct BreastfeedingView: View {
     @State private var activeSide: BreastSide? = nil
     @State private var laps: [BreastfeedingLap] = []
     @State private var showSwitchFlash = false
+    @State private var isPaused = false
+    @State private var pauseStartTime: Date?
+    @State private var totalPauseDuration: TimeInterval = 0
 
     private var ongoingSession: Activity? {
         allActivities.first {
@@ -65,7 +68,7 @@ struct BreastfeedingView: View {
                             breastSlider
                                 .padding(.horizontal, 20)
 
-                            // Stop button — small, separated
+                            // Stop button (pause is handled by slider center)
                             Button {
                                 stopSession()
                             } label: {
@@ -76,7 +79,7 @@ struct BreastfeedingView: View {
                                         .font(.subheadline.weight(.medium))
                                 }
                                 .foregroundStyle(.red)
-                                .padding(.horizontal, 24)
+                                .padding(.horizontal, 20)
                                 .padding(.vertical, 10)
                                 .background(
                                     Capsule()
@@ -138,23 +141,91 @@ struct BreastfeedingView: View {
                     .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: isRunning)
 
                 // Heart — always centered
-                Image(systemName: "heart.fill")
+                Image(systemName: "drop.circle.fill")
                     .font(.system(size: 44))
                     .foregroundStyle(isRunning ? sideColor : .pink)
                     .symbolEffect(.pulse, options: .repeating, isActive: isRunning)
             }
             .frame(height: 120)
 
-            Text(elapsedTime.hoursMinutesSecondsFormatted)
-                .font(.system(size: 52, weight: .light, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(isRunning ? sideColor : .primary)
-                .contentTransition(.numericText(countsDown: false))
-                .animation(.default, value: elapsedTime)
+            // Main timer — shows feeding time when paused, total elapsed otherwise
+            if isPaused {
+                // During pause: show the pause duration as the main big timer
+                Text(currentPauseDuration.hoursMinutesSecondsFormatted)
+                    .font(.system(size: 52, weight: .light, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.orange)
+                    .contentTransition(.numericText(countsDown: false))
+                    .animation(.default, value: currentPauseDuration)
+            } else {
+                Text(elapsedTime.hoursMinutesSecondsFormatted)
+                    .font(.system(size: 52, weight: .light, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(isRunning ? sideColor : .primary)
+                    .contentTransition(.numericText(countsDown: false))
+                    .animation(.default, value: elapsedTime)
+            }
+
+            // Sub-timers row when paused
+            if isPaused {
+                HStack(spacing: 16) {
+                    // Feeding time
+                    HStack(spacing: 4) {
+                        Image(systemName: "drop.fill")
+                            .font(.caption2)
+                        Text(feedingTime.hoursMinutesSecondsFormatted)
+                            .monospacedDigit()
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.pink)
+
+                    // Total elapsed
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                            .font(.caption2)
+                        Text(elapsedTime.hoursMinutesSecondsFormatted)
+                            .monospacedDigit()
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+                .transition(.opacity)
+            } else if isRunning && totalPauseDuration > 0 {
+                // Active feeding time (excludes breaks) — shown when there's been a pause
+                HStack(spacing: 4) {
+                    Image(systemName: "drop.fill")
+                        .font(.caption2)
+                    Text(feedingTime.hoursMinutesSecondsFormatted)
+                        .monospacedDigit()
+                }
+                .font(.caption)
+                .foregroundStyle(sideColor)
+                .transition(.opacity)
+            }
 
             // Side label
             Group {
-                if isRunning, let side = activeSide {
+                if isPaused {
+                    VStack(spacing: 6) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "pause.circle.fill")
+                                .font(.caption)
+                                .symbolEffect(.pulse, options: .repeating)
+                            Text(String(localized: "session_paused"))
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(Color.orange.opacity(0.1))
+                        .clipShape(Capsule())
+
+                        Text(String(localized: "slide_to_resume_side"))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .transition(.scale.combined(with: .opacity))
+                } else if isRunning, let side = activeSide {
                     HStack(spacing: 6) {
                         Circle()
                             .fill(sideColor)
@@ -175,6 +246,7 @@ struct BreastfeedingView: View {
                 }
             }
             .animation(.spring(response: 0.4), value: activeSide)
+            .animation(.spring(response: 0.4), value: isPaused)
         }
         .padding(.top, 8)
     }
@@ -198,20 +270,46 @@ struct BreastfeedingView: View {
                 .clipShape(Capsule())
             }
 
-            // Per-side durations above the track
+            // Per-side durations + timeline above the track
             if isRunning {
-                HStack {
-                    Text(formatDuration(totalForSide(.left)))
-                        .font(.caption.monospacedDigit().weight(.semibold))
-                        .foregroundStyle(activeSide == .left ? .pink : .secondary.opacity(0.5))
-                        .padding(.leading, 20)
-                    Spacer()
-                    Text(formatDuration(totalForSide(.right)))
-                        .font(.caption.monospacedDigit().weight(.semibold))
-                        .foregroundStyle(activeSide == .right ? .purple : .secondary.opacity(0.5))
-                        .padding(.trailing, 20)
+                VStack(spacing: 6) {
+                    HStack {
+                        Text(formatDuration(totalForSide(.left)))
+                            .font(.caption.monospacedDigit().weight(.semibold))
+                            .foregroundStyle(activeSide == .left ? .pink : .secondary.opacity(0.5))
+                        Spacer()
+                        Text(formatDuration(totalForSide(.right)))
+                            .font(.caption.monospacedDigit().weight(.semibold))
+                            .foregroundStyle(activeSide == .right ? .purple : .secondary.opacity(0.5))
+                    }
+
+                    // Timeline bar showing side switches
+                    if laps.count > 1 {
+                        GeometryReader { geo in
+                            let totalDur = laps.reduce(0.0) { sum, lap in
+                                sum + (lap.endTime ?? Date()).timeIntervalSince(lap.startTime)
+                            }
+
+                            HStack(spacing: 2) {
+                                ForEach(laps) { lap in
+                                    let dur = (lap.endTime ?? Date()).timeIntervalSince(lap.startTime)
+                                    let fraction = totalDur > 0 ? dur / totalDur : 1.0 / Double(laps.count)
+
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(lap.side == .left ? Color.pink : Color.purple)
+                                        .frame(width: max(geo.size.width * fraction - 2, 4))
+                                        .opacity(lap.side == activeSide ? 1.0 : 0.4)
+                                }
+                            }
+                        }
+                        .frame(height: 6)
+                        .clipShape(Capsule())
+                        .transition(.opacity)
+                    }
                 }
+                .padding(.horizontal, 4)
                 .animation(.easeInOut(duration: 0.3), value: activeSide)
+                .animation(.easeInOut(duration: 0.3), value: laps.count)
             }
 
             // The slider track
@@ -283,41 +381,21 @@ struct BreastfeedingView: View {
                         .animation(.easeInOut(duration: 0.3), value: activeSide)
                     }
 
-                    // Thumb with glow
-                    ZStack {
-                        if isRunning {
-                            Circle()
-                                .fill(sideColor.opacity(0.2))
-                                .frame(width: 74, height: 74)
-                                .blur(radius: 4)
-                        }
-
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: activeSide == nil
-                                        ? [Color(.systemGray4), Color(.systemGray5)]
-                                        : [.white, Color(.systemGray6)],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                            .shadow(color: sideColor.opacity(isRunning ? 0.3 : 0.1), radius: 8, y: 3)
-                            .frame(width: thumbSize, height: thumbSize)
-                            .overlay {
-                                if let side = activeSide {
-                                    Image(systemName: side == .left ? "arrow.left" : "arrow.right")
-                                        .font(.title3.weight(.bold))
-                                        .foregroundStyle(sideColor)
-                                        .transition(.scale.combined(with: .opacity))
-                                } else {
-                                    Image(systemName: "arrow.left.arrow.right")
-                                        .font(.subheadline.weight(.medium))
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            .animation(.spring(response: 0.3), value: activeSide)
+                    // Center pause indicator (only when running)
+                    if isRunning && !isPaused {
+                        Image(systemName: "pause.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary.opacity(0.3))
                     }
+
+                    // Thumb — flat style with dynamic icon based on slider position
+                    Circle()
+                        .fill(thumbColor)
+                        .frame(width: thumbSize, height: thumbSize)
+                        .overlay {
+                            thumbIcon
+                        }
+                        .animation(.spring(response: 0.3), value: thumbIconState)
                     .position(x: thumbX, y: trackHeight / 2)
                     .gesture(
                         DragGesture()
@@ -338,11 +416,63 @@ struct BreastfeedingView: View {
                 Text(String(localized: "slide_to_start"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
+            } else if isPaused {
+                Text(String(localized: "slide_to_resume"))
+                    .font(.caption)
+                    .foregroundStyle(.orange.opacity(0.6))
             } else if isRunning {
                 Text(String(localized: "slide_to_switch"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
+        }
+    }
+
+    // MARK: - Dynamic Thumb
+
+    private enum ThumbIconState: Equatable {
+        case idle, left, right, pause
+    }
+
+    private var thumbIconState: ThumbIconState {
+        if activeSide == nil { return .idle }
+        // When dragging, use position to determine icon
+        if sliderValue < 0.3 { return .left }
+        if sliderValue > 0.7 { return .right }
+        if sliderValue >= 0.35 && sliderValue <= 0.65 { return .pause }
+        // In transition zones, lean toward current side
+        if sliderValue < 0.5 { return .left }
+        return .right
+    }
+
+    private var thumbColor: Color {
+        switch thumbIconState {
+        case .idle: return Color(.systemGray5)
+        case .left: return .pink
+        case .right: return .purple
+        case .pause: return .orange
+        }
+    }
+
+    @ViewBuilder
+    private var thumbIcon: some View {
+        switch thumbIconState {
+        case .idle:
+            Image(systemName: "arrow.left.arrow.right")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+        case .left:
+            Image(systemName: "arrow.left")
+                .font(.title3.weight(.bold))
+                .foregroundStyle(.white)
+        case .right:
+            Image(systemName: "arrow.right")
+                .font(.title3.weight(.bold))
+                .foregroundStyle(.white)
+        case .pause:
+            Image(systemName: "pause.fill")
+                .font(.title3.weight(.bold))
+                .foregroundStyle(.white)
         }
     }
 
@@ -424,18 +554,57 @@ struct BreastfeedingView: View {
     private func handleSliderEnd() {
         let leftThreshold = 0.3
         let rightThreshold = 0.7
+        let centerLow = 0.35
+        let centerHigh = 0.65
 
         if sliderValue < leftThreshold {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) { sliderValue = 0.0 }
-            switchToSide(.left)
+            if isPaused { resumeToSide(.left) } else { switchToSide(.left) }
         } else if sliderValue > rightThreshold {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) { sliderValue = 1.0 }
-            switchToSide(.right)
+            if isPaused { resumeToSide(.right) } else { switchToSide(.right) }
+        } else if isRunning && !isPaused && sliderValue >= centerLow && sliderValue <= centerHigh {
+            // Snap to center = pause
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) { sliderValue = 0.5 }
+            togglePause()
+        } else if isPaused {
+            // Didn't reach a side threshold, stay paused in center
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) { sliderValue = 0.5 }
         } else {
             // Snap back to current position
             let target: Double = activeSide == .left ? 0.0 : activeSide == .right ? 1.0 : 0.5
             withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) { sliderValue = target }
         }
+    }
+
+    /// Resume from pause directly to a specific side
+    private func resumeToSide(_ side: BreastSide) {
+        let now = Date()
+
+        // Account for pause duration
+        if let pauseStart = pauseStartTime {
+            totalPauseDuration += now.timeIntervalSince(pauseStart)
+        }
+        pauseStartTime = nil
+
+        // Start a new lap on the chosen side
+        laps.append(BreastfeedingLap(side: side, startTime: now))
+
+        withAnimation(.spring(response: 0.3)) {
+            activeSide = side
+            isPaused = false
+        }
+        // Timer is already running (kept alive during pause)
+
+        // Persist
+        if let ongoing = ongoingSession {
+            ongoing.breastfeedingLaps = laps
+            ongoing.breastSide = .both
+            ongoing.updatedAt = now
+            try? modelContext.save()
+        }
+
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 
     private func switchToSide(_ newSide: BreastSide) {
@@ -467,21 +636,68 @@ struct BreastfeedingView: View {
         }
     }
 
+    // MARK: - Pause/Resume
+
+    private func togglePause() {
+        let now = Date()
+        if isPaused {
+            // Resume — calculate pause duration and add it
+            if let pauseStart = pauseStartTime {
+                totalPauseDuration += now.timeIntervalSince(pauseStart)
+            }
+            pauseStartTime = nil
+
+            // Start a new lap on the same side
+            if let side = activeSide {
+                laps.append(BreastfeedingLap(side: side, startTime: now))
+            }
+
+            withAnimation(.spring(response: 0.3)) { isPaused = false }
+            // Timer is already running (kept alive during pause)
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        } else {
+            // Pause — close current lap
+            if !laps.isEmpty && laps[laps.count - 1].endTime == nil {
+                laps[laps.count - 1].endTime = now
+            }
+            pauseStartTime = now
+            // Keep timer running so pause duration ticks visibly
+
+            // Persist
+            if let ongoing = ongoingSession {
+                ongoing.breastfeedingLaps = laps
+                try? modelContext.save()
+            }
+
+            withAnimation(.spring(response: 0.3)) { isPaused = true }
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+    }
+
     // MARK: - Session Management
 
     private func setupSession() {
         if let ongoing = ongoingSession {
-            elapsedTime = Date().timeIntervalSince(ongoing.startTime)
             laps = ongoing.breastfeedingLaps
             selectedSlot = ongoing.sessionSlot ?? SessionSlot.current()
 
             if !laps.isEmpty {
                 activeSide = laps.last?.side
+
+                // Calculate total pause duration from gaps between consecutive laps
+                totalPauseDuration = 0
+                for i in 1..<laps.count {
+                    if let prevEnd = laps[i - 1].endTime {
+                        let gap = laps[i].startTime.timeIntervalSince(prevEnd)
+                        if gap > 0 { totalPauseDuration += gap }
+                    }
+                }
             } else {
                 activeSide = ongoing.breastSide ?? .left
                 laps = [BreastfeedingLap(side: activeSide ?? .left, startTime: ongoing.startTime)]
             }
 
+            elapsedTime = Date().timeIntervalSince(ongoing.startTime)
             sliderValue = activeSide == .left ? 0.0 : 1.0
             isRunning = true
             startTimer()
@@ -555,10 +771,28 @@ struct BreastfeedingView: View {
         dismiss()
     }
 
+    /// Active feeding time = total elapsed minus all pause durations
+    private var feedingTime: TimeInterval {
+        let currentPause: TimeInterval
+        if isPaused, let pauseStart = pauseStartTime {
+            currentPause = totalPauseDuration + Date().timeIntervalSince(pauseStart)
+        } else {
+            currentPause = totalPauseDuration
+        }
+        return max(0, elapsedTime - currentPause)
+    }
+
+    /// Current pause duration (ticking while paused)
+    private var currentPauseDuration: TimeInterval {
+        guard isPaused, let pauseStart = pauseStartTime else { return 0 }
+        return Date().timeIntervalSince(pauseStart)
+    }
+
     private func startTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             if let ongoing = ongoingSession {
+                // Total session time including breaks
                 elapsedTime = Date().timeIntervalSince(ongoing.startTime)
             } else {
                 elapsedTime += 1

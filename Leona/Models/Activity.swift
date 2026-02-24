@@ -103,12 +103,12 @@ final class Activity {
             }
             
         case .formula:
-            let vol = Int(volumeML ?? 0)
-            return String(localized: "formula_summary \(vol)")
-            
+            let volFormatted = UnitConversion.formatVolume(volumeML ?? 0)
+            return String(localized: "formula_summary \(volFormatted)")
+
         case .momsMilk:
-            let vol = Int(volumeML ?? 0)
-            return String(localized: "moms_milk_summary \(vol)")
+            let volFormatted = UnitConversion.formatVolume(volumeML ?? 0)
+            return String(localized: "moms_milk_summary \(volFormatted)")
             
         case .solidFood:
             let name = foodName ?? ""
@@ -155,8 +155,8 @@ enum ActivityType: String, Codable, CaseIterable, Identifiable {
     
     var icon: String {
         switch self {
-        case .breastfeeding: return "heart.fill"
-        case .formula: return "cup.and.saucer.fill"
+        case .breastfeeding: return "drop.circle.fill"
+        case .formula: return "waterbottle.fill"
         case .momsMilk: return "drop.fill"
         case .solidFood: return "fork.knife"
         case .sleep: return "moon.fill"
@@ -171,7 +171,7 @@ enum ActivityType: String, Codable, CaseIterable, Identifiable {
         case .formula: return .orange
         case .momsMilk: return .purple
         case .solidFood: return .green
-        case .sleep: return .indigo
+        case .sleep: return .leonaSleep
         case .diaper: return .cyan
         case .note: return .gray
         }
