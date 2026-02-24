@@ -164,7 +164,7 @@ struct SleepTrackingView: View {
     
     private var actionButtons: some View {
         VStack(spacing: 12) {
-            if isRunning || ongoingSleep != nil {
+            if isRunning {
                 Button {
                     wakeUp()
                 } label: {
@@ -272,7 +272,8 @@ struct SleepTrackingView: View {
     private func startSleep() {
         let activity = Activity(type: .sleep, isOngoing: true, baby: baby)
         modelContext.insert(activity)
-        
+        try? modelContext.save()
+
         elapsedTime = 0
         isRunning = true
         startTimer()
@@ -295,14 +296,13 @@ struct SleepTrackingView: View {
             ongoing.endTime = Date()
             ongoing.isOngoing = false
             ongoing.updatedAt = Date()
+            try? modelContext.save()
         }
-        
+
         NotificationManager.shared.cancelNotification(identifier: "sleep-check")
         UINotificationFeedbackGenerator().notificationOccurred(.success)
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            dismiss()
-        }
+
+        dismiss()
     }
     
     private func saveManualSleep() {
