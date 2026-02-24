@@ -56,6 +56,18 @@ struct LeonaApp: App {
         do {
             let container = try ModelContainer.createLeonaContainer()
             logger.info("ModelContainer created successfully!")
+
+            #if DEBUG
+            // Populate demo data synchronously before UI renders (screenshot mode only)
+            if DemoDataGenerator.isDemoMode {
+                MainActor.assumeIsolated {
+                    let context = ModelContext(container)
+                    DemoDataGenerator.populate(context: context)
+                    logger.info("Demo data populated")
+                }
+            }
+            #endif
+
             return container
         } catch {
             logger.critical("ModelContainer FAILED: \(error.localizedDescription)")

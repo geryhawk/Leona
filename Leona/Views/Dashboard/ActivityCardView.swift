@@ -43,6 +43,7 @@ struct ActivityCardView: View {
             Button(String(localized: "delete"), role: .destructive) {
                 withAnimation {
                     modelContext.delete(activity)
+                    try? modelContext.save()
                 }
             }
         }
@@ -143,7 +144,8 @@ struct EditActivityView: View {
     @State private var editedFoodName: String
     @State private var editedFoodQuantity: Double
     @State private var editedFoodUnit: FoodUnit
-    
+    @State private var hasEndTime: Bool
+
     init(activity: Activity) {
         self.activity = activity
         self._editedStartTime = State(initialValue: activity.startTime)
@@ -155,16 +157,23 @@ struct EditActivityView: View {
         self._editedFoodName = State(initialValue: activity.foodName ?? "")
         self._editedFoodQuantity = State(initialValue: activity.foodQuantity ?? 0)
         self._editedFoodUnit = State(initialValue: activity.foodUnit ?? .grams)
+        self._hasEndTime = State(initialValue: activity.endTime != nil)
     }
     
     var body: some View {
         NavigationStack {
             Form {
                 Section(String(localized: "edit_time")) {
-                    DatePicker(String(localized: "start_time"), selection: $editedStartTime)
-                    
-                    if activity.endTime != nil {
-                        DatePicker(String(localized: "end_time"), selection: $editedEndTime)
+                    DatePicker(String(localized: "start_time"), selection: $editedStartTime, in: ...Date())
+
+                    if activity.isOngoing {
+                        Toggle(String(localized: "mark_as_finished"), isOn: $hasEndTime)
+
+                        if hasEndTime {
+                            DatePicker(String(localized: "end_time"), selection: $editedEndTime, in: ...Date())
+                        }
+                    } else {
+                        DatePicker(String(localized: "end_time"), selection: $editedEndTime, in: ...Date())
                     }
                 }
                 
@@ -248,10 +257,16 @@ struct EditActivityView: View {
     
     private func saveChanges() {
         activity.startTime = editedStartTime
-        if activity.endTime != nil {
-            // Ensure end time is after start time
+
+        if hasEndTime {
+            let endTime = editedEndTime > editedStartTime ? editedEndTime : editedStartTime
+            activity.endTime = endTime
+            activity.isOngoing = false
+        } else if !activity.isOngoing {
+            // Was already finished — keep end time updated
             activity.endTime = editedEndTime > editedStartTime ? editedEndTime : editedStartTime
         }
+
         activity.volumeML = editedVolume > 0 ? editedVolume : nil
         activity.breastSide = editedBreastSide
         activity.diaperType = editedDiaperType
@@ -260,7 +275,7 @@ struct EditActivityView: View {
         activity.foodQuantity = editedFoodQuantity > 0 ? editedFoodQuantity : nil
         activity.foodUnit = editedFoodUnit
         activity.updatedAt = Date()
-        
+
         dismiss()
     }
 }

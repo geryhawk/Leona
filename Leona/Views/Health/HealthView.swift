@@ -107,63 +107,10 @@ struct HealthView: View {
                 .foregroundStyle(.red)
             
             ForEach(activeRecords) { record in
-                Button {
+                HealthRecordRow(record: record, isActive: true) {
                     activeSheet = .detail(record)
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: record.illnessType.icon)
-                            .font(.title2)
-                            .foregroundStyle(record.illnessType.color)
-                            .frame(width: 44)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(record.illnessType.displayName)
-                                .font(.subheadline.weight(.semibold))
-                            
-                            HStack(spacing: 8) {
-                                Text(String(localized: "health_since \(record.startDate.dateString)"))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                
-                                if let days = record.durationDays {
-                                    Text(String(localized: "health_days \(days)"))
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(.red)
-                                }
-                            }
-                            
-                            if let temp = record.latestTemperature {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "thermometer.medium")
-                                        .font(.caption2)
-                                    Text(String(format: "%.1f°C", temp))
-                                        .font(.caption.weight(.semibold))
-                                }
-                                .foregroundStyle(temperatureColor(temp))
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                    .padding()
-                    .background(.red.opacity(0.05))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(.red.opacity(0.2), lineWidth: 1)
-                    )
-                }
-                .buttonStyle(.plain)
-                .contextMenu {
-                    Button(role: .destructive) {
-                        recordToDelete = record
-                    } label: {
-                        Label(String(localized: "delete"), systemImage: "trash")
-                    }
+                } onDelete: {
+                    recordToDelete = record
                 }
             }
         }
@@ -236,51 +183,10 @@ struct HealthView: View {
                 .foregroundStyle(.secondary)
             
             ForEach(pastRecords) { record in
-                Button {
+                HealthRecordRow(record: record, isActive: false) {
                     activeSheet = .detail(record)
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: record.illnessType.icon)
-                            .foregroundStyle(record.illnessType.color)
-                            .frame(width: 32)
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(record.illnessType.displayName)
-                                .font(.subheadline.weight(.medium))
-                            
-                            HStack(spacing: 4) {
-                                Text(record.startDate.dateString)
-                                if let end = record.endDate {
-                                    Text("→")
-                                    Text(end.dateString)
-                                }
-                            }
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        }
-                        
-                        Spacer()
-                        
-                        if let days = record.durationDays {
-                            Text(String(localized: "health_days \(days)"))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                    .padding()
-                    .leonaCard()
-                }
-                .buttonStyle(.plain)
-                .contextMenu {
-                    Button(role: .destructive) {
-                        recordToDelete = record
-                    } label: {
-                        Label(String(localized: "delete"), systemImage: "trash")
-                    }
+                } onDelete: {
+                    recordToDelete = record
                 }
             }
         }
@@ -300,5 +206,120 @@ struct HealthView: View {
         if temp >= 38.0 { return String(localized: "temp_fever") }
         if temp >= 37.5 { return String(localized: "temp_elevated") }
         return String(localized: "temp_normal")
+    }
+}
+
+// MARK: - Health Record Row with swipe-to-delete
+
+private struct HealthRecordRow: View {
+    let record: HealthRecord
+    let isActive: Bool
+    let onTap: () -> Void
+    let onDelete: () -> Void
+
+    @State private var offset: CGFloat = 0
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            // Delete background
+            HStack {
+                Spacer()
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Image(systemName: "trash.fill")
+                        .foregroundStyle(.white)
+                        .frame(width: 60)
+                }
+                .frame(width: 80, height: 70)
+                .background(.red)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+
+            // Card content
+            cardContent
+                .offset(x: offset)
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            if value.translation.width < 0 {
+                                offset = max(value.translation.width, -80)
+                            }
+                        }
+                        .onEnded { value in
+                            withAnimation(.spring(response: 0.3)) {
+                                offset = value.translation.width < -40 ? -80 : 0
+                            }
+                        }
+                )
+        }
+    }
+
+    private var cardContent: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                Image(systemName: record.illnessType.icon)
+                    .font(isActive ? .title2 : .body)
+                    .foregroundStyle(record.illnessType.color)
+                    .frame(width: isActive ? 44 : 32)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(record.illnessType.displayName)
+                        .font(.subheadline.weight(isActive ? .semibold : .medium))
+
+                    HStack(spacing: 4) {
+                        if isActive {
+                            Text(String(localized: "health_since \(record.startDate.dateString)"))
+                        } else {
+                            Text(record.startDate.dateString)
+                            if let end = record.endDate {
+                                Text("→")
+                                Text(end.dateString)
+                            }
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                    if isActive, let days = record.durationDays {
+                        Text(String(localized: "health_days \(days)"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.red)
+                    }
+
+                    if isActive, let temp = record.latestTemperature {
+                        HStack(spacing: 4) {
+                            Image(systemName: "thermometer.medium")
+                                .font(.caption2)
+                            Text(String(format: "%.1f°C", temp))
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundStyle(temp >= 39.0 ? .red : temp >= 38.0 ? .orange : temp >= 37.5 ? .yellow : .green)
+                    }
+                }
+
+                Spacer()
+
+                if !isActive, let days = record.durationDays {
+                    Text(String(localized: "health_days \(days)"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding()
+            .background(isActive ? .red.opacity(0.05) : Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                isActive
+                    ? RoundedRectangle(cornerRadius: 16).stroke(.red.opacity(0.2), lineWidth: 1)
+                    : nil
+            )
+            .shadow(color: .black.opacity(isActive ? 0 : 0.04), radius: 4, x: 0, y: 1)
+        }
+        .buttonStyle(.plain)
     }
 }

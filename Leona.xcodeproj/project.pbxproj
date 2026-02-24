@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		047A78D94B9A016061343164 /* Leona/Views/Health/HealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D01BFC91DB8427D4C9DE5990 /* Leona/Views/Health/HealthView.swift */; };
 		05489F7DCF2F89C2DFEA1B42 /* Leona/Models/Activity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E9C66241234240D6A88CC6 /* Leona/Models/Activity.swift */; };
+		D17BB27BC50BFC377F12D2A7 /* Leona/Models/DemoDataGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8BB9F87C030C55C326ED382 /* Leona/Models/DemoDataGenerator.swift */; };
+		F233835FBD22C57315A0C0D9 /* Leona/Models/ScreenshotAutomation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F201347BCD9165776C73A944 /* Leona/Models/ScreenshotAutomation.swift */; };
 		0F55FFD9013739B7E986B64F /* Leona/ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCF139EA651314B315EB43C3 /* Leona/ContentView.swift */; };
 		0FA87F89C24F4BE407ACA15F /* Leona/Views/Dashboard/ActivityCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7272E3F3ADD04DC57B498DEF /* Leona/Views/Dashboard/ActivityCardView.swift */; };
 		13CD7CB101F6101834597E98 /* Leona/Views/Feeding/MealForecastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66D4995BC282C6475539E135 /* Leona/Views/Feeding/MealForecastView.swift */; };
@@ -81,6 +83,8 @@
 		73071F4982360124EA9FC04D /* Leona/Views/Health/HealthEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Leona/Views/Health/HealthEntryView.swift; sourceTree = SOURCE_ROOT; };
 		75D679367790E62B93B4A8D5 /* Leona/Views/Dashboard/DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Leona/Views/Dashboard/DashboardView.swift; sourceTree = SOURCE_ROOT; };
 		77E9C66241234240D6A88CC6 /* Leona/Models/Activity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Leona/Models/Activity.swift; sourceTree = SOURCE_ROOT; };
+		A8BB9F87C030C55C326ED382 /* Leona/Models/DemoDataGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Leona/Models/DemoDataGenerator.swift; sourceTree = SOURCE_ROOT; };
+		F201347BCD9165776C73A944 /* Leona/Models/ScreenshotAutomation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Leona/Models/ScreenshotAutomation.swift; sourceTree = SOURCE_ROOT; };
 		78C43B3497B8F171349BE295 /* Leona/Views/Onboarding/OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Leona/Views/Onboarding/OnboardingView.swift; sourceTree = SOURCE_ROOT; };
 		7FA036C682CDF8CD614A9630 /* Leona/Resources/WHO/head_circumference.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = Leona/Resources/WHO/head_circumference.json; sourceTree = SOURCE_ROOT; };
 		8117C0CAAD2562224932A2B9 /* Leona/Extensions/Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Leona/Extensions/Date+Extensions.swift"; sourceTree = SOURCE_ROOT; };
@@ -149,6 +153,8 @@
 				8117C0CAAD2562224932A2B9 /* Leona/Extensions/Date+Extensions.swift */,
 				DA99EAC7787FD11EA4CF4327 /* Leona/Extensions/View+Extensions.swift */,
 				77E9C66241234240D6A88CC6 /* Leona/Models/Activity.swift */,
+				A8BB9F87C030C55C326ED382 /* Leona/Models/DemoDataGenerator.swift */,
+				F201347BCD9165776C73A944 /* Leona/Models/ScreenshotAutomation.swift */,
 				D6CA1E94B20DD5AF1F0204EE /* Leona/Models/AppSettings.swift */,
 				D35FBF35CF71E3259A358E14 /* Leona/Models/Baby.swift */,
 				425015BAC782BB3B1A9AAE3C /* Leona/Models/GrowthRecord.swift */,
@@ -291,6 +297,8 @@
 				225F29EE98C336737A103FB5 /* Leona/Extensions/Date+Extensions.swift in Sources */,
 				15F637D4DD317F24968DF575 /* Leona/Extensions/View+Extensions.swift in Sources */,
 				05489F7DCF2F89C2DFEA1B42 /* Leona/Models/Activity.swift in Sources */,
+				D17BB27BC50BFC377F12D2A7 /* Leona/Models/DemoDataGenerator.swift in Sources */,
+				F233835FBD22C57315A0C0D9 /* Leona/Models/ScreenshotAutomation.swift in Sources */,
 				4B7851656836288C3EC12769 /* Leona/Models/AppSettings.swift in Sources */,
 				D0B5B78253D327F5CD1F40D2 /* Leona/Models/Baby.swift in Sources */,
 				8BE66C53DF48A67AEA1D21A8 /* Leona/Models/GrowthRecord.swift in Sources */,
@@ -467,7 +475,7 @@
 				CODE_SIGN_ENTITLEMENTS = Leona/Leona.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 45;
+				CURRENT_PROJECT_VERSION = 46;
 				DEVELOPMENT_TEAM = HLUMLG6SWA;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Leona/Info.plist;
@@ -500,7 +508,7 @@
 				CODE_SIGN_ENTITLEMENTS = Leona/Leona.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 45;
+				CURRENT_PROJECT_VERSION = 46;
 				DEVELOPMENT_TEAM = HLUMLG6SWA;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Leona/Info.plist;

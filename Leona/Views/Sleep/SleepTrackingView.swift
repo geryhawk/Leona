@@ -106,16 +106,17 @@ struct SleepTrackingView: View {
     private var celestialBody: some View {
         ZStack {
             if isRunning && !isDaytime {
-                // Stars
+                // Stars (fixed positions to avoid re-render flicker)
                 ForEach(0..<20, id: \.self) { i in
+                    let seed = Double(i)
                     Circle()
                         .fill(.white)
-                        .frame(width: CGFloat.random(in: 1...3))
+                        .frame(width: CGFloat(1.0 + (seed * 7.3).truncatingRemainder(dividingBy: 2.0)))
                         .offset(
-                            x: CGFloat.random(in: -150...150),
-                            y: CGFloat.random(in: -80...80)
+                            x: CGFloat(-150 + (seed * 31.7).truncatingRemainder(dividingBy: 300)),
+                            y: CGFloat(-80 + (seed * 17.3).truncatingRemainder(dividingBy: 160))
                         )
-                        .opacity(Double.random(in: 0.3...0.8))
+                        .opacity(0.3 + (seed * 13.7).truncatingRemainder(dividingBy: 0.5))
                 }
             }
             
@@ -203,8 +204,8 @@ struct SleepTrackingView: View {
             
             if showManualEntry {
                 VStack(spacing: 12) {
-                    DatePicker(String(localized: "fell_asleep"), selection: $manualStartTime)
-                    DatePicker(String(localized: "woke_up"), selection: $manualEndTime)
+                    DatePicker(String(localized: "fell_asleep"), selection: $manualStartTime, in: ...Date())
+                    DatePicker(String(localized: "woke_up"), selection: $manualEndTime, in: ...Date())
                     
                     Button {
                         saveManualSleep()

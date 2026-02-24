@@ -11,6 +11,7 @@ struct GrowthView: View {
     @State private var showAddRecord = false
     @State private var selectedChart: GrowthChartType = .weight
     @State private var editingRecord: GrowthRecord?
+    @State private var recordToDelete: GrowthRecord?
     
     private var babyRecords: [GrowthRecord] {
         allRecords.filter { $0.baby?.id == baby.id }
@@ -89,6 +90,23 @@ struct GrowthView: View {
             }
             .sheet(item: $editingRecord) { record in
                 GrowthEntryView(baby: baby, editingRecord: record)
+            }
+            .alert(String(localized: "delete_record"), isPresented: Binding<Bool>(
+                get: { recordToDelete != nil },
+                set: { if !$0 { recordToDelete = nil } }
+            )) {
+                Button(String(localized: "delete"), role: .destructive) {
+                    if let record = recordToDelete {
+                        modelContext.delete(record)
+                        try? modelContext.save()
+                    }
+                    recordToDelete = nil
+                }
+                Button(String(localized: "cancel"), role: .cancel) {
+                    recordToDelete = nil
+                }
+            } message: {
+                Text(String(localized: "delete_record_message"))
             }
         }
     }
@@ -317,55 +335,10 @@ struct GrowthView: View {
                 .foregroundStyle(.secondary)
             
             ForEach(babyRecords) { record in
-                Button {
+                GrowthRecordRow(record: record) {
                     editingRecord = record
-                } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(record.date.dateString)
-                                .font(.subheadline.weight(.semibold))
-                            
-                            if let age = record.ageInMonthsAtMeasurement {
-                                Text(String(localized: "growth_age_months \(String(format: "%.1f", age))"))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        VStack(alignment: .trailing, spacing: 2) {
-                            if let w = record.weightKg {
-                                Text("\(String(format: "%.2f", w)) kg")
-                                    .font(.caption.monospacedDigit())
-                                    .foregroundStyle(.blue)
-                            }
-                            if let h = record.heightCm {
-                                Text("\(String(format: "%.1f", h)) cm")
-                                    .font(.caption.monospacedDigit())
-                                    .foregroundStyle(.green)
-                            }
-                            if let hc = record.headCircumferenceCm {
-                                Text("\(String(format: "%.1f", hc)) cm")
-                                    .font(.caption.monospacedDigit())
-                                    .foregroundStyle(.purple)
-                            }
-                        }
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                    .padding()
-                    .leonaCard()
-                }
-                .buttonStyle(.plain)
-                .swipeActions(edge: .trailing) {
-                    Button(role: .destructive) {
-                        modelContext.delete(record)
-                    } label: {
-                        Label(String(localized: "delete"), systemImage: "trash")
-                    }
+                } onDelete: {
+                    recordToDelete = record
                 }
             }
         }
@@ -410,5 +383,89 @@ struct GrowthView: View {
         if percentile < 3 || percentile > 97 { return .red }
         if percentile < 15 || percentile > 85 { return .orange }
         return .green
+    }
+}
+
+// MARK: - Growth Record Row with swipe-to-delete
+
+private struct GrowthRecordRow: View {
+    let record: GrowthRecord
+    let onTap: () -> Void
+    let onDelete: () -> Void
+
+    @State private var offset: CGFloat = 0
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            HStack {
+                Spacer()
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Image(systemName: "trash.fill")
+                        .foregroundStyle(.white)
+                        .frame(width: 60)
+                }
+                .frame(width: 80, height: 70)
+                .background(.red)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+
+            Button(action: onTap) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(record.date.dateString)
+                            .font(.subheadline.weight(.semibold))
+
+                        if let age = record.ageInMonthsAtMeasurement {
+                            Text(String(localized: "growth_age_months \(String(format: "%.1f", age))"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 2) {
+                        if let w = record.weightKg {
+                            Text("\(String(format: "%.2f", w)) kg")
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.blue)
+                        }
+                        if let h = record.heightCm {
+                            Text("\(String(format: "%.1f", h)) cm")
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.green)
+                        }
+                        if let hc = record.headCircumferenceCm {
+                            Text("\(String(format: "%.1f", hc)) cm")
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.purple)
+                        }
+                    }
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding()
+                .leonaCard()
+            }
+            .buttonStyle(.plain)
+            .offset(x: offset)
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        if value.translation.width < 0 {
+                            offset = max(value.translation.width, -80)
+                        }
+                    }
+                    .onEnded { value in
+                        withAnimation(.spring(response: 0.3)) {
+                            offset = value.translation.width < -40 ? -80 : 0
+                        }
+                    }
+            )
+        }
     }
 }

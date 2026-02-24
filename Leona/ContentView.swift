@@ -11,7 +11,11 @@ struct ContentView: View {
     
     @State private var selectedTab: Tab = .dashboard
     @State private var activeBabyID: String?
+    #if DEBUG
+    @State private var showSplash = !DemoDataGenerator.isDemoMode
+    #else
     @State private var showSplash = true
+    #endif
     @State private var isNightMode = false
     
     /// Resolved active baby from the current query
@@ -77,6 +81,9 @@ struct ContentView: View {
             }
             .onAppear {
                 setupApp()
+                #if DEBUG
+                applyDemoTab()
+                #endif
             }
             .onChange(of: babies.count) { _, newCount in
                 // Auto-complete onboarding if babies arrived via iCloud sync
@@ -101,11 +108,17 @@ struct ContentView: View {
         }
         .preferredColorScheme(isNightMode ? .dark : settings.colorScheme.colorScheme)
         .onChange(of: hasOngoingSleep) { _, sleeping in
+            #if DEBUG
+            guard !DemoDataGenerator.isDemoMode else { return }
+            #endif
             withAnimation(.easeInOut(duration: 0.8)) {
                 isNightMode = sleeping
             }
         }
         .onAppear {
+            #if DEBUG
+            if DemoDataGenerator.isDemoMode { return }
+            #endif
             isNightMode = hasOngoingSleep
         }
     }
@@ -150,8 +163,25 @@ struct ContentView: View {
         }
     }
     
+    // MARK: - Demo Tab Selection
+
+    #if DEBUG
+    private func applyDemoTab() {
+        guard DemoDataGenerator.isDemoMode,
+              let tabName = DemoDataGenerator.requestedTab else { return }
+        switch tabName.lowercased() {
+        case "home", "dashboard": selectedTab = .dashboard
+        case "stats": selectedTab = .stats
+        case "growth": selectedTab = .growth
+        case "health": selectedTab = .health
+        case "settings": selectedTab = .settings
+        default: break
+        }
+    }
+    #endif
+
     // MARK: - Setup
-    
+
     private func setupApp() {
         Task {
             await cloudKit.checkiCloudStatus()
