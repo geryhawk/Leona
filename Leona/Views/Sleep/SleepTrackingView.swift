@@ -297,6 +297,9 @@ struct SleepTrackingView: View {
             ongoing.isOngoing = false
             ongoing.updatedAt = Date()
             try? modelContext.save()
+            
+            // Trigger immediate sync to push changes to CloudKit
+            NotificationCenter.default.post(name: .shouldPushLocalChanges, object: nil)
         }
 
         NotificationManager.shared.cancelNotification(identifier: "sleep-check")

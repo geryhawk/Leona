@@ -30,11 +30,11 @@ actor SyncEngine {
 
             for baby in sharedBabies {
                 do {
+                    // First pull remote changes
                     try await sharing.syncSharedRecords(for: baby, in: context)
 
-                    if baby.ownerName == nil {
-                        try await sharing.pushLocalChanges(for: baby)
-                    }
+                    // Then push local changes (both owner and participants can push)
+                    try await sharing.pushLocalChanges(for: baby)
                 } catch {
                     logger.error("Sync failed for baby \(baby.displayName): \(error.localizedDescription)")
                 }

@@ -313,6 +313,9 @@ struct BreastfeedingView: View {
             ongoing.sessionSlot = selectedSlot
             ongoing.updatedAt = Date()
             
+            // Trigger immediate sync to push changes to CloudKit
+            NotificationCenter.default.post(name: .shouldPushLocalChanges, object: nil)
+            
             // Schedule next feeding reminder
             Task {
                 await NotificationManager.shared.scheduleFeedingReminder(

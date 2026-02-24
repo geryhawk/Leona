@@ -7,6 +7,7 @@ private let logger = Logger(subsystem: "com.leona.app", category: "App")
 
 extension Notification.Name {
     static let didAcceptCloudKitShare = Notification.Name("didAcceptCloudKitShare")
+    static let shouldPushLocalChanges = Notification.Name("shouldPushLocalChanges")
 }
 
 // MARK: - App Delegate for CloudKit Share Acceptance
@@ -120,6 +121,11 @@ struct LeonaApp: App {
                             await acceptShareMetadata(metadata)
                         }
                     }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .shouldPushLocalChanges)) { _ in
+                    // Push local changes immediately when critical updates happen
+                    logger.info("Triggering immediate sync after local change")
+                    triggerSharedSync()
                 }
                 .alert(
                     String(localized: "share_error_title"),

@@ -90,6 +90,15 @@ extension Activity: CKRecordConvertible {
     }
 
     func applyCKRecord(_ record: CKRecord) {
+        // Only apply if remote record is newer than local
+        let remoteModificationDate = record.modificationDate ?? Date.distantPast
+        
+        // Skip update if local record is newer (prevents race conditions during sync)
+        // IMPORTANT: This avoids resetting isOngoing=false back to true when stopping activities
+        if updatedAt > remoteModificationDate {
+            return
+        }
+        
         if let val = record["type"] as? String { type = ActivityType(rawValue: val) ?? .note }
         if let val = record["startTime"] as? Date { startTime = val }
         endTime = record["endTime"] as? Date
