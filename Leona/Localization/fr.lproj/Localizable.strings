@@ -122,6 +122,9 @@
 "slot_evening" = "Soir";
 "slot_night" = "Nuit";
 "bf_in_progress" = "Allaitement en cours...";
+"slide_to_start" = "Glisser pour commencer";
+"slide_to_switch" = "Glisser pour changer de côté";
+"switches" = "Changements";
 "start_session" = "Démarrer la tétée";
 "stop_session" = "Arrêter la tétée";
 "resume_session" = "Reprendre la tétée";

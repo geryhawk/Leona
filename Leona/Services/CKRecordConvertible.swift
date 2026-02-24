@@ -72,6 +72,7 @@ extension Activity: CKRecordConvertible {
         record["volumeML"] = volumeML as CKRecordValue?
         record["breastSide"] = breastSide?.rawValue as CKRecordValue?
         record["sessionSlot"] = sessionSlot?.rawValue as CKRecordValue?
+        record["breastfeedingLapsData"] = breastfeedingLapsData as CKRecordValue?
         record["foodName"] = foodName as CKRecordValue?
         record["foodQuantity"] = foodQuantity as CKRecordValue?
         record["foodUnit"] = foodUnit?.rawValue as CKRecordValue?
@@ -106,6 +107,7 @@ extension Activity: CKRecordConvertible {
         volumeML = record["volumeML"] as? Double
         if let val = record["breastSide"] as? String { breastSide = BreastSide(rawValue: val) }
         if let val = record["sessionSlot"] as? String { sessionSlot = SessionSlot(rawValue: val) }
+        breastfeedingLapsData = record["breastfeedingLapsData"] as? Data
         foodName = record["foodName"] as? String
         foodQuantity = record["foodQuantity"] as? Double
         if let val = record["foodUnit"] as? String { foodUnit = FoodUnit(rawValue: val) }

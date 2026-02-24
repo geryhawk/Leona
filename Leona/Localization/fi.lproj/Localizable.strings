@@ -122,6 +122,9 @@
 "slot_evening" = "Ilta";
 "slot_night" = "Yö";
 "bf_in_progress" = "Imetys käynnissä...";
+"slide_to_start" = "Liu'uta aloittaaksesi";
+"slide_to_switch" = "Liu'uta vaihtaaksesi puolta";
+"switches" = "Vaihdot";
 "start_session" = "Aloita imetys";
 "stop_session" = "Lopeta imetys";
 "resume_session" = "Jatka imetystä";

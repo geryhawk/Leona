@@ -180,9 +180,27 @@ struct EditActivityView: View {
                 switch activity.type {
                 case .breastfeeding:
                     Section(String(localized: "edit_details")) {
-                        Picker(String(localized: "breast_side"), selection: $editedBreastSide) {
-                            ForEach(BreastSide.allCases) { side in
-                                Text(side.displayName).tag(side)
+                        let laps = activity.breastfeedingLaps
+                        if laps.count > 1 {
+                            ForEach(laps) { lap in
+                                HStack {
+                                    Image(systemName: lap.side == .left ? "arrow.left.circle.fill" : "arrow.right.circle.fill")
+                                        .foregroundStyle(lap.side == .left ? .pink : .purple)
+                                    Text(lap.side.displayName)
+                                    Spacer()
+                                    if let dur = lap.duration {
+                                        let m = Int(dur) / 60
+                                        let s = Int(dur) % 60
+                                        Text(m > 0 ? "\(m)m \(String(format: "%02d", s))s" : "\(s)s")
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                        } else {
+                            Picker(String(localized: "breast_side"), selection: $editedBreastSide) {
+                                ForEach(BreastSide.allCases) { side in
+                                    Text(side.displayName).tag(side)
+                                }
                             }
                         }
                     }

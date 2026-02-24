@@ -122,6 +122,9 @@
 "slot_evening" = "Evening";
 "slot_night" = "Night";
 "bf_in_progress" = "Breastfeeding in progress...";
+"slide_to_start" = "Slide to start feeding";
+"slide_to_switch" = "Slide to switch side";
+"switches" = "Switches";
 "start_session" = "Start Session";
 "stop_session" = "Stop Session";
 "resume_session" = "Resume Session";

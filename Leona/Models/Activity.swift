@@ -14,6 +14,17 @@ final class Activity {
     var volumeML: Double?
     var breastSide: BreastSide?
     var sessionSlot: SessionSlot?
+    var breastfeedingLapsData: Data?
+
+    var breastfeedingLaps: [BreastfeedingLap] {
+        get {
+            guard let data = breastfeedingLapsData else { return [] }
+            return (try? JSONDecoder().decode([BreastfeedingLap].self, from: data)) ?? []
+        }
+        set {
+            breastfeedingLapsData = try? JSONEncoder().encode(newValue)
+        }
+    }
     
     // Solid food
     var foodName: String?
@@ -77,9 +88,19 @@ final class Activity {
     var summaryText: String {
         switch type {
         case .breastfeeding:
-            let side = breastSide?.displayName ?? ""
-            let dur = durationFormatted
-            return "\(side) · \(dur)"
+            let laps = breastfeedingLaps
+            if laps.count > 1 {
+                // Show total duration with sides used
+                let sidesUsed = Set(laps.map { $0.side })
+                let sidesLabel = sidesUsed.count > 1
+                    ? "\(BreastSide.left.shortName) + \(BreastSide.right.shortName)"
+                    : (sidesUsed.first?.shortName ?? "")
+                return "\(sidesLabel) · \(durationFormatted)"
+            } else {
+                let side = breastSide?.displayName ?? ""
+                let dur = durationFormatted
+                return "\(side) · \(dur)"
+            }
             
         case .formula:
             let vol = Int(volumeML ?? 0)
@@ -305,6 +326,20 @@ enum DiaperType: String, Codable, CaseIterable, Identifiable {
         case .poop: return .brown
         case .both: return .orange
         }
+    }
+}
+
+// MARK: - Breastfeeding Lap
+
+struct BreastfeedingLap: Codable, Identifiable {
+    var id: UUID = UUID()
+    var side: BreastSide
+    var startTime: Date
+    var endTime: Date?
+
+    var duration: TimeInterval? {
+        guard let end = endTime else { return nil }
+        return end.timeIntervalSince(startTime)
     }
 }
 
