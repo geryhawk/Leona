@@ -199,6 +199,7 @@ struct MomsMilkView: View {
             activity.noteText = noteText
         }
         modelContext.insert(activity)
+        try? modelContext.save()
 
         Task {
             await NotificationManager.shared.scheduleFeedingReminder(

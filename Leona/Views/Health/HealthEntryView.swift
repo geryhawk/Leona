@@ -243,11 +243,15 @@ struct HealthEntryView: View {
             notes: notes,
             baby: baby
         )
+        // Insert into context FIRST so SwiftData tracks property changes
+        modelContext.insert(record)
+
+        // Now set embedded JSON data — context tracks these mutations
         record.symptoms = symptoms
         record.medications = medications
         record.temperatures = temperatures
 
-        modelContext.insert(record)
+        try? modelContext.save()
 
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         dismiss()

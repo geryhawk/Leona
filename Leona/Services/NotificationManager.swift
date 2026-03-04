@@ -2,6 +2,7 @@ import Foundation
 import UserNotifications
 import SwiftUI
 
+@MainActor
 @Observable
 final class NotificationManager {
     static let shared = NotificationManager()
@@ -17,9 +18,7 @@ final class NotificationManager {
     func requestAuthorization() async -> Bool {
         do {
             let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
-            await MainActor.run {
-                self.isAuthorized = granted
-            }
+            self.isAuthorized = granted
             return granted
         } catch {
             return false
@@ -28,9 +27,7 @@ final class NotificationManager {
     
     func checkAuthorization() async {
         let settings = await center.notificationSettings()
-        await MainActor.run {
-            self.isAuthorized = settings.authorizationStatus == .authorized
-        }
+        self.isAuthorized = settings.authorizationStatus == .authorized
     }
     
     // MARK: - Feeding Reminders

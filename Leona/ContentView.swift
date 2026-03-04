@@ -69,13 +69,16 @@ struct ContentView: View {
             if isNightMode {
                 NightSkyView()
                     .ignoresSafeArea()
+                    .allowsHitTesting(false)
                     .transition(.opacity)
             }
             
             Group {
-                if !settings.hasCompletedOnboarding && babies.isEmpty {
+                if babies.isEmpty {
+                    // No babies? Show onboarding (regardless of completion flag)
                     OnboardingView()
                 } else {
+                    // Has babies? Show main app
                     mainTabView
                 }
             }
@@ -86,10 +89,7 @@ struct ContentView: View {
                 #endif
             }
             .onChange(of: babies.count) { _, newCount in
-                // Auto-complete onboarding if babies arrived via iCloud sync
-                if newCount > 0 && !settings.hasCompletedOnboarding {
-                    settings.hasCompletedOnboarding = true
-                }
+                // Sync active baby when count changes
                 syncActiveBabyID()
             }
             .onChange(of: settings.activeBabyID) { _, newValue in

@@ -206,54 +206,7 @@ struct ShareStatusView: View {
             }
 
             // Show share URL if generated
-            if let url = shareURL {
-                Section {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label(String(localized: "share_link_ready"), systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                            .font(.subheadline.weight(.semibold))
-
-                        Text(url.absoluteString)
-                            .font(.caption.monospaced())
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                            .textSelection(.enabled)
-
-                        HStack(spacing: 12) {
-                            Button {
-                                UIPasteboard.general.url = url
-                                withAnimation {
-                                    linkCopied = true
-                                }
-                                UINotificationFeedbackGenerator().notificationOccurred(.success)
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                    withAnimation { linkCopied = false }
-                                }
-                            } label: {
-                                Label(
-                                    linkCopied ? String(localized: "share_link_copied") : String(localized: "share_copy_link"),
-                                    systemImage: linkCopied ? "checkmark" : "doc.on.doc"
-                                )
-                                .font(.caption.weight(.medium))
-                            }
-                            .buttonStyle(.bordered)
-                            .tint(linkCopied ? .green : .leonaPrimary)
-
-                            Button {
-                                showShareSheet = true
-                            } label: {
-                                Label(String(localized: "share_send_link"), systemImage: "square.and.arrow.up")
-                                    .font(.caption.weight(.medium))
-                            }
-                            .buttonStyle(.bordered)
-                            .tint(.leonaPrimary)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                } footer: {
-                    Text(String(localized: "share_link_explanation"))
-                }
-            }
+            shareURLSection()
         }
     }
 
@@ -406,50 +359,7 @@ struct ShareStatusView: View {
                 }
 
                 // Show share URL if generated
-                if let url = shareURL {
-                    Section {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Label(String(localized: "share_link_ready"), systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                                .font(.subheadline.weight(.semibold))
-
-                            Text(url.absoluteString)
-                                .font(.caption.monospaced())
-                                .foregroundStyle(.secondary)
-                                .lineLimit(2)
-                                .textSelection(.enabled)
-
-                            HStack(spacing: 12) {
-                                Button {
-                                    UIPasteboard.general.url = url
-                                    withAnimation { linkCopied = true }
-                                    UINotificationFeedbackGenerator().notificationOccurred(.success)
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                        withAnimation { linkCopied = false }
-                                    }
-                                } label: {
-                                    Label(
-                                        linkCopied ? String(localized: "share_link_copied") : String(localized: "share_copy_link"),
-                                        systemImage: linkCopied ? "checkmark" : "doc.on.doc"
-                                    )
-                                    .font(.caption.weight(.medium))
-                                }
-                                .buttonStyle(.bordered)
-                                .tint(linkCopied ? .green : .leonaPrimary)
-
-                                Button {
-                                    showShareSheet = true
-                                } label: {
-                                    Label(String(localized: "share_send_link"), systemImage: "square.and.arrow.up")
-                                        .font(.caption.weight(.medium))
-                                }
-                                .buttonStyle(.bordered)
-                                .tint(.leonaPrimary)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
+                shareURLSection()
 
                 // Stop sharing
                 Section {
@@ -479,6 +389,7 @@ struct ShareStatusView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(participantName(participant))
                     .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.primary)
                 Text(participantStatus(participant))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -600,16 +511,96 @@ struct ShareStatusView: View {
         let domain = parts[1]
         return domain.contains(".") && domain.count >= 3
     }
+    
+    // MARK: - Reusable Share URL Section
+    
+    @ViewBuilder
+    private func shareURLSection() -> some View {
+        if let url = shareURL {
+            Section {
+                VStack(alignment: .leading, spacing: 10) {
+                    Label(String(localized: "share_link_ready"), systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .font(.subheadline.weight(.semibold))
+
+                    Text(url.absoluteString)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .textSelection(.enabled)
+
+                    HStack(spacing: 12) {
+                        Button {
+                            UIPasteboard.general.url = url
+                            withAnimation { linkCopied = true }
+                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                withAnimation { linkCopied = false }
+                            }
+                        } label: {
+                            Label(
+                                linkCopied ? String(localized: "share_link_copied") : String(localized: "share_copy_link"),
+                                systemImage: linkCopied ? "checkmark" : "doc.on.doc"
+                            )
+                            .font(.caption.weight(.medium))
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(linkCopied ? .green : .leonaPrimary)
+
+                        Button {
+                            showShareSheet = true
+                        } label: {
+                            Label(String(localized: "share_send_link"), systemImage: "square.and.arrow.up")
+                                .font(.caption.weight(.medium))
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.leonaPrimary)
+                    }
+                }
+                .padding(.vertical, 4)
+            } footer: {
+                if baby.ownerName == nil {
+                    // Only show footer for non-shared section
+                    Text(String(localized: "share_link_explanation"))
+                }
+            }
+        }
+    }
 
     // MARK: - Helpers
 
     private func participantName(_ participant: CKShare.Participant) -> String {
-        if let name = participant.userIdentity.nameComponents?.formatted() {
+        // 1. Try to get the full name from CloudKit
+        if let name = participant.userIdentity.nameComponents?.formatted(), !name.isEmpty {
             return name
         }
-        if let email = participant.userIdentity.lookupInfo?.emailAddress {
+        
+        // 2. Try to get email from the participant's lookup info
+        if let email = participant.userIdentity.lookupInfo?.emailAddress, !email.isEmpty {
             return email
         }
+        
+        // 3. Try to get phone from lookup info
+        if let phone = participant.userIdentity.lookupInfo?.phoneNumber, !phone.isEmpty {
+            return phone
+        }
+        
+        // 4. Fallback to our stored email mapping (by user record ID)
+        if let recordID = participant.userIdentity.userRecordID,
+           let email = sharing.invitedEmails[recordID.recordName], !email.isEmpty {
+            return email
+        }
+        
+        // 5. Last resort: try to find ANY email in our mapping that might match
+        // (useful for pending participants where user record ID might not be set yet)
+        for (_, email) in sharing.invitedEmails {
+            if participant.acceptanceStatus == .pending {
+                // For pending participants, return the most recently added email
+                // This is a heuristic but better than "Partner"
+                return email
+            }
+        }
+        
         return String(localized: "partner")
     }
 

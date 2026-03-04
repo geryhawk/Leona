@@ -256,101 +256,32 @@ struct GrowthView: View {
             }
 
             Chart {
-                // === WHO bands — 6 discrete non-overlapping fills ===
-
-                // Band 1: Bottom edge → P3 (very light)
-                ForEach(percentiles) { point in
-                    AreaMark(
-                        x: .value("Age", point.ageInMonths),
-                        yStart: .value("Bottom", yDomain.lowerBound),
-                        yEnd: .value("P3", point.p3)
-                    )
-                    .foregroundStyle(chartColor.opacity(0.03))
-                    .interpolationMethod(.catmullRom)
-                }
-
-                // Band 2: P3 → P15 (light)
+                // === WHO shaded band P3–P97 (single color, subtle fill) ===
                 ForEach(percentiles) { point in
                     AreaMark(
                         x: .value("Age", point.ageInMonths),
                         yStart: .value("P3", point.p3),
-                        yEnd: .value("P15", point.p15)
-                    )
-                    .foregroundStyle(chartColor.opacity(0.06))
-                    .interpolationMethod(.catmullRom)
-                }
-
-                // Band 3: P15 → P50 (medium)
-                ForEach(percentiles) { point in
-                    AreaMark(
-                        x: .value("Age", point.ageInMonths),
-                        yStart: .value("P15", point.p15),
-                        yEnd: .value("P50", point.p50)
-                    )
-                    .foregroundStyle(chartColor.opacity(0.10))
-                    .interpolationMethod(.catmullRom)
-                }
-
-                // Band 4: P50 → P85 (medium)
-                ForEach(percentiles) { point in
-                    AreaMark(
-                        x: .value("Age", point.ageInMonths),
-                        yStart: .value("P50", point.p50),
-                        yEnd: .value("P85", point.p85)
-                    )
-                    .foregroundStyle(chartColor.opacity(0.10))
-                    .interpolationMethod(.catmullRom)
-                }
-
-                // Band 5: P85 → P97 (light)
-                ForEach(percentiles) { point in
-                    AreaMark(
-                        x: .value("Age", point.ageInMonths),
-                        yStart: .value("P85", point.p85),
                         yEnd: .value("P97", point.p97)
                     )
-                    .foregroundStyle(chartColor.opacity(0.06))
+                    .foregroundStyle(chartColor.opacity(0.12))
                     .interpolationMethod(.catmullRom)
                 }
 
-                // Band 6: P97 → Top edge (very light)
-                ForEach(percentiles) { point in
-                    AreaMark(
-                        x: .value("Age", point.ageInMonths),
-                        yStart: .value("P97", point.p97),
-                        yEnd: .value("Top", yDomain.upperBound)
-                    )
-                    .foregroundStyle(chartColor.opacity(0.03))
-                    .interpolationMethod(.catmullRom)
-                }
+                // === WHO percentile lines (same color family, varying weight) ===
 
-                // === Percentile lines ===
-
-                // P3 line
+                // P3 line (bottom boundary)
                 ForEach(percentiles) { point in
                     LineMark(
                         x: .value("Age", point.ageInMonths),
                         y: .value("Value", point.p3),
                         series: .value("Series", "P3")
                     )
-                    .foregroundStyle(chartColor.opacity(0.25))
-                    .lineStyle(StrokeStyle(lineWidth: 0.7, dash: [3, 4]))
+                    .foregroundStyle(chartColor.opacity(0.35))
+                    .lineStyle(StrokeStyle(lineWidth: 1.0))
                     .interpolationMethod(.catmullRom)
                 }
 
-                // P15 line
-                ForEach(percentiles) { point in
-                    LineMark(
-                        x: .value("Age", point.ageInMonths),
-                        y: .value("Value", point.p15),
-                        series: .value("Series", "P15")
-                    )
-                    .foregroundStyle(chartColor.opacity(0.30))
-                    .lineStyle(StrokeStyle(lineWidth: 0.7, dash: [3, 3]))
-                    .interpolationMethod(.catmullRom)
-                }
-
-                // P50 median line (most prominent)
+                // P50 median line (dashed, most visible)
                 ForEach(percentiles) { point in
                     LineMark(
                         x: .value("Age", point.ageInMonths),
@@ -358,49 +289,23 @@ struct GrowthView: View {
                         series: .value("Series", "P50")
                     )
                     .foregroundStyle(chartColor.opacity(0.50))
-                    .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [5, 4]))
+                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
                     .interpolationMethod(.catmullRom)
                 }
 
-                // P85 line
-                ForEach(percentiles) { point in
-                    LineMark(
-                        x: .value("Age", point.ageInMonths),
-                        y: .value("Value", point.p85),
-                        series: .value("Series", "P85")
-                    )
-                    .foregroundStyle(chartColor.opacity(0.30))
-                    .lineStyle(StrokeStyle(lineWidth: 0.7, dash: [3, 3]))
-                    .interpolationMethod(.catmullRom)
-                }
-
-                // P97 line
+                // P97 line (top boundary)
                 ForEach(percentiles) { point in
                     LineMark(
                         x: .value("Age", point.ageInMonths),
                         y: .value("Value", point.p97),
                         series: .value("Series", "P97")
                     )
-                    .foregroundStyle(chartColor.opacity(0.25))
-                    .lineStyle(StrokeStyle(lineWidth: 0.7, dash: [3, 4]))
+                    .foregroundStyle(chartColor.opacity(0.35))
+                    .lineStyle(StrokeStyle(lineWidth: 1.0))
                     .interpolationMethod(.catmullRom)
                 }
 
                 // === Baby's data ===
-
-                // Baby's curve — area fill (clamped between P3 and baby's value)
-                if babyPoints.count >= 2 {
-                    ForEach(babyPoints) { point in
-                        let p3AtAge = interpolatedP3(at: point.ageInMonths, percentiles: percentiles)
-                        AreaMark(
-                            x: .value("Age", point.ageInMonths),
-                            yStart: .value("Floor", p3AtAge),
-                            yEnd: .value("Value", point.value)
-                        )
-                        .foregroundStyle(chartColor.opacity(0.15))
-                        .interpolationMethod(.catmullRom)
-                    }
-                }
 
                 // Baby's curve — main line
                 ForEach(babyPoints) { point in
@@ -409,32 +314,26 @@ struct GrowthView: View {
                         y: .value("Value", point.value),
                         series: .value("Series", "Baby")
                     )
-                    .foregroundStyle(chartColor.gradient)
+                    .foregroundStyle(chartColor)
                     .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
                     .interpolationMethod(.catmullRom)
                 }
 
-                // Data points with shadow glow
+                // Data points
                 ForEach(babyPoints) { point in
                     PointMark(
                         x: .value("Age", point.ageInMonths),
                         y: .value("Value", point.value)
                     )
-                    .foregroundStyle(.white)
-                    .symbolSize(30)
-
-                    PointMark(
-                        x: .value("Age", point.ageInMonths),
-                        y: .value("Value", point.value)
-                    )
-                    .foregroundStyle(chartColor.gradient)
-                    .symbolSize(50)
                     .symbol {
                         Circle()
-                            .fill(chartColor.gradient)
-                            .frame(width: 8, height: 8)
-                            .shadow(color: chartColor.opacity(0.5), radius: 4)
+                            .fill(.white)
+                            .frame(width: 10, height: 10)
+                        Circle()
+                            .fill(chartColor)
+                            .frame(width: 7, height: 7)
                     }
+                    .symbolSize(80)
                 }
             }
             .chartXScale(domain: xDomain)
@@ -484,10 +383,10 @@ struct GrowthView: View {
             .animation(.easeInOut(duration: 0.2), value: chartScale)
 
             // Legend
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
                 legendItem(color: chartColor, label: baby.displayName)
                 legendItem(color: chartColor.opacity(0.50), label: "P50", dashed: true)
-                legendItem(color: chartColor.opacity(0.18), label: "P3–P97", isFill: true)
+                legendItem(color: chartColor.opacity(0.25), label: "P3–P97", isFill: true)
             }
             .font(.caption2)
             .foregroundStyle(.secondary)
@@ -516,20 +415,33 @@ struct GrowthView: View {
     /// Adapt X domain to baby's age — scales with available WHO data
     private func chartXDomain(babyPoints: [GrowthChartPoint], percentiles: [WHOPercentilePoint]) -> ClosedRange<Double> {
         let maxDataAge = babyPoints.map(\.ageInMonths).max() ?? 0
-        let babyAge = max(maxDataAge, baby.ageInMonths)
+        let babyAge = max(maxDataAge, max(0, baby.ageInMonths))
         let maxWHO = percentiles.map(\.ageInMonths).max() ?? 24
 
-        // Show a bit ahead of baby's age, minimum 12 months
-        let rawUpper = max(12, babyAge * 1.2 + 3)
+        // Adaptive lookahead based on baby's age
+        let rawUpper: Double
+        if babyAge <= 1 {
+            rawUpper = 3           // newborn → show 0–3 months
+        } else if babyAge <= 3 {
+            rawUpper = 6           // 1–3 months → show 0–6 months
+        } else if babyAge <= 6 {
+            rawUpper = 9           // 3–6 months → show 0–9 months
+        } else if babyAge <= 12 {
+            rawUpper = babyAge + 3 // 6–12 months → 3 months ahead
+        } else {
+            rawUpper = babyAge * 1.15 + 3 // older → 15% ahead + 3 months
+        }
 
         // Round to nice intervals
         let upper: Double
-        if rawUpper <= 24 {
-            upper = ceil(rawUpper / 3) * 3       // round to nearest 3 months
+        if rawUpper <= 6 {
+            upper = ceil(rawUpper / 1) * 1        // round to nearest month
+        } else if rawUpper <= 24 {
+            upper = ceil(rawUpper / 3) * 3        // round to nearest 3 months
         } else if rawUpper <= 60 {
-            upper = ceil(rawUpper / 6) * 6       // round to nearest 6 months
+            upper = ceil(rawUpper / 6) * 6        // round to nearest 6 months
         } else {
-            upper = ceil(rawUpper / 12) * 12     // round to nearest year
+            upper = ceil(rawUpper / 12) * 12      // round to nearest year
         }
 
         return 0...min(upper, maxWHO)

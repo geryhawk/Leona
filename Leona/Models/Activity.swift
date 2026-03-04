@@ -14,6 +14,8 @@ final class Activity {
     var volumeML: Double?
     var breastSide: BreastSide?
     var sessionSlot: SessionSlot?
+    
+    @Attribute(.externalStorage)
     var breastfeedingLapsData: Data?
 
     var breastfeedingLaps: [BreastfeedingLap] {

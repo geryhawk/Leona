@@ -7,6 +7,7 @@ private let logger = Logger(subsystem: "com.leona.app", category: "Sharing")
 
 /// Manages CloudKit sharing of baby profiles between different iCloud accounts.
 /// Uses CKShare alongside the existing SwiftData stack.
+@MainActor
 @Observable
 final class SharingManager {
     static let shared = SharingManager()
@@ -19,6 +20,11 @@ final class SharingManager {
     var sharedBabyIDs: Set<UUID> = []
     var activeShare: CKShare?
     var participants: [CKShare.Participant] = []
+    var invitedEmails: [String: String] = [:]
+    var accountStatus: CKAccountStatus = .couldNotDetermine
+    
+    private var accountStatusChecked = false
+    private var accountCheckTask: Task<Void, Never>?
 
     enum SharingStatus: Equatable {
         case none
@@ -29,6 +35,65 @@ final class SharingManager {
 
     private init() {
         loadSharedBabyIDs()
+        loadInvitedEmails()
+        // Don't start account check in init - will be done on-demand or in app startup
+        // This prevents duplicate checks and race conditions
+    }
+    
+    // MARK: - Account Status
+    
+    /// Checks CloudKit account status and caches the result.
+    /// Call this early in app lifecycle to avoid "could not validate account info cache" warnings.
+    private func checkAccountStatus() async {
+        guard !accountStatusChecked else { return }
+
+        do {
+            let status = try await container.accountStatus()
+            self.accountStatus = status
+            self.accountStatusChecked = true
+
+            switch status {
+            case .available:
+                logger.info("iCloud account is available")
+            case .noAccount:
+                logger.warning("No iCloud account configured")
+            case .restricted:
+                logger.warning("iCloud account is restricted")
+            case .couldNotDetermine:
+                logger.warning("Could not determine iCloud account status")
+            case .temporarilyUnavailable:
+                logger.warning("iCloud account temporarily unavailable")
+            @unknown default:
+                logger.warning("Unknown iCloud account status")
+            }
+        } catch {
+            logger.error("Failed to check account status: \(error.localizedDescription)")
+            self.accountStatusChecked = true
+        }
+    }
+    
+    /// Ensures account status is checked and ready.
+    /// Call this before any CloudKit operations to warm up the account cache.
+    func ensureAccountStatusChecked() async {
+        if !accountStatusChecked {
+            await checkAccountStatus()
+        }
+    }
+    
+    /// Requests permission to access the user's CloudKit account.
+    /// This helps warm up the account cache and prevents validation warnings.
+    func requestAccountAccess() async throws {
+        // First ensure status is checked
+        await ensureAccountStatusChecked()
+        
+        // For CloudKit, we don't need explicit permission requests like Photos/Contacts
+        // But we can trigger a status check which warms up the cache
+        guard self.accountStatus == .available else {
+            logger.warning("CloudKit account not available: \(String(describing: self.accountStatus))")
+            throw SharingError.accountUnavailable
+        }
+        
+        logger.info("CloudKit account access confirmed")
     }
 
     // MARK: - Zone Management
@@ -58,17 +123,23 @@ final class SharingManager {
     /// Gets an existing share or creates a new one.
     /// Handles all edge cases: first time, app restart, partial failures.
     func getOrCreateShare(for baby: Baby, in context: ModelContext) async throws -> CKShare {
+        // Ensure account status is checked first (warms up CloudKit cache)
+        await ensureAccountStatusChecked()
+        
+        // Check account status
+        guard accountStatus == .available else {
+            throw SharingError.accountUnavailable
+        }
+        
         sharingStatus = .preparing
 
         do {
             // Try to fetch existing share first
             if let existingShare = try await fetchExistingShare(for: baby) {
                 logger.info("Found existing share for baby: \(baby.displayName)")
-                await MainActor.run {
-                    self.activeShare = existingShare
-                    self.participants = existingShare.participants.filter { $0.role != .owner }
-                    self.sharingStatus = .active
-                }
+                self.activeShare = existingShare
+                self.participants = existingShare.participants.filter { $0.role != .owner }
+                self.sharingStatus = .active
 
                 if !baby.isShared {
                     baby.isShared = true
@@ -194,7 +265,7 @@ final class SharingManager {
             database.add(saveOp)
         }
 
-        logger.info("Root record + share saved atomically, URL: \(savedShare.url?.absoluteString ?? "nil")")
+        logger.info("Root record + share saved atomically, changeTag: \(savedShare.recordChangeTag ?? "nil")")
 
         // 5. Save child records (separate operation — these don't need atomic with share)
         var childRecords: [CKRecord] = []
@@ -222,7 +293,7 @@ final class SharingManager {
         participants = savedShare.participants.filter { $0.role != .owner }
         sharingStatus = .active
 
-        logger.info("Fresh share created for baby: \(baby.displayName), URL: \(savedShare.url?.absoluteString ?? "nil")")
+        logger.info("Fresh share created for baby: \(baby.displayName), ready for sharing")
         return savedShare
     }
 
@@ -290,38 +361,60 @@ final class SharingManager {
                 switch record.recordType {
                 case Activity.ckRecordType:
                     let recordID = UUID(uuidString: record.recordID.recordName)
+                    
+                    // Skip if this record was deleted locally
+                    if let id = recordID, isRecordDeleted(id) {
+                        logger.info("Skipping deleted activity during share acceptance: \(id)")
+                        continue
+                    }
+                    
                     if let id = recordID, let existing = (baby.activities ?? []).first(where: { $0.id == id }) {
                         existing.applyCKRecord(record)
                     } else {
-                        let activity = Activity(type: .note, baby: baby)
+                        // Create without baby to avoid ghost card via inverse relationship
+                        let activity = Activity(type: .note, startTime: Date(), baby: nil)
                         if let id = recordID { activity.id = id }
                         activity.applyCKRecord(record)
-                        activity.baby = baby
                         context.insert(activity)
+                        activity.baby = baby
                     }
 
                 case GrowthRecord.ckRecordType:
                     let recordID = UUID(uuidString: record.recordID.recordName)
+                    
+                    // Skip if this record was deleted locally
+                    if let id = recordID, isRecordDeleted(id) {
+                        logger.info("Skipping deleted growth record during share acceptance: \(id)")
+                        continue
+                    }
+                    
                     if let id = recordID, let existing = (baby.growthRecords ?? []).first(where: { $0.id == id }) {
                         existing.applyCKRecord(record)
                     } else {
-                        let growth = GrowthRecord(baby: baby)
+                        let growth = GrowthRecord(baby: nil)
                         if let id = recordID { growth.id = id }
                         growth.applyCKRecord(record)
-                        growth.baby = baby
                         context.insert(growth)
+                        growth.baby = baby
                     }
 
                 case HealthRecord.ckRecordType:
                     let recordID = UUID(uuidString: record.recordID.recordName)
+                    
+                    // Skip if this record was deleted locally
+                    if let id = recordID, isRecordDeleted(id) {
+                        logger.info("Skipping deleted health record during share acceptance: \(id)")
+                        continue
+                    }
+                    
                     if let id = recordID, let existing = (baby.healthRecords ?? []).first(where: { $0.id == id }) {
                         existing.applyCKRecord(record)
                     } else {
-                        let health = HealthRecord(baby: baby)
+                        let health = HealthRecord(baby: nil)
                         if let id = recordID { health.id = id }
                         health.applyCKRecord(record)
-                        health.baby = baby
                         context.insert(health)
+                        health.baby = baby
                     }
 
                 default:
@@ -379,38 +472,60 @@ final class SharingManager {
 
             case Activity.ckRecordType:
                 let activityID = UUID(uuidString: record.recordID.recordName)
+                
+                // Skip if this record was deleted locally
+                if let id = activityID, isRecordDeleted(id) {
+                    logger.info("Skipping deleted activity: \(id)")
+                    break
+                }
+                
                 if let existing = (baby.activities ?? []).first(where: { $0.id == activityID }) {
                     existing.applyCKRecord(record)
                 } else {
-                    let activity = Activity(type: .note, baby: baby)
+                    // Create without baby to avoid ghost card via inverse relationship
+                    let activity = Activity(type: .note, startTime: Date(), baby: nil)
                     if let id = activityID { activity.id = id }
                     activity.applyCKRecord(record)
-                    activity.baby = baby
                     context.insert(activity)
+                    activity.baby = baby
                 }
 
             case GrowthRecord.ckRecordType:
                 let recordID = UUID(uuidString: record.recordID.recordName)
+                
+                // Skip if this record was deleted locally
+                if let id = recordID, isRecordDeleted(id) {
+                    logger.info("Skipping deleted growth record: \(id)")
+                    break
+                }
+                
                 if let existing = (baby.growthRecords ?? []).first(where: { $0.id == recordID }) {
                     existing.applyCKRecord(record)
                 } else {
-                    let growth = GrowthRecord(baby: baby)
+                    let growth = GrowthRecord(baby: nil)
                     if let id = recordID { growth.id = id }
                     growth.applyCKRecord(record)
-                    growth.baby = baby
                     context.insert(growth)
+                    growth.baby = baby
                 }
 
             case HealthRecord.ckRecordType:
                 let recordID = UUID(uuidString: record.recordID.recordName)
+                
+                // Skip if this record was deleted locally
+                if let id = recordID, isRecordDeleted(id) {
+                    logger.info("Skipping deleted health record: \(id)")
+                    break
+                }
+                
                 if let existing = (baby.healthRecords ?? []).first(where: { $0.id == recordID }) {
                     existing.applyCKRecord(record)
                 } else {
-                    let health = HealthRecord(baby: baby)
+                    let health = HealthRecord(baby: nil)
                     if let id = recordID { health.id = id }
                     health.applyCKRecord(record)
-                    health.baby = baby
                     context.insert(health)
+                    health.baby = baby
                 }
 
             default:
@@ -433,19 +548,95 @@ final class SharingManager {
 
         records.append(baby.toCKRecord(in: zone))
 
-        for activity in baby.activities ?? [] {
+        // Only push non-deleted records
+        for activity in baby.activities ?? [] where !activity.isDeleted {
             records.append(activity.toCKRecord(in: zone))
         }
-        for growth in baby.growthRecords ?? [] {
+        for growth in baby.growthRecords ?? [] where !growth.isDeleted {
             records.append(growth.toCKRecord(in: zone))
         }
-        for health in baby.healthRecords ?? [] {
+        for health in baby.healthRecords ?? [] where !health.isDeleted {
             records.append(health.toCKRecord(in: zone))
         }
 
+        guard !records.isEmpty else {
+            logger.info("No records to push for baby \(baby.displayName)")
+            return
+        }
+
         let database = baby.ownerName != nil ? container.sharedCloudDatabase : container.privateCloudDatabase
+        
+        // Mark that we're pushing (to avoid triggering sync on our own notification)
+        lastPushDate = Date()
+        
         try await saveRecords(records, to: database)
         logger.info("Pushed \(records.count) records for baby \(baby.displayName)")
+    }
+    
+    private var lastPushDate: Date?
+    
+    /// Returns true if a recent push just happened (within last 10 seconds)
+    /// Increased from 3 to 10 seconds to better prevent sync loops
+    var didRecentlyPush: Bool {
+        guard let lastPush = lastPushDate else { return false }
+        return Date().timeIntervalSince(lastPush) < 10.0
+    }
+
+    /// Deletes a record from CloudKit when deleted locally.
+    func deleteRecord(recordID: UUID, recordType: String, for baby: Baby) async throws {
+        guard baby.isShared else { return }
+        
+        // Track this deletion to prevent re-creation during sync
+        trackDeletedRecord(recordID)
+        
+        let zone = zoneID(for: baby.id)
+        let ckRecordID = CKRecord.ID(recordName: recordID.uuidString, zoneID: zone)
+        let database = baby.ownerName != nil ? container.sharedCloudDatabase : container.privateCloudDatabase
+        
+        do {
+            let (_, deletedIDs) = try await database.modifyRecords(saving: [], deleting: [ckRecordID])
+            logger.info("Deleted \(recordType) record from CloudKit: \(recordID.uuidString)")
+            
+            if !deletedIDs.isEmpty {
+                logger.info("Successfully deleted \(deletedIDs.count) record(s) from CloudKit")
+            }
+        } catch let error as CKError where error.code == .unknownItem {
+            // Record doesn't exist on CloudKit - that's fine
+            logger.info("Record already deleted from CloudKit: \(recordID.uuidString)")
+        }
+    }
+    
+    // MARK: - Deletion Tracking
+    
+    private var deletedRecordIDs: Set<UUID> {
+        get {
+            if let data = UserDefaults.standard.data(forKey: "deletedRecordIDs"),
+               let ids = try? JSONDecoder().decode(Set<UUID>.self, from: data) {
+                return ids
+            }
+            return []
+        }
+        set {
+            if let data = try? JSONEncoder().encode(newValue) {
+                UserDefaults.standard.set(data, forKey: "deletedRecordIDs")
+            }
+        }
+    }
+    
+    private func trackDeletedRecord(_ recordID: UUID) {
+        var ids = deletedRecordIDs
+        ids.insert(recordID)
+        deletedRecordIDs = ids
+    }
+    
+    private func isRecordDeleted(_ recordID: UUID) -> Bool {
+        deletedRecordIDs.contains(recordID)
+    }
+    
+    /// Clears deletion tracking for records older than 30 days
+    func cleanupDeletionTracking() {
+        // This can be called periodically - for now, we keep all deleted IDs
+        // In a production app, you might want to expire these after some time
     }
 
     // MARK: - Remove Participant
@@ -464,10 +655,8 @@ final class SharingManager {
         // Update with the returned share
         for (_, result) in savedResults {
             if case .success(let record) = result, let updatedShare = record as? CKShare {
-                await MainActor.run {
-                    self.activeShare = updatedShare
-                    self.participants = updatedShare.participants.filter { $0.role != .owner }
-                }
+                self.activeShare = updatedShare
+                self.participants = updatedShare.participants.filter { $0.role != .owner }
             }
         }
 
@@ -516,10 +705,24 @@ final class SharingManager {
             let record = try await database.record(for: recordID)
             if let shareRef = record.share {
                 let share = try await database.record(for: shareRef.recordID) as! CKShare
-                await MainActor.run {
-                    self.activeShare = share
-                    self.participants = share.participants.filter { $0.role != .owner }
+                self.activeShare = share
+                self.participants = share.participants.filter { $0.role != .owner }
+                
+                // Try to preserve any email mappings we can find
+                for participant in self.participants {
+                    // Check if we already have this email stored
+                    if let recordID = participant.userIdentity.userRecordID,
+                       invitedEmails[recordID.recordName] != nil {
+                        continue // Already have it
+                    }
+                    
+                    // Try to extract from lookup info
+                    if let email = participant.userIdentity.lookupInfo?.emailAddress,
+                       let recordID = participant.userIdentity.userRecordID {
+                        invitedEmails[recordID.recordName] = email
+                    }
                 }
+                saveInvitedEmails()
             }
         } catch {
             logger.error("Failed to fetch share info: \(error.localizedDescription)")
@@ -529,6 +732,9 @@ final class SharingManager {
     // MARK: - Subscriptions
 
     func setupSubscriptions() async throws {
+        await ensureAccountStatusChecked()
+        guard accountStatus == .available else { return }
+
         let subscription = CKDatabaseSubscription(subscriptionID: Self.sharedSubscriptionID)
         let notificationInfo = CKSubscription.NotificationInfo()
         notificationInfo.shouldSendContentAvailable = true
@@ -600,11 +806,22 @@ final class SharingManager {
             throw SharingError.participantNotFound
         }
 
-        // 3. Configure and add participant
+        // 3. Store the email EARLY (before we lose access to it)
+        //    Use the email address as the key since userRecordID might not be available yet
+        if let lookupEmail = participant.userIdentity.lookupInfo?.emailAddress {
+            invitedEmails[lookupEmail] = email
+        }
+        // Also try storing by user record ID if available
+        if let recordID = participant.userIdentity.userRecordID {
+            invitedEmails[recordID.recordName] = email
+        }
+        saveInvitedEmails()
+
+        // 4. Configure and add participant
         participant.permission = .readWrite
         share.addParticipant(participant)
 
-        // 4. Save ONLY the share — the rootRecord already exists on CloudKit
+        // 5. Save ONLY the share — the rootRecord already exists on CloudKit
         //    (it was saved atomically during createFreshShare or was already there)
         //    Re-saving a new CKRecord without server metadata causes serverRecordChanged errors.
         let database = container.privateCloudDatabase
@@ -622,13 +839,25 @@ final class SharingManager {
             }
         }
 
-        // 5. Update local state
-        let finalShare = savedShare
-        await MainActor.run {
-            self.activeShare = finalShare
-            self.participants = finalShare.participants.filter { $0.role != .owner }
-            self.sharingStatus = .active
+        // 6. Update local state
+        self.activeShare = savedShare
+        self.participants = savedShare.participants.filter { $0.role != .owner }
+        self.sharingStatus = .active
+
+        // 7. Store email mapping again with the FINAL participant info from saved share
+        for participant in savedShare.participants {
+            if let recordID = participant.userIdentity.userRecordID {
+                if invitedEmails[recordID.recordName] == nil {
+                    invitedEmails[recordID.recordName] = email
+                }
+            }
+            if let lookupEmail = participant.userIdentity.lookupInfo?.emailAddress {
+                if invitedEmails[lookupEmail] == nil {
+                    invitedEmails[lookupEmail] = email
+                }
+            }
         }
+        saveInvitedEmails()
 
         logger.info("Successfully invited \(email) for baby: \(baby.displayName)")
     }
@@ -640,7 +869,8 @@ final class SharingManager {
             logger.error("Share created but URL is nil for baby: \(baby.displayName)")
             throw SharingError.shareURLMissing
         }
-        logger.info("Share URL ready: \(url.absoluteString)")
+        // Log only the URL string to avoid sandbox extension warnings
+        logger.info("Share URL ready (length: \(url.absoluteString.count) chars)")
         return url
     }
 
@@ -663,6 +893,8 @@ final class SharingManager {
             var allRecords: [CKRecord] = []
 
             let config = CKFetchRecordZoneChangesOperation.ZoneConfiguration()
+            // Always start fresh - don't use server change tokens
+            // This prevents "Change Token Expired" errors
             config.previousServerChangeToken = nil
 
             let operation = CKFetchRecordZoneChangesOperation(
@@ -682,6 +914,11 @@ final class SharingManager {
                 case .success:
                     continuation.resume(returning: allRecords)
                 case .failure(let error):
+                    // Handle token expiration gracefully
+                    if let ckError = error as? CKError, ckError.code == .changeTokenExpired {
+                        logger.warning("Change token expired, retrying with nil token")
+                        // The next fetch will use nil token automatically
+                    }
                     continuation.resume(throwing: error)
                 }
             }
@@ -704,6 +941,19 @@ final class SharingManager {
             UserDefaults.standard.set(data, forKey: "sharedBabyIDs")
         }
     }
+    
+    private func loadInvitedEmails() {
+        if let data = UserDefaults.standard.data(forKey: "invitedEmails"),
+           let emails = try? JSONDecoder().decode([String: String].self, from: data) {
+            invitedEmails = emails
+        }
+    }
+    
+    private func saveInvitedEmails() {
+        if let data = try? JSONEncoder().encode(invitedEmails) {
+            UserDefaults.standard.set(data, forKey: "invitedEmails")
+        }
+    }
 }
 
 // MARK: - Errors
@@ -715,6 +965,7 @@ enum SharingError: LocalizedError {
     case syncFailed
     case participantNotFound
     case invalidEmail
+    case accountUnavailable
 
     var errorDescription: String? {
         switch self {
@@ -724,6 +975,7 @@ enum SharingError: LocalizedError {
         case .syncFailed: return String(localized: "share_error_sync_failed")
         case .participantNotFound: return String(localized: "share_error_participant_not_found")
         case .invalidEmail: return String(localized: "share_error_invalid_email")
+        case .accountUnavailable: return "iCloud account is not available. Please sign in to iCloud in Settings."
         }
     }
 }

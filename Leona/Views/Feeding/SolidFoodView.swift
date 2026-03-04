@@ -207,7 +207,8 @@ struct SolidFoodView: View {
         activity.foodUnit = selectedUnit
         if !noteText.isEmpty { activity.noteText = noteText }
         modelContext.insert(activity)
-        
+        try? modelContext.save()
+
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         dismiss()
     }

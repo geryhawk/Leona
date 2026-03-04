@@ -128,7 +128,8 @@ struct DiaperEntryView: View {
         activity.diaperType = selectedType
         if !noteText.isEmpty { activity.noteText = noteText }
         modelContext.insert(activity)
-        
+        try? modelContext.save()
+
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         dismiss()
     }

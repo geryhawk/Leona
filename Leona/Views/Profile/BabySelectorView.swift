@@ -5,11 +5,14 @@ struct BabySelectorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(AppSettings.self) private var settings
+    @Environment(SharingManager.self) private var sharing
     
     @Query(sort: \Baby.createdAt) private var babies: [Baby]
     
     @State private var showAddBaby = false
     @State private var editingBaby: Baby?
+    @State private var showDeleteLastConfirm = false
+    @State private var babyToDelete: Baby?
     
     var body: some View {
         NavigationStack {
@@ -104,6 +107,18 @@ struct BabySelectorView: View {
             .sheet(item: $editingBaby) { baby in
                 BabyProfileView(baby: baby)
             }
+            .alert(String(localized: "delete_last_baby_title"), isPresented: $showDeleteLastConfirm) {
+                Button(String(localized: "delete_and_reset"), role: .destructive) {
+                    if let baby = babyToDelete {
+                        deleteLastBaby(baby)
+                    }
+                }
+                Button(String(localized: "cancel"), role: .cancel) {
+                    babyToDelete = nil
+                }
+            } message: {
+                Text(String(localized: "delete_last_baby_message"))
+            }
         }
     }
     
@@ -111,7 +126,12 @@ struct BabySelectorView: View {
         withAnimation(.easeInOut(duration: 0.2)) {
             settings.activeBabyID = baby.id.uuidString
         }
+        
+        // Only trigger haptics on real devices (simulators don't support it properly)
+        #if !targetEnvironment(simulator)
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        #endif
+        
         // Small delay so the user sees the selection feedback
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             dismiss()
@@ -119,16 +139,70 @@ struct BabySelectorView: View {
     }
     
     private func deleteBaby(_ baby: Baby) {
-        guard babies.count > 1 else { return }
+        // If this is the last baby, show confirmation to reset everything
+        if babies.count == 1 {
+            babyToDelete = baby
+            showDeleteLastConfirm = true
+            return
+        }
         
+        // Multiple babies - just delete and switch to another
         if settings.activeBabyID == baby.id.uuidString {
             if let other = babies.first(where: { $0.id != baby.id }) {
                 settings.activeBabyID = other.id.uuidString
             }
         }
         
+        // Delete from CloudKit if shared
+        if baby.isShared {
+            Task {
+                try? await sharing.stopSharing(for: baby, in: modelContext)
+            }
+        }
+        
         withAnimation {
             modelContext.delete(baby)
         }
+    }
+    
+    private func deleteLastBaby(_ baby: Baby) {
+        Task {
+            // 1. Stop sharing if active
+            if baby.isShared {
+                try? await sharing.stopSharing(for: baby, in: modelContext)
+            }
+            
+            // 2. Delete all activities (cleanup)
+            let activities = baby.activities ?? []
+            for activity in activities {
+                modelContext.delete(activity)
+            }
+            
+            // 3. Delete all growth records
+            let growthRecords = baby.growthRecords ?? []
+            for growth in growthRecords {
+                modelContext.delete(growth)
+            }
+            
+            // 4. Delete all health records
+            let healthRecords = baby.healthRecords ?? []
+            for health in healthRecords {
+                modelContext.delete(health)
+            }
+            
+            // 5. Delete the baby
+            modelContext.delete(baby)
+            try? modelContext.save()
+            
+            // 6. Reset active baby ID
+            await MainActor.run {
+                settings.activeBabyID = ""
+                
+                // Close the selector - ContentView will show onboarding automatically
+                dismiss()
+            }
+        }
+        
+        babyToDelete = nil
     }
 }

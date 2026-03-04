@@ -27,7 +27,7 @@ struct DashboardView: View {
     
     private var babyActivities: [Activity] {
         allActivities
-            .filter { $0.baby?.id == baby.id }
+            .filter { !$0.isDeleted && $0.baby?.id == baby.id }
             .sorted { $0.sortTime > $1.sortTime }
     }
 

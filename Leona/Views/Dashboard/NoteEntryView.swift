@@ -72,7 +72,8 @@ struct NoteEntryView: View {
         let activity = Activity(type: .note, startTime: dateTime, baby: baby)
         activity.noteText = noteText
         modelContext.insert(activity)
-        
+        try? modelContext.save()
+
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         dismiss()
     }

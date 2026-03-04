@@ -5,16 +5,26 @@ struct ActivityCardView: View {
     let activity: Activity
     
     @Environment(\.modelContext) private var modelContext
+    @Environment(SharingManager.self) private var sharing
     @State private var showEditSheet = false
     @State private var showDeleteConfirmation = false
     @State private var offset: CGFloat = 0
     
     var body: some View {
+        // Guard against faulted/zombie objects from SwiftData
+        if activity.isDeleted || activity.baby == nil {
+            EmptyView()
+        } else {
+            cardBody
+        }
+    }
+
+    private var cardBody: some View {
         ZStack(alignment: .trailing) {
             // Delete background
             HStack {
                 Spacer()
-                
+
                 Button(role: .destructive) {
                     showDeleteConfirmation = true
                 } label: {
@@ -26,7 +36,7 @@ struct ActivityCardView: View {
                 .background(.red)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
-            
+
             // Main card
             mainCardContent
                 .offset(x: offset)
@@ -41,10 +51,28 @@ struct ActivityCardView: View {
             titleVisibility: .visible
         ) {
             Button(String(localized: "delete"), role: .destructive) {
-                withAnimation {
-                    modelContext.delete(activity)
-                    try? modelContext.save()
-                }
+                deleteActivity()
+            }
+        }
+    }
+    
+    private func deleteActivity() {
+        // Store references before deletion
+        let activityID = activity.id
+        let baby = activity.baby
+        
+        // Delete from SwiftData
+        modelContext.delete(activity)
+        try? modelContext.save()
+        
+        // Delete from CloudKit if this baby is shared
+        if let baby = baby, baby.isShared {
+            Task {
+                try? await sharing.deleteRecord(
+                    recordID: activityID,
+                    recordType: Activity.ckRecordType,
+                    for: baby
+                )
             }
         }
     }
@@ -371,6 +399,7 @@ struct EditActivityView: View {
         activity.foodQuantity = editedFoodQuantity > 0 ? editedFoodQuantity : nil
         activity.foodUnit = editedFoodUnit
         activity.updatedAt = Date()
+        try? modelContext.save()
 
         dismiss()
     }

@@ -75,7 +75,10 @@ struct HealthDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "done")) { dismiss() }
+                    Button(String(localized: "done")) {
+                        try? modelContext.save()
+                        dismiss()
+                    }
                 }
             }
             .alert(String(localized: "delete_record"), isPresented: $showDeleteConfirm) {

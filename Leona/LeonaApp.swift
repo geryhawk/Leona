@@ -20,11 +20,10 @@ class LeonaAppDelegate: NSObject, UIApplicationDelegate {
         return true
     }
 
-    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [String: Any]) async -> UIBackgroundFetchResult {
+    private func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [String: Any]) async -> UIBackgroundFetchResult {
         let notification = CKNotification(fromRemoteNotificationDictionary: userInfo)
         if notification?.subscriptionID == SharingManager.sharedSubscriptionID {
             logger.info("Received shared data push notification")
-            // Sync will be triggered via NSPersistentStoreRemoteChange or scenePhase
         }
         return .newData
     }
@@ -88,10 +87,17 @@ struct LeonaApp: App {
                 .tint(settings.accentColor.color)
                 .onReceive(NotificationCenter.default.publisher(
                     for: .NSPersistentStoreRemoteChange
-                )) { _ in
+                ).receive(on: DispatchQueue.main)) { _ in
                     logger.info("iCloud sync: remote changes received")
                     cloudKit.markSynced()
-                    // Auto-sync shared babies on remote change
+                    
+                    // Don't sync if we just pushed (avoid sync loop)
+                    guard !sharing.didRecentlyPush else {
+                        logger.info("Skipping sync (we just pushed changes)")
+                        return
+                    }
+                    
+                    // Auto-sync shared babies on remote change (debounced)
                     triggerSharedSync()
                 }
                 .onOpenURL { url in
@@ -101,6 +107,10 @@ struct LeonaApp: App {
                     }
                 }
                 .task {
+                    // IMPORTANT: Check account status FIRST to warm up CloudKit cache
+                    // This prevents "Could not validate account info cache" warnings
+                    await sharing.ensureAccountStatusChecked()
+                    
                     // Set up sharing subscriptions
                     try? await sharing.setupSubscriptions()
 
@@ -147,9 +157,9 @@ struct LeonaApp: App {
     // MARK: - Sharing Helpers
 
     private func triggerSharedSync() {
-        Task {
+        Task { @MainActor in
             let context = ModelContext(sharedModelContainer)
-            await SyncEngine.shared.syncAllSharedBabies(context: context)
+            SyncEngine.shared.triggerDebouncedSync(context: context)
         }
     }
 

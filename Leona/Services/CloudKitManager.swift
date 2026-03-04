@@ -4,6 +4,7 @@ import SwiftData
 import SwiftUI
 
 /// Manages iCloud sync status between devices on the same iCloud account
+@MainActor
 @Observable
 final class CloudKitManager {
     static let shared = CloudKitManager()
@@ -57,28 +58,18 @@ final class CloudKitManager {
 
     func checkiCloudStatus() async {
         guard let container = container else {
-            await MainActor.run {
-                self.iCloudAvailable = false
-                self.syncStatus = .offline
-            }
+            self.iCloudAvailable = false
+            self.syncStatus = .offline
             return
         }
         do {
             let status = try await container.accountStatus()
-            await MainActor.run {
-                self.iCloudStatus = status
-                self.iCloudAvailable = status == .available
-                if status == .available {
-                    self.syncStatus = .synced
-                } else {
-                    self.syncStatus = .offline
-                }
-            }
+            self.iCloudStatus = status
+            self.iCloudAvailable = status == .available
+            self.syncStatus = status == .available ? .synced : .offline
         } catch {
-            await MainActor.run {
-                self.iCloudAvailable = false
-                self.syncStatus = .error
-            }
+            self.iCloudAvailable = false
+            self.syncStatus = .error
         }
     }
 

@@ -96,7 +96,9 @@ extension Activity: CKRecordConvertible {
         
         // Skip update if local record is newer (prevents race conditions during sync)
         // IMPORTANT: This avoids resetting isOngoing=false back to true when stopping activities
-        if updatedAt > remoteModificationDate {
+        // EXCEPTION: If this is a newly created local record (never synced), always accept remote data
+        let isNewLocalRecord = ckRecordName == nil || ckChangeTag == nil
+        if !isNewLocalRecord && updatedAt > remoteModificationDate {
             return
         }
         
@@ -144,6 +146,15 @@ extension GrowthRecord: CKRecordConvertible {
     }
 
     func applyCKRecord(_ record: CKRecord) {
+        // Accept remote data if this is a new local record (never synced before)
+        let isNewLocalRecord = ckRecordName == nil || ckChangeTag == nil
+        let remoteModificationDate = record.modificationDate ?? Date.distantPast
+        
+        // Skip update only if local record is established AND newer
+        if !isNewLocalRecord && updatedAt > remoteModificationDate {
+            return
+        }
+        
         if let val = record["date"] as? Date { date = val }
         weightKg = record["weightKg"] as? Double
         heightCm = record["heightCm"] as? Double
@@ -182,6 +193,15 @@ extension HealthRecord: CKRecordConvertible {
     }
 
     func applyCKRecord(_ record: CKRecord) {
+        // Accept remote data if this is a new local record (never synced before)
+        let isNewLocalRecord = ckRecordName == nil || ckChangeTag == nil
+        let remoteModificationDate = record.modificationDate ?? Date.distantPast
+        
+        // Skip update only if local record is established AND newer
+        if !isNewLocalRecord && updatedAt > remoteModificationDate {
+            return
+        }
+        
         if let val = record["illnessType"] as? String { illnessType = IllnessType(rawValue: val) ?? .other }
         if let val = record["startDate"] as? Date { startDate = val }
         endDate = record["endDate"] as? Date
