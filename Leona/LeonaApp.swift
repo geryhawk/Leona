@@ -61,12 +61,16 @@ class LeonaAppDelegate: NSObject, UIApplicationDelegate {
         return configuration
     }
 
-    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [String: Any]) async -> UIBackgroundFetchResult {
+    func application(
+        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
         let notification = CKNotification(fromRemoteNotificationDictionary: userInfo)
         if notification?.subscriptionID == SharingManager.sharedSubscriptionID {
             logger.info("Received shared data push notification")
         }
-        return .newData
+        completionHandler(.newData)
     }
 
     func application(_ application: UIApplication, userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata) {
