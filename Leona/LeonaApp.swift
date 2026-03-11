@@ -4,6 +4,29 @@ import CloudKit
 import os.log
 
 private let logger = Logger(subsystem: "com.leona.app", category: "App")
+private var lastAcceptedShareRecordName: String?
+private var lastAcceptedShareDate: Date?
+
+@MainActor
+private func enqueueAcceptedShareMetadata(_ metadata: CKShare.Metadata, source: String) {
+    let shareRecordName = metadata.share.recordID.recordName
+    let now = Date()
+    
+    // Some iOS paths can report the same acceptance twice (app + scene delegate).
+    // Deduplicate close duplicates to avoid double import/error noise.
+    if lastAcceptedShareRecordName == shareRecordName,
+       let lastDate = lastAcceptedShareDate,
+       now.timeIntervalSince(lastDate) < 5.0 {
+        logger.info("Ignoring duplicate share acceptance from \(source)")
+        return
+    }
+    
+    lastAcceptedShareRecordName = shareRecordName
+    lastAcceptedShareDate = now
+    LeonaAppDelegate.pendingShareMetadata = metadata
+    logger.info("Queued accepted CloudKit share from \(source)")
+    NotificationCenter.default.post(name: .didAcceptCloudKitShare, object: metadata)
+}
 
 extension Notification.Name {
     static let didAcceptCloudKitShare = Notification.Name("didAcceptCloudKitShare")
@@ -12,6 +35,14 @@ extension Notification.Name {
 
 // MARK: - App Delegate for CloudKit Share Acceptance
 
+class LeonaSceneDelegate: NSObject, UIWindowSceneDelegate {
+    func windowScene(_ windowScene: UIWindowScene, userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata) {
+        Task { @MainActor in
+            enqueueAcceptedShareMetadata(cloudKitShareMetadata, source: "scene delegate")
+        }
+    }
+}
+
 class LeonaAppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         application.registerForRemoteNotifications()
@@ -19,8 +50,18 @@ class LeonaAppDelegate: NSObject, UIApplicationDelegate {
         UIScrollView.appearance().delaysContentTouches = false
         return true
     }
+    
+    func application(
+        _ application: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        let configuration = UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
+        configuration.delegateClass = LeonaSceneDelegate.self
+        return configuration
+    }
 
-    private func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [String: Any]) async -> UIBackgroundFetchResult {
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [String: Any]) async -> UIBackgroundFetchResult {
         let notification = CKNotification(fromRemoteNotificationDictionary: userInfo)
         if notification?.subscriptionID == SharingManager.sharedSubscriptionID {
             logger.info("Received shared data push notification")
@@ -29,11 +70,9 @@ class LeonaAppDelegate: NSObject, UIApplicationDelegate {
     }
 
     func application(_ application: UIApplication, userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata) {
-        logger.info("User accepted CloudKit share via delegate")
-        // Store metadata immediately (no async dispatch — avoids race condition with processPendingShare)
-        LeonaAppDelegate.pendingShareMetadata = cloudKitShareMetadata
-        // Post notification so the app can process it right away
-        NotificationCenter.default.post(name: .didAcceptCloudKitShare, object: cloudKitShareMetadata)
+        Task { @MainActor in
+            enqueueAcceptedShareMetadata(cloudKitShareMetadata, source: "application delegate")
+        }
     }
 
     static var pendingShareMetadata: CKShare.Metadata?
@@ -50,6 +89,7 @@ struct LeonaApp: App {
     @State private var notifications = NotificationManager.shared
     @State private var sharing = SharingManager.shared
     @State private var shareAcceptError: String?
+    @State private var acceptingShareIDs: Set<String> = []
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -113,6 +153,10 @@ struct LeonaApp: App {
                     
                     // Set up sharing subscriptions
                     try? await sharing.setupSubscriptions()
+                    
+                    // Recovery path: import accepted shares that may have been missed by delegate callbacks.
+                    let context = ModelContext(sharedModelContainer)
+                    await sharing.recoverAcceptedSharesIfNeeded(in: context)
 
                     // Schema init and cleanup are available via SharingManager
                     // but no longer run automatically at startup.
@@ -123,6 +167,8 @@ struct LeonaApp: App {
                         triggerSharedSync()
                         // Check for pending share acceptance
                         processPendingShare()
+                        // Recovery path for missed invitation callbacks
+                        recoverAcceptedSharesIfNeeded()
                     }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .didAcceptCloudKitShare)) { notification in
@@ -186,9 +232,25 @@ struct LeonaApp: App {
             await acceptShareMetadata(metadata)
         }
     }
+    
+    private func recoverAcceptedSharesIfNeeded() {
+        Task { @MainActor in
+            let context = ModelContext(sharedModelContainer)
+            await sharing.recoverAcceptedSharesIfNeeded(in: context)
+        }
+    }
 
     /// Centralized share acceptance — used by URL handler, pending share processor, and delegate notification
+    @MainActor
     private func acceptShareMetadata(_ metadata: CKShare.Metadata) async {
+        let shareID = metadata.share.recordID.recordName
+        guard !acceptingShareIDs.contains(shareID) else {
+            logger.info("Share \(shareID) is already being accepted, skipping duplicate request")
+            return
+        }
+        acceptingShareIDs.insert(shareID)
+        defer { acceptingShareIDs.remove(shareID) }
+        
         do {
             let context = ModelContext(sharedModelContainer)
             try await sharing.acceptShare(metadata: metadata, in: context)
@@ -198,9 +260,7 @@ struct LeonaApp: App {
             triggerSharedSync()
         } catch {
             logger.error("Failed to accept share: \(error.localizedDescription)")
-            await MainActor.run {
-                shareAcceptError = error.localizedDescription
-            }
+            shareAcceptError = error.localizedDescription
         }
     }
 }

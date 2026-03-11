@@ -25,6 +25,8 @@ final class SharingManager {
     
     private var accountStatusChecked = false
     private var accountCheckTask: Task<Void, Never>?
+    private var lastRecoveryScanDate: Date?
+    private let recoveryScanCooldown: TimeInterval = 20.0
 
     enum SharingStatus: Equatable {
         case none
@@ -317,123 +319,225 @@ final class SharingManager {
             // 2. Fetch all records from the shared zone
             let sharedDB = container.sharedCloudDatabase
             let zoneID = metadata.share.recordID.zoneID
-
-            let records = try await fetchAllRecords(in: zoneID, from: sharedDB)
-
-            // 3. Process records — find the baby first
-            var babyRecord: CKRecord?
-            var childRecords: [CKRecord] = []
-
-            for record in records {
-                if record.recordType == Baby.ckRecordType {
-                    babyRecord = record
-                } else {
-                    childRecords.append(record)
-                }
-            }
-
-            guard let babyRecord = babyRecord else {
-                throw SharingError.noBabyFound
-            }
-
-            // 4. Create or update Baby in SwiftData — avoid duplicates
-            let babyID = UUID(uuidString: babyRecord.recordID.recordName) ?? UUID()
+            let records = try await fetchAllRecordsWithRetry(in: zoneID, from: sharedDB)
             let ownerName = metadata.ownerIdentity.nameComponents?.formatted() ?? "Partner"
+            let (baby, childCount) = try importSharedRecords(records, ownerName: ownerName, in: context)
 
-            let baby: Baby
-            let existingDescriptor = FetchDescriptor<Baby>(predicate: #Predicate { $0.id == babyID })
-            if let existingBaby = try context.fetch(existingDescriptor).first {
-                baby = existingBaby
-                logger.info("Found existing baby \(baby.displayName), updating instead of duplicating")
-            } else {
-                baby = Baby(firstName: "", dateOfBirth: Date())
-                baby.id = babyID
-                context.insert(baby)
-                logger.info("Created new baby record for shared baby")
-            }
-
-            baby.applyCKRecord(babyRecord)
-            baby.isShared = true
-            baby.ownerName = ownerName
-
-            // 5. Create or update child records — avoid duplicates
-            for record in childRecords {
-                switch record.recordType {
-                case Activity.ckRecordType:
-                    let recordID = UUID(uuidString: record.recordID.recordName)
-                    
-                    // Skip if this record was deleted locally
-                    if let id = recordID, isRecordDeleted(id) {
-                        logger.info("Skipping deleted activity during share acceptance: \(id)")
-                        continue
-                    }
-                    
-                    if let id = recordID, let existing = (baby.activities ?? []).first(where: { $0.id == id }) {
-                        existing.applyCKRecord(record)
-                    } else {
-                        // Create without baby to avoid ghost card via inverse relationship
-                        let activity = Activity(type: .note, startTime: Date(), baby: nil)
-                        if let id = recordID { activity.id = id }
-                        activity.applyCKRecord(record)
-                        context.insert(activity)
-                        activity.baby = baby
-                    }
-
-                case GrowthRecord.ckRecordType:
-                    let recordID = UUID(uuidString: record.recordID.recordName)
-                    
-                    // Skip if this record was deleted locally
-                    if let id = recordID, isRecordDeleted(id) {
-                        logger.info("Skipping deleted growth record during share acceptance: \(id)")
-                        continue
-                    }
-                    
-                    if let id = recordID, let existing = (baby.growthRecords ?? []).first(where: { $0.id == id }) {
-                        existing.applyCKRecord(record)
-                    } else {
-                        let growth = GrowthRecord(baby: nil)
-                        if let id = recordID { growth.id = id }
-                        growth.applyCKRecord(record)
-                        context.insert(growth)
-                        growth.baby = baby
-                    }
-
-                case HealthRecord.ckRecordType:
-                    let recordID = UUID(uuidString: record.recordID.recordName)
-                    
-                    // Skip if this record was deleted locally
-                    if let id = recordID, isRecordDeleted(id) {
-                        logger.info("Skipping deleted health record during share acceptance: \(id)")
-                        continue
-                    }
-                    
-                    if let id = recordID, let existing = (baby.healthRecords ?? []).first(where: { $0.id == id }) {
-                        existing.applyCKRecord(record)
-                    } else {
-                        let health = HealthRecord(baby: nil)
-                        if let id = recordID { health.id = id }
-                        health.applyCKRecord(record)
-                        context.insert(health)
-                        health.baby = baby
-                    }
-
-                default:
-                    break
-                }
-            }
-
-            try context.save()
-
-            sharedBabyIDs.insert(baby.id)
-            saveSharedBabyIDs()
             activeShare = metadata.share
             sharingStatus = .active
-
-            logger.info("Shared baby imported/updated: \(baby.displayName) with \(childRecords.count) child records")
+            logger.info("Shared baby imported/updated: \(baby.displayName) with \(childCount) child records")
         } catch {
             sharingStatus = .error(error.localizedDescription)
             logger.error("Failed to accept share: \(error.localizedDescription)")
             throw error
+        }
+    }
+    
+    /// Fallback recovery path for scene-based apps:
+    /// scans already-accepted shared zones and imports missing babies.
+    /// This prevents "invitation accepted but baby not visible" if delegate callbacks were missed.
+    func recoverAcceptedSharesIfNeeded(in context: ModelContext) async {
+        let now = Date()
+        if let lastScan = lastRecoveryScanDate,
+           now.timeIntervalSince(lastScan) < recoveryScanCooldown {
+            return
+        }
+        lastRecoveryScanDate = now
+        
+        await ensureAccountStatusChecked()
+        guard accountStatus == .available else { return }
+        
+        do {
+            let sharedDB = container.sharedCloudDatabase
+            let zones = try await sharedDB.allRecordZones()
+            guard !zones.isEmpty else { return }
+            
+            var recoveredCount = 0
+            for zone in zones {
+                do {
+                    let records = try await fetchAllRecords(in: zone.zoneID, from: sharedDB)
+                    guard let babyRecord = records.first(where: { $0.recordType == Baby.ckRecordType }),
+                          let babyID = UUID(uuidString: babyRecord.recordID.recordName) else {
+                        continue
+                    }
+                    
+                    let descriptor = FetchDescriptor<Baby>(predicate: #Predicate { $0.id == babyID })
+                    if try context.fetch(descriptor).first != nil {
+                        continue
+                    }
+                    
+                    _ = try importSharedRecords(records, ownerName: "Partner", in: context)
+                    recoveredCount += 1
+                    logger.info("Recovered missing shared baby from zone \(zone.zoneID.zoneName)")
+                } catch {
+                    logger.error("Failed to recover shared zone \(zone.zoneID.zoneName): \(error.localizedDescription)")
+                }
+            }
+            
+            if recoveredCount > 0 {
+                sharingStatus = .active
+                logger.info("Recovered \(recoveredCount) previously accepted share(s)")
+            }
+        } catch {
+            logger.error("Failed scanning shared zones for recovery: \(error.localizedDescription)")
+        }
+    }
+
+    /// Imports a full shared zone payload into SwiftData (upsert).
+    private func importSharedRecords(
+        _ records: [CKRecord],
+        ownerName: String,
+        in context: ModelContext
+    ) throws -> (baby: Baby, childCount: Int) {
+        var babyRecord: CKRecord?
+        var childRecords: [CKRecord] = []
+
+        for record in records {
+            if record.recordType == Baby.ckRecordType {
+                babyRecord = record
+            } else {
+                childRecords.append(record)
+            }
+        }
+
+        guard let babyRecord = babyRecord else {
+            throw SharingError.noBabyFound
+        }
+
+        let babyID = UUID(uuidString: babyRecord.recordID.recordName) ?? UUID()
+        let baby: Baby
+        let existingDescriptor = FetchDescriptor<Baby>(predicate: #Predicate { $0.id == babyID })
+        if let existingBaby = try context.fetch(existingDescriptor).first {
+            baby = existingBaby
+            logger.info("Found existing baby \(baby.displayName), updating instead of duplicating")
+        } else {
+            baby = Baby(firstName: "", dateOfBirth: Date())
+            baby.id = babyID
+            context.insert(baby)
+            logger.info("Created new baby record for shared baby")
+        }
+
+        baby.applyCKRecord(babyRecord)
+        baby.isShared = true
+        
+        // Never overwrite a known owner name with the generic fallback.
+        let trimmedOwnerName = ownerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedOwnerName.isEmpty {
+            if trimmedOwnerName != "Partner" || baby.ownerName == nil || baby.ownerName?.isEmpty == true {
+                baby.ownerName = trimmedOwnerName
+            }
+        }
+
+        for record in childRecords {
+            switch record.recordType {
+            case Activity.ckRecordType:
+                let recordID = UUID(uuidString: record.recordID.recordName)
+                
+                // Skip if this record was deleted locally
+                if let id = recordID, isRecordDeleted(id) {
+                    logger.info("Skipping deleted activity during share import: \(id)")
+                    continue
+                }
+                
+                if let id = recordID, let existing = (baby.activities ?? []).first(where: { $0.id == id }) {
+                    existing.applyCKRecord(record)
+                } else {
+                    // Create without baby to avoid ghost card via inverse relationship
+                    let activity = Activity(type: .note, startTime: Date(), baby: nil)
+                    if let id = recordID { activity.id = id }
+                    activity.applyCKRecord(record)
+                    context.insert(activity)
+                    activity.baby = baby
+                }
+
+            case GrowthRecord.ckRecordType:
+                let recordID = UUID(uuidString: record.recordID.recordName)
+                
+                // Skip if this record was deleted locally
+                if let id = recordID, isRecordDeleted(id) {
+                    logger.info("Skipping deleted growth record during share import: \(id)")
+                    continue
+                }
+                
+                if let id = recordID, let existing = (baby.growthRecords ?? []).first(where: { $0.id == id }) {
+                    existing.applyCKRecord(record)
+                } else {
+                    let growth = GrowthRecord(baby: nil)
+                    if let id = recordID { growth.id = id }
+                    growth.applyCKRecord(record)
+                    context.insert(growth)
+                    growth.baby = baby
+                }
+
+            case HealthRecord.ckRecordType:
+                let recordID = UUID(uuidString: record.recordID.recordName)
+                
+                // Skip if this record was deleted locally
+                if let id = recordID, isRecordDeleted(id) {
+                    logger.info("Skipping deleted health record during share import: \(id)")
+                    continue
+                }
+                
+                if let id = recordID, let existing = (baby.healthRecords ?? []).first(where: { $0.id == id }) {
+                    existing.applyCKRecord(record)
+                } else {
+                    let health = HealthRecord(baby: nil)
+                    if let id = recordID { health.id = id }
+                    health.applyCKRecord(record)
+                    context.insert(health)
+                    health.baby = baby
+                }
+
+            default:
+                break
+            }
+        }
+
+        try context.save()
+        sharedBabyIDs.insert(baby.id)
+        saveSharedBabyIDs()
+        return (baby, childRecords.count)
+    }
+
+    /// CloudKit can lag a short time between share acceptance and record visibility.
+    /// Retry briefly to avoid false "no baby found" errors on real devices.
+    private func fetchAllRecordsWithRetry(in zoneID: CKRecordZone.ID, from database: CKDatabase) async throws -> [CKRecord] {
+        let maxAttempts = 4
+        
+        for attempt in 1...maxAttempts {
+            do {
+                let records = try await fetchAllRecords(in: zoneID, from: database)
+                if records.contains(where: { $0.recordType == Baby.ckRecordType }) {
+                    return records
+                }
+                
+                if attempt == maxAttempts {
+                    throw SharingError.noBabyFound
+                }
+                
+                logger.warning("Shared zone has no baby record yet (attempt \(attempt)); retrying")
+            } catch {
+                if attempt == maxAttempts || !isTransientCloudKitError(error) {
+                    throw error
+                }
+                logger.warning("Transient CloudKit fetch error while importing share (attempt \(attempt)): \(error.localizedDescription)")
+            }
+            
+            let delay = UInt64(Double(attempt) * 700_000_000) // 0.7s, 1.4s, 2.1s
+            try? await Task.sleep(nanoseconds: delay)
+        }
+        
+        throw SharingError.noBabyFound
+    }
+
+    private func isTransientCloudKitError(_ error: Error) -> Bool {
+        guard let ckError = error as? CKError else { return false }
+        switch ckError.code {
+        case .networkUnavailable, .networkFailure, .serviceUnavailable, .requestRateLimited,
+             .zoneBusy, .serverResponseLost, .partialFailure, .changeTokenExpired:
+            return true
+        default:
+            return false
         }
     }
 
