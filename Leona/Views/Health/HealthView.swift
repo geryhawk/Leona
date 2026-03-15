@@ -5,6 +5,7 @@ struct HealthView: View {
     let baby: Baby
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(SharingManager.self) private var sharing
     @Query(sort: \HealthRecord.startDate, order: .reverse) private var allRecords: [HealthRecord]
 
     /// Unified sheet presentation to avoid SwiftUI multiple-sheet conflicts
@@ -84,8 +85,7 @@ struct HealthView: View {
             )) {
                 Button(String(localized: "delete"), role: .destructive) {
                     if let record = recordToDelete {
-                        modelContext.delete(record)
-                        try? modelContext.save()
+                        deleteRecord(record)
                     }
                     recordToDelete = nil
                 }
@@ -97,7 +97,25 @@ struct HealthView: View {
             }
         }
     }
-    
+
+    private func deleteRecord(_ record: HealthRecord) {
+        let recordID = record.id
+        let baby = record.baby
+
+        modelContext.delete(record)
+        try? modelContext.save()
+
+        if let baby, baby.isShared {
+            Task {
+                try? await sharing.deleteRecord(
+                    recordID: recordID,
+                    recordType: HealthRecord.ckRecordType,
+                    for: baby
+                )
+            }
+        }
+    }
+
     // MARK: - Active Health Issues
     
     private var activeHealthSection: some View {

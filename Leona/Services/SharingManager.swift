@@ -27,6 +27,7 @@ final class SharingManager {
     private var accountCheckTask: Task<Void, Never>?
     private var lastRecoveryScanDate: Date?
     private let recoveryScanCooldown: TimeInterval = 20.0
+    private var remoteImportDepth = 0
 
     enum SharingStatus: Equatable {
         case none
@@ -98,6 +99,10 @@ final class SharingManager {
         logger.info("CloudKit account access confirmed")
     }
 
+    var isApplyingRemoteChanges: Bool {
+        remoteImportDepth > 0
+    }
+
     // MARK: - Zone Management
 
     func zoneID(for babyID: UUID) -> CKRecordZone.ID {
@@ -118,6 +123,26 @@ final class SharingManager {
                 throw error
             }
         }
+    }
+
+    private func matchingSharedZoneID(for babyID: UUID, in zones: [CKRecordZone]) -> CKRecordZone.ID? {
+        let expectedZoneName = "SharedBaby-\(babyID.uuidString)"
+
+        return zones.first(where: { $0.zoneID.zoneName == expectedZoneName })?.zoneID
+            ?? zones.first(where: { $0.zoneID.zoneName.contains(babyID.uuidString) })?.zoneID
+    }
+
+    private func sharedZoneID(for baby: Baby) async throws -> CKRecordZone.ID? {
+        let zones = try await container.sharedCloudDatabase.allRecordZones()
+        return matchingSharedZoneID(for: baby.id, in: zones)
+    }
+
+    private func resolveZoneContext(for baby: Baby) async throws -> (zoneID: CKRecordZone.ID, database: CKDatabase) {
+        if let sharedZoneID = try await sharedZoneID(for: baby) {
+            return (sharedZoneID, container.sharedCloudDatabase)
+        }
+
+        return (zoneID(for: baby.id), container.privateCloudDatabase)
     }
 
     // MARK: - Get or Create Share
@@ -202,6 +227,7 @@ final class SharingManager {
     private func createFreshShare(for baby: Baby, in context: ModelContext) async throws -> CKShare {
         let zone = zoneID(for: baby.id)
         let database = container.privateCloudDatabase
+        saveChangeToken(nil, for: zone)
 
         // 1. Clean up any leftover zone from failed attempts
         do {
@@ -319,6 +345,7 @@ final class SharingManager {
             // 2. Fetch all records from the shared zone
             let sharedDB = container.sharedCloudDatabase
             let zoneID = metadata.share.recordID.zoneID
+            saveChangeToken(nil, for: zoneID)
             let records = try await fetchAllRecordsWithRetry(in: zoneID, from: sharedDB)
             let ownerName = metadata.ownerIdentity.nameComponents?.formatted() ?? "Partner"
             let (baby, childCount) = try importSharedRecords(records, ownerName: ownerName, in: context)
@@ -366,6 +393,7 @@ final class SharingManager {
                         continue
                     }
                     
+                    saveChangeToken(nil, for: zone.zoneID)
                     _ = try importSharedRecords(records, ownerName: "Partner", in: context)
                     recoveredCount += 1
                     logger.info("Recovered missing shared baby from zone \(zone.zoneID.zoneName)")
@@ -389,6 +417,9 @@ final class SharingManager {
         ownerName: String,
         in context: ModelContext
     ) throws -> (baby: Baby, childCount: Int) {
+        remoteImportDepth += 1
+        defer { remoteImportDepth -= 1 }
+
         var babyRecord: CKRecord?
         var childRecords: [CKRecord] = []
 
@@ -541,35 +572,121 @@ final class SharingManager {
         }
     }
 
+    private struct ZoneChangesBatch {
+        let changedRecords: [CKRecord]
+        let deletedRecordIDs: [CKRecord.ID]
+        let serverChangeToken: CKServerChangeToken?
+    }
+
+    private func changeTokenKey(for zoneID: CKRecordZone.ID) -> String {
+        "changeToken.\(zoneID.ownerName).\(zoneID.zoneName)"
+    }
+
+    private func loadChangeToken(for zoneID: CKRecordZone.ID) -> CKServerChangeToken? {
+        let key = changeTokenKey(for: zoneID)
+        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
+
+        return try? NSKeyedUnarchiver.unarchivedObject(
+            ofClass: CKServerChangeToken.self,
+            from: data
+        )
+    }
+
+    private func saveChangeToken(_ token: CKServerChangeToken?, for zoneID: CKRecordZone.ID) {
+        let key = changeTokenKey(for: zoneID)
+
+        guard let token else {
+            UserDefaults.standard.removeObject(forKey: key)
+            return
+        }
+
+        if let data = try? NSKeyedArchiver.archivedData(withRootObject: token, requiringSecureCoding: true) {
+            UserDefaults.standard.set(data, forKey: key)
+        }
+    }
+
+    private func fetchZoneChanges(
+        in zoneID: CKRecordZone.ID,
+        from database: CKDatabase,
+        since previousToken: CKServerChangeToken?
+    ) async throws -> ZoneChangesBatch {
+        try await withCheckedThrowingContinuation { continuation in
+            var changedRecords: [CKRecord] = []
+            var deletedRecordIDs: [CKRecord.ID] = []
+            var serverChangeToken = previousToken
+
+            let config = CKFetchRecordZoneChangesOperation.ZoneConfiguration()
+            config.previousServerChangeToken = previousToken
+
+            let operation = CKFetchRecordZoneChangesOperation(
+                recordZoneIDs: [zoneID],
+                configurationsByRecordZoneID: [zoneID: config]
+            )
+            operation.qualityOfService = .userInitiated
+
+            operation.recordWasChangedBlock = { _, result in
+                if case .success(let record) = result {
+                    changedRecords.append(record)
+                }
+            }
+
+            operation.recordWithIDWasDeletedBlock = { recordID, _ in
+                deletedRecordIDs.append(recordID)
+            }
+
+            operation.recordZoneFetchResultBlock = { _, result in
+                if case .success(let zoneResult) = result {
+                    serverChangeToken = zoneResult.serverChangeToken
+                }
+            }
+
+            operation.fetchRecordZoneChangesResultBlock = { result in
+                switch result {
+                case .success:
+                    continuation.resume(returning: ZoneChangesBatch(
+                        changedRecords: changedRecords,
+                        deletedRecordIDs: deletedRecordIDs,
+                        serverChangeToken: serverChangeToken
+                    ))
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+
+            database.add(operation)
+        }
+    }
+
     // MARK: - Sync Shared Records
 
     /// Fetches changes from the shared zone and applies them to SwiftData.
     func syncSharedRecords(for baby: Baby, in context: ModelContext) async throws {
         guard baby.isShared else { return }
 
-        let zoneID: CKRecordZone.ID
-        if baby.ownerName != nil {
-            // We're the participant — fetch from shared database
-            let zones = try await container.sharedCloudDatabase.allRecordZones()
-            let expectedZoneName = "SharedBaby-\(baby.id.uuidString)"
+        let resolved = try await resolveZoneContext(for: baby)
+        let previousToken = loadChangeToken(for: resolved.zoneID)
+        let batch: ZoneChangesBatch
 
-            // Try exact match first, then fallback to contains
-            if let zone = zones.first(where: { $0.zoneID.zoneName == expectedZoneName })
-                ?? zones.first(where: { $0.zoneID.zoneName.contains(baby.id.uuidString) }) {
-                zoneID = zone.zoneID
-            } else {
-                logger.warning("No shared zone found for baby \(baby.id) among \(zones.count) zones")
-                return
-            }
-        } else {
-            // We're the owner — shared zone is in our private database
-            zoneID = self.zoneID(for: baby.id)
+        do {
+            batch = try await fetchZoneChanges(
+                in: resolved.zoneID,
+                from: resolved.database,
+                since: previousToken
+            )
+        } catch let error as CKError where error.code == .changeTokenExpired {
+            logger.warning("Change token expired for zone \(resolved.zoneID.zoneName), refetching full state")
+            saveChangeToken(nil, for: resolved.zoneID)
+            batch = try await fetchZoneChanges(
+                in: resolved.zoneID,
+                from: resolved.database,
+                since: nil
+            )
         }
 
-        let database = baby.ownerName != nil ? container.sharedCloudDatabase : container.privateCloudDatabase
-        let records = try await fetchAllRecords(in: zoneID, from: database)
+        remoteImportDepth += 1
+        defer { remoteImportDepth -= 1 }
 
-        for record in records {
+        for record in batch.changedRecords {
             switch record.recordType {
             case Baby.ckRecordType:
                 baby.applyCKRecord(record)
@@ -637,8 +754,31 @@ final class SharingManager {
             }
         }
 
+        for deletedRecordID in batch.deletedRecordIDs {
+            if deletedRecordID.recordName == baby.id.uuidString {
+                continue
+            }
+
+            if let activity = (baby.activities ?? []).first(where: { $0.id.uuidString == deletedRecordID.recordName }) {
+                context.delete(activity)
+                continue
+            }
+
+            if let growth = (baby.growthRecords ?? []).first(where: { $0.id.uuidString == deletedRecordID.recordName }) {
+                context.delete(growth)
+                continue
+            }
+
+            if let health = (baby.healthRecords ?? []).first(where: { $0.id.uuidString == deletedRecordID.recordName }) {
+                context.delete(health)
+            }
+        }
+
         try? context.save()
-        logger.info("Synced \(records.count) records for baby \(baby.displayName)")
+        saveChangeToken(batch.serverChangeToken, for: resolved.zoneID)
+        logger.info(
+            "Synced \(batch.changedRecords.count) changed record(s) and \(batch.deletedRecordIDs.count) deletion(s) for baby \(baby.displayName)"
+        )
     }
 
     // MARK: - Push Local Changes
@@ -647,20 +787,20 @@ final class SharingManager {
     func pushLocalChanges(for baby: Baby) async throws {
         guard baby.isShared else { return }
 
-        let zone = zoneID(for: baby.id)
+        let resolved = try await resolveZoneContext(for: baby)
         var records: [CKRecord] = []
 
-        records.append(baby.toCKRecord(in: zone))
+        records.append(baby.toCKRecord(in: resolved.zoneID))
 
         // Only push non-deleted records
         for activity in baby.activities ?? [] where !activity.isDeleted {
-            records.append(activity.toCKRecord(in: zone))
+            records.append(activity.toCKRecord(in: resolved.zoneID))
         }
         for growth in baby.growthRecords ?? [] where !growth.isDeleted {
-            records.append(growth.toCKRecord(in: zone))
+            records.append(growth.toCKRecord(in: resolved.zoneID))
         }
         for health in baby.healthRecords ?? [] where !health.isDeleted {
-            records.append(health.toCKRecord(in: zone))
+            records.append(health.toCKRecord(in: resolved.zoneID))
         }
 
         guard !records.isEmpty else {
@@ -668,12 +808,10 @@ final class SharingManager {
             return
         }
 
-        let database = baby.ownerName != nil ? container.sharedCloudDatabase : container.privateCloudDatabase
-        
         // Mark that we're pushing (to avoid triggering sync on our own notification)
         lastPushDate = Date()
         
-        try await saveRecords(records, to: database)
+        try await saveRecords(records, to: resolved.database)
         logger.info("Pushed \(records.count) records for baby \(baby.displayName)")
     }
     
@@ -693,12 +831,11 @@ final class SharingManager {
         // Track this deletion to prevent re-creation during sync
         trackDeletedRecord(recordID)
         
-        let zone = zoneID(for: baby.id)
-        let ckRecordID = CKRecord.ID(recordName: recordID.uuidString, zoneID: zone)
-        let database = baby.ownerName != nil ? container.sharedCloudDatabase : container.privateCloudDatabase
+        let resolved = try await resolveZoneContext(for: baby)
+        let ckRecordID = CKRecord.ID(recordName: recordID.uuidString, zoneID: resolved.zoneID)
         
         do {
-            let (_, deletedIDs) = try await database.modifyRecords(saving: [], deleting: [ckRecordID])
+            let (_, deletedIDs) = try await resolved.database.modifyRecords(saving: [], deleting: [ckRecordID])
             logger.info("Deleted \(recordType) record from CloudKit: \(recordID.uuidString)")
             
             if !deletedIDs.isEmpty {
@@ -789,6 +926,7 @@ final class SharingManager {
 
         sharedBabyIDs.remove(baby.id)
         saveSharedBabyIDs()
+        saveChangeToken(nil, for: zone)
         activeShare = nil
         participants = []
         sharingStatus = .none
@@ -801,14 +939,12 @@ final class SharingManager {
     func fetchShareInfo(for baby: Baby) async {
         guard baby.isShared, let recordName = baby.ckRecordName else { return }
 
-        let zone = zoneID(for: baby.id)
-        let recordID = CKRecord.ID(recordName: recordName, zoneID: zone)
-        let database = baby.ownerName != nil ? container.sharedCloudDatabase : container.privateCloudDatabase
-
         do {
-            let record = try await database.record(for: recordID)
+            let resolved = try await resolveZoneContext(for: baby)
+            let recordID = CKRecord.ID(recordName: recordName, zoneID: resolved.zoneID)
+            let record = try await resolved.database.record(for: recordID)
             if let shareRef = record.share {
-                let share = try await database.record(for: shareRef.recordID) as! CKShare
+                let share = try await resolved.database.record(for: shareRef.recordID) as! CKShare
                 self.activeShare = share
                 self.participants = share.participants.filter { $0.role != .owner }
                 

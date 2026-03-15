@@ -217,6 +217,8 @@ struct GrowthEntryView: View {
             modelContext.insert(record)
         }
 
+        try? modelContext.save()
+
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         dismiss()
     }

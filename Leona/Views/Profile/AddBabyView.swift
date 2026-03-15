@@ -65,6 +65,7 @@ struct AddBabyView: View {
             bloodType: bloodType
         )
         modelContext.insert(baby)
+        try? modelContext.save()
         settings.activeBabyID = baby.id.uuidString
         
         UINotificationFeedbackGenerator().notificationOccurred(.success)

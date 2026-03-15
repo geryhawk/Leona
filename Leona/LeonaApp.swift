@@ -144,6 +144,17 @@ struct LeonaApp: App {
                     // Auto-sync shared babies on remote change (debounced)
                     triggerSharedSync()
                 }
+                .onReceive(NotificationCenter.default.publisher(
+                    for: ModelContext.didSave
+                )) { _ in
+                    guard !sharing.isApplyingRemoteChanges else {
+                        logger.info("Skipping shared sync trigger for remote-import save")
+                        return
+                    }
+
+                    logger.info("Local SwiftData save detected, scheduling shared sync")
+                    triggerSharedSync()
+                }
                 .onOpenURL { url in
                     // Handle CloudKit share URLs
                     Task {

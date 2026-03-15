@@ -460,6 +460,7 @@ struct OnboardingView: View {
         )
         
         modelContext.insert(baby)
+        try? modelContext.save()
         
         settings.activeBabyID = baby.id.uuidString
         settings.hasCompletedOnboarding = true

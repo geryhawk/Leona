@@ -6,6 +6,7 @@ struct HealthDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(SharingManager.self) private var sharing
 
     @State private var newTempDisplay: Double = UnitConversion.displayTemp(37.0)
     @State private var newSymptom = ""
@@ -83,13 +84,30 @@ struct HealthDetailView: View {
             }
             .alert(String(localized: "delete_record"), isPresented: $showDeleteConfirm) {
                 Button(String(localized: "delete"), role: .destructive) {
-                    modelContext.delete(record)
-                    try? modelContext.save()
+                    deleteRecord()
                     dismiss()
                 }
                 Button(String(localized: "cancel"), role: .cancel) {}
             } message: {
                 Text(String(localized: "delete_record_message"))
+            }
+        }
+    }
+
+    private func deleteRecord() {
+        let recordID = record.id
+        let baby = record.baby
+
+        modelContext.delete(record)
+        try? modelContext.save()
+
+        if let baby, baby.isShared {
+            Task {
+                try? await sharing.deleteRecord(
+                    recordID: recordID,
+                    recordType: HealthRecord.ckRecordType,
+                    for: baby
+                )
             }
         }
     }

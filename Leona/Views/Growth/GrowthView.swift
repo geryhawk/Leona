@@ -6,6 +6,7 @@ struct GrowthView: View {
     let baby: Baby
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(SharingManager.self) private var sharing
     @Query(sort: \GrowthRecord.date, order: .reverse) private var allRecords: [GrowthRecord]
 
     @State private var showAddRecord = false
@@ -93,8 +94,7 @@ struct GrowthView: View {
             )) {
                 Button(String(localized: "delete"), role: .destructive) {
                     if let record = recordToDelete {
-                        modelContext.delete(record)
-                        try? modelContext.save()
+                        deleteRecord(record)
                     }
                     recordToDelete = nil
                 }
@@ -103,6 +103,24 @@ struct GrowthView: View {
                 }
             } message: {
                 Text(String(localized: "delete_record_message"))
+            }
+        }
+    }
+
+    private func deleteRecord(_ record: GrowthRecord) {
+        let recordID = record.id
+        let baby = record.baby
+
+        modelContext.delete(record)
+        try? modelContext.save()
+
+        if let baby, baby.isShared {
+            Task {
+                try? await sharing.deleteRecord(
+                    recordID: recordID,
+                    recordType: GrowthRecord.ckRecordType,
+                    for: baby
+                )
             }
         }
     }

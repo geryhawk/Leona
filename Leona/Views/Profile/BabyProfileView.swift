@@ -6,6 +6,7 @@ struct BabyProfileView: View {
     @Bindable var baby: Baby
     
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     
     @State private var firstName: String
     @State private var lastName: String
@@ -124,6 +125,7 @@ struct BabyProfileView: View {
                 Task {
                     if let data = try? await newItem?.loadTransferable(type: Data.self) {
                         baby.profileImageData = data
+                        try? modelContext.save()
                     }
                 }
             }
@@ -134,6 +136,7 @@ struct BabyProfileView: View {
             ) {
                 Button(String(localized: "remove"), role: .destructive) {
                     baby.profileImageData = nil
+                    try? modelContext.save()
                 }
             }
         }
@@ -146,6 +149,7 @@ struct BabyProfileView: View {
         baby.gender = gender
         baby.bloodType = bloodType
         baby.updatedAt = Date()
+        try? modelContext.save()
         
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         dismiss()

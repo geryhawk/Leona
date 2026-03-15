@@ -309,6 +309,7 @@ struct SleepTrackingView: View {
         
         let activity = Activity(type: .sleep, startTime: manualStartTime, endTime: manualEndTime, baby: baby)
         modelContext.insert(activity)
+        try? modelContext.save()
         
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         showManualEntry = false

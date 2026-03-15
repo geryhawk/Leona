@@ -7,6 +7,7 @@ struct SettingsView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(CloudKitManager.self) private var cloudKit
     @Environment(\.modelContext) private var modelContext
+    @Environment(SharingManager.self) private var sharing
     
     @Query private var allActivities: [Activity]
     @Query(sort: \Baby.createdAt) private var babies: [Baby]
@@ -451,18 +452,51 @@ struct SettingsView: View {
     
     private func deleteAllData() {
         let babyActivities = allActivities.filter { $0.baby?.id == baby.id }
+        let activityIDs = babyActivities.map(\.id)
         for activity in babyActivities {
             modelContext.delete(activity)
         }
         
         let babyGrowth = growthRecords.filter { $0.baby?.id == baby.id }
+        let growthIDs = babyGrowth.map(\.id)
         for record in babyGrowth {
             modelContext.delete(record)
         }
         
         let babyHealth = healthRecords.filter { $0.baby?.id == baby.id }
+        let healthIDs = babyHealth.map(\.id)
         for record in babyHealth {
             modelContext.delete(record)
+        }
+
+        try? modelContext.save()
+
+        guard baby.isShared else { return }
+
+        Task {
+            for recordID in activityIDs {
+                try? await sharing.deleteRecord(
+                    recordID: recordID,
+                    recordType: Activity.ckRecordType,
+                    for: baby
+                )
+            }
+
+            for recordID in growthIDs {
+                try? await sharing.deleteRecord(
+                    recordID: recordID,
+                    recordType: GrowthRecord.ckRecordType,
+                    for: baby
+                )
+            }
+
+            for recordID in healthIDs {
+                try? await sharing.deleteRecord(
+                    recordID: recordID,
+                    recordType: HealthRecord.ckRecordType,
+                    for: baby
+                )
+            }
         }
     }
 }

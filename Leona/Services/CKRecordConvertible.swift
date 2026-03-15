@@ -45,7 +45,10 @@ extension Baby: CKRecordConvertible {
         if let val = record["gender"] as? String { gender = BabyGender(rawValue: val) ?? .unspecified }
         if let val = record["bloodType"] as? String { bloodType = val }
         if let val = record["isActive"] as? Int { isActive = val == 1 }
-        ownerName = record["ownerName"] as? String
+        if let val = record["ownerName"] as? String,
+           !val.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            ownerName = val
+        }
 
         if let asset = record["profileImage"] as? CKAsset, let url = asset.fileURL {
             profileImageData = try? Data(contentsOf: url)
@@ -85,6 +88,7 @@ extension Activity: CKRecordConvertible {
         if let babyID = baby?.id {
             let babyRecordID = CKRecord.ID(recordName: babyID.uuidString, zoneID: zone)
             record["baby"] = CKRecord.Reference(recordID: babyRecordID, action: .deleteSelf)
+            record.parent = CKRecord.Reference(recordID: babyRecordID, action: .none)
         }
 
         return record
@@ -140,6 +144,7 @@ extension GrowthRecord: CKRecordConvertible {
         if let babyID = baby?.id {
             let babyRecordID = CKRecord.ID(recordName: babyID.uuidString, zoneID: zone)
             record["baby"] = CKRecord.Reference(recordID: babyRecordID, action: .deleteSelf)
+            record.parent = CKRecord.Reference(recordID: babyRecordID, action: .none)
         }
 
         return record
@@ -187,6 +192,7 @@ extension HealthRecord: CKRecordConvertible {
         if let babyID = baby?.id {
             let babyRecordID = CKRecord.ID(recordName: babyID.uuidString, zoneID: zone)
             record["baby"] = CKRecord.Reference(recordID: babyRecordID, action: .deleteSelf)
+            record.parent = CKRecord.Reference(recordID: babyRecordID, action: .none)
         }
 
         return record
