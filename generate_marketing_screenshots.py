@@ -163,6 +163,18 @@ def load_font(face, size):
             return ImageFont.load_default()
 
 
+def fit_font(draw, text, face, base_size, max_width):
+    """Largest font at or below base_size whose widest line fits max_width."""
+    size = base_size
+    while size > base_size * 0.55:
+        font = load_font(face, size)
+        widest = max(draw.textlength(line, font=font) for line in text.split("\n"))
+        if widest <= max_width:
+            return font
+        size = int(size * 0.96)
+    return load_font(face, size)
+
+
 def gradient_background(size, top_color, bottom_color):
     width, height = size
     image = Image.new("RGB", size)
@@ -253,7 +265,8 @@ def compose(canvas_size, screenshot_path, output_path, cfg, lang, is_ipad):
 
     margin = int(width * 0.075)
     badge_font = load_font(FACE_BADGE, int(width * (0.026 if is_ipad else 0.034)))
-    title_font = load_font(FACE_TITLE, int(width * (0.066 if is_ipad else 0.088)))
+    # The title never runs past the right margin: long lines shrink the whole title.
+    title_font = fit_font(draw, title, FACE_TITLE, int(width * (0.066 if is_ipad else 0.088)), width - 2 * margin)
     subtitle_font = load_font(FACE_BODY, int(width * (0.028 if is_ipad else 0.037)))
 
     # Badge pill
