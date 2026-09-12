@@ -4,6 +4,7 @@ import SwiftUI
 /// or a running session bubble.
 struct ThreadRowView: View {
     let row: ThreadRow
+    let babyName: String
     let onOpen: (ThreadRow) -> Void
     let onOpenSleep: () -> Void
     let onOpenBreast: () -> Void
@@ -23,6 +24,39 @@ struct ThreadRowView: View {
             RunningSleepBubble(activity: activity, action: onOpenSleep)
         case .runningBreast(let activity):
             RunningBreastBubble(activity: activity, action: onOpenBreast)
+        case .leona(let remark):
+            LeonaRemarkBubble(remark: remark, babyName: babyName)
+        }
+    }
+}
+
+// MARK: - Leona's remark (a suggestion that was answered, kept in the flow)
+
+private struct LeonaRemarkBubble: View {
+    let remark: LeonaRemark
+    let babyName: String
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                LeonaTintCard(padding: EdgeInsets(top: 12, leading: 15, bottom: 12, trailing: 15), asBubble: true) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        LeonaCardHeader(name: babyName)
+                        Text(remark.line)
+                            .font(.leona(15, .medium))
+                            .lineSpacing(3)
+                            .foregroundStyle(.tInk)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Text("\(remark.metaText) · \(ThreadFormat.clock(remark.date))")
+                    .font(.leona(11, .semibold))
+                    .foregroundStyle(.tMuted)
+                    .padding(.horizontal, 8)
+            }
+            .frame(maxWidth: 320, alignment: .leading)
+            Spacer(minLength: 0)
         }
     }
 }

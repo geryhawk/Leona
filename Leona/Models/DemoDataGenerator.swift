@@ -44,6 +44,22 @@ struct DemoDataGenerator {
         CommandLine.arguments.contains("-onboarding") || requestedScreen == .onboarding
     }
 
+    /// Demo copy follows the launch language (`-AppleLanguages`) so store screenshots read naturally.
+    static var isEnglish: Bool {
+        Locale.current.language.languageCode?.identifier == "en"
+    }
+
+    private static func t(_ fr: String, _ en: String) -> String { isEnglish ? en : fr }
+
+    /// The other parent in the demo thread: their entries render as left-hand bubbles.
+    private static let partnerID = "demo-partner"
+    private static let partnerName = "Thomas"
+
+    private static func byPartner(_ activity: Activity) {
+        activity.authorID = partnerID
+        activity.authorName = partnerName
+    }
+
     @MainActor
     static func populate(context: ModelContext) {
         resetAllData(in: context)
@@ -66,6 +82,11 @@ struct DemoDataGenerator {
             bloodType: "O+"
         )
         baby.profileImageData = makeProfileImageData(initial: "A")
+        if requestedScreen == .sharing {
+            // Present the thread as already shared, with this device as the owner.
+            baby.isShared = true
+            baby.ownerName = nil
+        }
         context.insert(baby)
 
         AppSettings.shared.activeBabyID = baby.id.uuidString
@@ -117,6 +138,9 @@ struct DemoDataGenerator {
         settings.useCelsius = true
         settings.useMetric = true
         settings.colorScheme = .light
+        settings.autoNightTheme = false
+        settings.leonaSuggestions = true
+        settings.userDisplayName = ""
         settings.accentColor = .corail
         settings.iCloudSyncEnabled = requestedScreen == .sharing || requestedScreen == .settings
     }
@@ -130,10 +154,12 @@ struct DemoDataGenerator {
             baby: baby
         )
         nightSleep.sessionSlot = .night
+        byPartner(nightSleep)
         context.insert(nightSleep)
 
         let diaper1 = Activity(type: .diaper, startTime: todayAt(6, 28), baby: baby)
         diaper1.diaperType = .both
+        byPartner(diaper1)
         context.insert(diaper1)
 
         let breastfeeding = Activity(
@@ -151,7 +177,7 @@ struct DemoDataGenerator {
         context.insert(breastfeeding)
 
         let breakfast = Activity(type: .solidFood, startTime: todayAt(7, 38), baby: baby)
-        breakfast.foodName = "Porridge poire & cannelle"
+        breakfast.foodName = t("Porridge poire & cannelle", "Pear & cinnamon porridge")
         breakfast.foodQuantity = 115
         breakfast.foodUnit = .grams
         context.insert(breakfast)
@@ -163,6 +189,7 @@ struct DemoDataGenerator {
         let formula = Activity(type: .formula, startTime: todayAt(9, 44), baby: baby)
         formula.volumeML = 180
         formula.sessionSlot = .morning
+        byPartner(formula)
         context.insert(formula)
 
         let morningNap = Activity(
@@ -172,10 +199,12 @@ struct DemoDataGenerator {
             baby: baby
         )
         morningNap.sessionSlot = .day
+        byPartner(morningNap)
         context.insert(morningNap)
 
         let note = Activity(type: .note, startTime: todayAt(12, 12), baby: baby)
-        note.noteText = "A applaudi toute seule pendant la comptine."
+        note.noteText = t("A applaudi toute seule pendant la comptine.", "Clapped along to the nursery rhyme all by herself.")
+        byPartner(note)
         context.insert(note)
 
         let pumpedMilk = Activity(type: .momsMilk, startTime: todayAt(13, 18), baby: baby)
@@ -184,13 +213,14 @@ struct DemoDataGenerator {
         context.insert(pumpedMilk)
 
         let lunch = Activity(type: .solidFood, startTime: todayAt(14, 4), baby: baby)
-        lunch.foodName = "Courgette, saumon & riz"
+        lunch.foodName = t("Courgette, saumon & riz", "Zucchini, salmon & rice")
         lunch.foodQuantity = 140
         lunch.foodUnit = .grams
         context.insert(lunch)
 
         let diaper3 = Activity(type: .diaper, startTime: todayAt(14, 28), baby: baby)
         diaper3.diaperType = .both
+        byPartner(diaper3)
         context.insert(diaper3)
 
         let afternoonNap = Activity(
@@ -200,6 +230,7 @@ struct DemoDataGenerator {
             baby: baby
         )
         afternoonNap.sessionSlot = .day
+        byPartner(afternoonNap)
         context.insert(afternoonNap)
     }
 
@@ -207,29 +238,18 @@ struct DemoDataGenerator {
     private static func insertHistoricalActivities(for baby: Baby, in context: ModelContext) {
         let formulaVolumes = [175.0, 185.0, 170.0, 180.0, 165.0, 190.0, 175.0, 180.0, 170.0, 185.0, 175.0, 180.0]
         let expressedMilkVolumes = [110.0, 90.0, 120.0, 95.0, 105.0, 115.0]
-        let breakfasts = [
-            "Compote pomme-poire",
-            "Banane & avoine",
-            "Yaourt nature & framboise",
-            "Porridge mangue",
-            "Poire & biscuit bebe",
-            "Semoule vanille"
-        ]
-        let lunches = [
-            "Carotte & patate douce",
-            "Brocoli & poulet",
-            "Courge & quinoa",
-            "Petits pois & dinde",
-            "Patate douce & cabillaud",
-            "Riz, carotte & lentilles"
-        ]
-        let notes = [
-            "A fait coucou a la nounou.",
-            "A rampe jusque sous la table basse.",
-            "Sourire geant apres le bain.",
-            "S'est endormie seule dans le lit.",
-            "A tape dans ses mains au parc."
-        ]
+        let breakfasts = isEnglish
+            ? ["Apple & pear purée", "Banana & oats", "Plain yogurt & raspberry", "Mango porridge", "Pear & baby biscuit", "Vanilla semolina"]
+            : ["Compote pomme-poire", "Banane & avoine", "Yaourt nature & framboise", "Porridge mangue", "Poire & biscuit bébé", "Semoule vanille"]
+        let lunches = isEnglish
+            ? ["Carrot & sweet potato", "Broccoli & chicken", "Squash & quinoa", "Peas & turkey", "Sweet potato & cod", "Rice, carrot & lentils"]
+            : ["Carotte & patate douce", "Brocoli & poulet", "Courge & quinoa", "Petits pois & dinde", "Patate douce & cabillaud", "Riz, carotte & lentilles"]
+        let notes = isEnglish
+            ? ["Waved at the nanny.", "Crawled all the way under the coffee table.", "Huge smile after the bath.", "Fell asleep on her own in the crib.", "Clapped her hands at the park."]
+            : ["A fait coucou à la nounou.", "A rampé jusque sous la table basse.", "Sourire géant après le bain.", "S'est endormie seule dans le lit.", "A tapé dans ses mains au parc."]
+        let dinners = isEnglish
+            ? ["Polenta & zucchini", "Red lentil purée"]
+            : ["Polenta & courgette", "Purée de lentilles corail"]
 
         for dayOffset in 1...18 {
             let dayDate = Calendar.current.date(byAdding: .day, value: -dayOffset, to: Date())!
@@ -246,11 +266,13 @@ struct DemoDataGenerator {
 
             let firstDiaper = Activity(type: .diaper, startTime: dateAt(dayDate, 6, 20 + dayOffset % 6), baby: baby)
             firstDiaper.diaperType = dayOffset.isMultiple(of: 3) ? .both : .pee
+            if dayOffset.isMultiple(of: 2) { byPartner(firstDiaper) }
             context.insert(firstDiaper)
 
             let morningBottle = Activity(type: .formula, startTime: dateAt(dayDate, 7, 18 + dayOffset % 10), baby: baby)
             morningBottle.volumeML = formulaVolumes[(dayOffset - 1) % formulaVolumes.count]
             morningBottle.sessionSlot = .morning
+            if dayOffset.isMultiple(of: 2) { byPartner(morningBottle) }
             context.insert(morningBottle)
 
             let breakfast = Activity(type: .solidFood, startTime: dateAt(dayDate, 8, 3 + dayOffset % 14), baby: baby)
@@ -293,7 +315,7 @@ struct DemoDataGenerator {
             context.insert(thirdDiaper)
 
             let dinner = Activity(type: .solidFood, startTime: dateAt(dayDate, 18, 2 + dayOffset % 8), baby: baby)
-            dinner.foodName = dayOffset.isMultiple(of: 2) ? "Polenta & courgette" : "Purée de lentilles corail"
+            dinner.foodName = dayOffset.isMultiple(of: 2) ? dinners[0] : dinners[1]
             dinner.foodQuantity = Double(95 + (dayOffset % 4) * 12)
             dinner.foodUnit = .grams
             context.insert(dinner)
@@ -301,11 +323,13 @@ struct DemoDataGenerator {
             let bedtimeBottle = Activity(type: .formula, startTime: dateAt(dayDate, 19, 8 + dayOffset % 14), baby: baby)
             bedtimeBottle.volumeML = 190 - Double((dayOffset % 3) * 10)
             bedtimeBottle.sessionSlot = .evening
+            if !dayOffset.isMultiple(of: 2) { byPartner(bedtimeBottle) }
             context.insert(bedtimeBottle)
 
             if dayOffset.isMultiple(of: 3) {
                 let note = Activity(type: .note, startTime: dateAt(dayDate, 17, 24), baby: baby)
                 note.noteText = notes[(dayOffset / 3 - 1) % notes.count]
+                if dayOffset.isMultiple(of: 6) { byPartner(note) }
                 context.insert(note)
             }
         }
@@ -351,15 +375,15 @@ struct DemoDataGenerator {
             illnessType: .vaccination,
             startDate: calendar.date(byAdding: .day, value: 60, to: birthDate)!,
             endDate: calendar.date(byAdding: .day, value: 60, to: birthDate)!,
-            notes: "Vaccins 2 mois (DTP, coqueluche, Hib, hepatite B, pneumocoque).",
+            notes: t("Vaccins 2 mois (DTP, coqueluche, Hib, hépatite B, pneumocoque).", "2-month vaccines (DTaP, Hib, hepatitis B, pneumococcal)."),
             baby: baby
         )
         vaccine2Months.temperatures = [
             TemperatureReading(temperature: 38.1, measuredAt: calendar.date(byAdding: .day, value: 60, to: birthDate)!)
         ]
         vaccine2Months.symptoms = [
-            Symptom(description: "Rougeur au point d'injection", severity: .mild),
-            Symptom(description: "Sommeil plus court", severity: .mild)
+            Symptom(description: t("Rougeur au point d'injection", "Redness at the injection site"), severity: .mild),
+            Symptom(description: t("Sommeil plus court", "Shorter sleep"), severity: .mild)
         ]
         context.insert(vaccine2Months)
 
@@ -367,13 +391,13 @@ struct DemoDataGenerator {
             illnessType: .cold,
             startDate: calendar.date(byAdding: .day, value: 192, to: birthDate)!,
             endDate: calendar.date(byAdding: .day, value: 198, to: birthDate)!,
-            notes: "Rhume leger avec nez qui coule et reveils plus frequents.",
+            notes: t("Rhume léger avec nez qui coule et réveils plus fréquents.", "Mild cold with a runny nose and more night wakings."),
             baby: baby
         )
         cold.symptoms = [
-            Symptom(description: "Nez qui coule", severity: .moderate),
-            Symptom(description: "Eternuements", severity: .mild),
-            Symptom(description: "Sommeil perturbe", severity: .mild)
+            Symptom(description: t("Nez qui coule", "Runny nose"), severity: .moderate),
+            Symptom(description: t("Éternuements", "Sneezing"), severity: .mild),
+            Symptom(description: t("Sommeil perturbé", "Disturbed sleep"), severity: .mild)
         ]
         cold.temperatures = [
             TemperatureReading(temperature: 37.8, measuredAt: calendar.date(byAdding: .day, value: 192, to: birthDate)!),
@@ -385,13 +409,13 @@ struct DemoDataGenerator {
             let earInfection = HealthRecord(
                 illnessType: .earInfection,
                 startDate: calendar.date(byAdding: .hour, value: -26, to: now)!,
-                notes: "Se reveille en pleurant et touche souvent son oreille droite.",
+                notes: t("Se réveille en pleurant et touche souvent son oreille droite.", "Wakes up crying and keeps touching her right ear."),
                 baby: baby
             )
             earInfection.symptoms = [
-                Symptom(description: "Oreille chaude", severity: .moderate),
-                Symptom(description: "Irritabilite", severity: .moderate),
-                Symptom(description: "Petit appetit", severity: .mild)
+                Symptom(description: t("Oreille chaude", "Warm ear"), severity: .moderate),
+                Symptom(description: t("Irritabilité", "Irritability"), severity: .moderate),
+                Symptom(description: t("Petit appétit", "Small appetite"), severity: .mild)
             ]
             earInfection.temperatures = [
                 TemperatureReading(temperature: 38.4, measuredAt: calendar.date(byAdding: .hour, value: -18, to: now)!),
@@ -399,27 +423,27 @@ struct DemoDataGenerator {
                 TemperatureReading(temperature: 38.2, measuredAt: calendar.date(byAdding: .hour, value: -1, to: now)!)
             ]
             earInfection.medications = [
-                Medication(name: "Doliprane", dosage: "120 mg si besoin"),
-                Medication(name: "Sérum physiologique", dosage: "Lavage de nez avant le coucher")
+                Medication(name: t("Doliprane", "Acetaminophen"), dosage: t("120 mg si besoin", "120 mg as needed")),
+                Medication(name: t("Sérum physiologique", "Saline drops"), dosage: t("Lavage de nez avant le coucher", "Nose rinse before bed"))
             ]
             context.insert(earInfection)
         } else {
             let teething = HealthRecord(
                 illnessType: .teething,
                 startDate: calendar.date(byAdding: .day, value: -8, to: now)!,
-                notes: "Premieres molaires en preparation, bave beaucoup.",
+                notes: t("Premières molaires en préparation, bave beaucoup.", "First molars on the way, drooling a lot."),
                 baby: baby
             )
             teething.symptoms = [
-                Symptom(description: "Gencives gonflees", severity: .moderate),
-                Symptom(description: "Mordille ses jouets", severity: .moderate),
-                Symptom(description: "Bave excessive", severity: .mild)
+                Symptom(description: t("Gencives gonflées", "Swollen gums"), severity: .moderate),
+                Symptom(description: t("Mordille ses jouets", "Chews on her toys"), severity: .moderate),
+                Symptom(description: t("Bave excessive", "Heavy drooling"), severity: .mild)
             ]
             teething.temperatures = [
                 TemperatureReading(temperature: 37.6, measuredAt: calendar.date(byAdding: .day, value: -2, to: now)!)
             ]
             teething.medications = [
-                Medication(name: "Anneau de dentition refroidi", dosage: "A la demande")
+                Medication(name: t("Anneau de dentition refroidi", "Chilled teething ring"), dosage: t("À la demande", "As needed"))
             ]
             context.insert(teething)
         }

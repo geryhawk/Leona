@@ -17,6 +17,7 @@ struct ThreadView: View {
 
     @State private var tray: LogTrayState?
     @State private var snoozedUntil: Date?
+    @State private var remarks: [LeonaRemark] = []
     @State private var lastSeen: Date?
     @State private var seenLoaded = false
     @FocusState private var composerFocused: Bool
@@ -62,6 +63,7 @@ struct ThreadView: View {
         .animation(.easeOut(duration: 0.2), value: tray?.kind)
         .onAppear {
             loadSeen()
+            remarks = LeonaRemarkStore.load(for: baby.id)
             checkMilestones()
         }
         .task { await loadSharingInfo() }
@@ -195,13 +197,13 @@ struct ThreadView: View {
     /// Rows are laid out in a vertically flipped scroll view so the newest entry sits at the
     /// bottom and the list opens scrolled to the end, the way a conversation does.
     private func messages(_ snap: Snapshot) -> some View {
-        let rows = ThreadBuilder.rows(activities: snap.activities, lastSeen: lastSeen)
+        let rows = ThreadBuilder.rows(activities: snap.activities, lastSeen: lastSeen, remarks: remarks)
         return ScrollView(showsIndicators: false) {
             LazyVStack(spacing: 9) {
                 footer(snap)
                     .flipped()
                 ForEach(rows.reversed()) { row in
-                    ThreadRowView(row: row, onOpen: open(row:), onOpenSleep: { navigator.open(.sleep) }, onOpenBreast: { navigator.open(.breastfeeding) })
+                    ThreadRowView(row: row, babyName: baby.displayName, onOpen: open(row:), onOpenSleep: { navigator.open(.sleep) }, onOpenBreast: { navigator.open(.breastfeeding) })
                         .flipped()
                 }
             }
@@ -213,20 +215,28 @@ struct ThreadView: View {
     }
 
     /// Leona's card, the "NOW" divider and the sync receipt — the bottom of the conversation.
+    /// The card is re-evaluated every minute so it appears when a feed comes due and leaves
+    /// when a snooze expires, without any other state change.
     private func footer(_ snap: Snapshot) -> some View {
         VStack(spacing: 9) {
-            LeonaSuggestionCard(
-                advice: LeonaAdvisor.advice(
+            TimelineView(.periodic(from: .now, by: 60)) { context in
+                if let advice = LeonaAdvisor.advice(
                     totals: snap.totals,
                     ongoingSleep: snap.ongoingSleep,
                     snoozedUntil: snoozedUntil,
                     enabled: settings.leonaSuggestions,
-                    babyName: baby.displayName
-                ),
-                onPrimary: handleLeonaPrimary,
-                onSecondary: handleLeonaSecondary,
-                onWhy: { navigator.go(.insights(.trends)) }
-            )
+                    babyName: baby.displayName,
+                    now: context.date
+                ) {
+                    LeonaSuggestionCard(
+                        advice: advice,
+                        babyName: baby.displayName,
+                        onPrimary: handleLeonaPrimary,
+                        onSecondary: handleLeonaSecondary,
+                        onWhy: { navigator.go(.insights(.trends)) }
+                    )
+                }
+            }
             TimelineView(.periodic(from: .now, by: 30)) { context in
                 HStack(spacing: 10) {
                     Rectangle().fill(Color.vermilion.opacity(0.3)).frame(height: 1)
@@ -268,6 +278,8 @@ struct ThreadView: View {
         switch advice.action {
         case .logBottle:
             let ml = snapshot().totals.predictedVolumeML
+            // The remark lands just before the entry it led to.
+            remember(advice, outcome: .logged, until: nil)
             ActivityLogger.logBottle(ml, kind: .formula, at: Date(), baby: baby, context: modelContext)
             snoozedUntil = nil
             navigator.flash(String(localized: "thread_added \(ThreadFormat.title(for: previewBottle(ml)))"))
@@ -284,12 +296,27 @@ struct ThreadView: View {
         switch advice.secondary {
         case .snooze:
             let base = snapshot().totals.nextFeed ?? Date()
-            snoozedUntil = max(base, Date()).addingTimeInterval(20 * 60)
+            let until = max(base, Date()).addingTimeInterval(20 * 60)
+            snoozedUntil = until
+            remember(advice, outcome: .snoozed, until: until)
         case .fixSleepStart:
             navigator.open(.sleep)
         case .none:
             break
         }
+    }
+
+    /// Keeps the answered suggestion as a message in the thread, one per occasion.
+    private func remember(_ advice: LeonaAdvice, outcome: LeonaRemark.Outcome, until: Date?) {
+        let now = Date()
+        if let index = remarks.firstIndex(where: { $0.occasion == advice.occasion }) {
+            remarks[index].date = now
+            remarks[index].outcome = outcome
+            remarks[index].until = until
+        } else {
+            remarks.append(LeonaRemark(occasion: advice.occasion, date: now, line: advice.line, outcome: outcome, until: until))
+        }
+        LeonaRemarkStore.save(remarks, for: baby.id)
     }
 
     private func previewBottle(_ ml: Double) -> Activity {

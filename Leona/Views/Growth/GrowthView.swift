@@ -176,7 +176,7 @@ struct GrowthView: View {
     private var leonaCard: some View {
         LeonaTintCard(padding: EdgeInsets(top: 16, leading: 18, bottom: 16, trailing: 18), asBubble: true) {
             VStack(alignment: .leading, spacing: 10) {
-                LeonaCardHeader()
+                LeonaCardHeader(name: baby.displayName)
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(latestValueText)
                         .font(.leona(38, .bold))
@@ -271,7 +271,7 @@ struct GrowthView: View {
     private var emptyBubble: some View {
         LeonaTintCard(padding: EdgeInsets(top: 16, leading: 18, bottom: 16, trailing: 18), asBubble: true) {
             VStack(alignment: .leading, spacing: 10) {
-                LeonaCardHeader()
+                LeonaCardHeader(name: baby.displayName)
                 Text(String(localized: "growth_empty_bubble \(baby.displayName)"))
                     .font(.leona(15, .medium))
                     .lineSpacing(4)

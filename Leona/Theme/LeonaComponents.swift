@@ -3,12 +3,13 @@ import SwiftUI
 // MARK: - Leona mark ("L" badge)
 
 struct LeonaMark: View {
+    var letter: String = "L"
     var size: CGFloat = 19
     var radius: CGFloat = 6
     var fontSize: CGFloat = 11
 
     var body: some View {
-        Text("L")
+        Text(letter)
             .font(.leona(fontSize, .heavy))
             .foregroundStyle(.white)
             .frame(width: size, height: size)
@@ -17,16 +18,29 @@ struct LeonaMark: View {
     }
 }
 
-/// The small "L  LEONA" header that opens every one of Leona's cards.
+/// The small "A  ALMA" header that opens every card: the baby's initial and name.
+/// Without a name (before the first baby exists) it falls back to the app mark.
 struct LeonaCardHeader: View {
+    var name: String? = nil
+    var size: CGFloat = 10
+    var markSize: CGFloat = 17
     var trailing: (() -> AnyView)? = nil
+
+    private var title: String {
+        let trimmed = name?.trimmingCharacters(in: .whitespaces) ?? ""
+        return (trimmed.isEmpty ? "Leona" : trimmed).uppercased()
+    }
+
+    private var letter: String {
+        String(title.prefix(1))
+    }
 
     var body: some View {
         HStack(spacing: 7) {
-            LeonaMark(size: 17, radius: 5, fontSize: 10)
-            Text("LEONA")
-                .font(.leona(10, .heavy))
-                .leonaTracking(0.1, size: 10)
+            LeonaMark(letter: letter, size: markSize, radius: markSize * 0.3, fontSize: size)
+            Text(title)
+                .font(.leona(size, .heavy))
+                .leonaTracking(0.1, size: size)
                 .foregroundStyle(.tLeonaInk)
             Spacer(minLength: 0)
             if let trailing { trailing() }

@@ -64,7 +64,7 @@ struct TrendsView: View {
     private func verdictBubble(_ text: String) -> some View {
         LeonaTintCard(padding: EdgeInsets(top: 14, leading: 17, bottom: 14, trailing: 17), asBubble: true) {
             VStack(alignment: .leading, spacing: 7) {
-                LeonaCardHeader()
+                LeonaCardHeader(name: baby.displayName)
                 Text(text)
                     .font(.leona(17, .bold))
                     .leonaTracking(-0.015, size: 17)

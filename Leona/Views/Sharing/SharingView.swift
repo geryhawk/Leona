@@ -163,7 +163,7 @@ struct SharingView: View {
     private var cloudGate: some View {
         LeonaTintCard(padding: EdgeInsets(top: 15, leading: 17, bottom: 15, trailing: 17), asBubble: true) {
             VStack(alignment: .leading, spacing: 7) {
-                LeonaCardHeader()
+                LeonaCardHeader(name: baby.displayName)
                 Text(String(localized: "sharing_needs_icloud \(baby.displayName)"))
                     .font(.leona(16, .semibold))
                     .foregroundStyle(.tInk)
@@ -193,7 +193,7 @@ struct SharingView: View {
     private var leonaBubble: some View {
         LeonaTintCard(padding: EdgeInsets(top: 15, leading: 17, bottom: 15, trailing: 17), asBubble: true) {
             VStack(alignment: .leading, spacing: 7) {
-                LeonaCardHeader()
+                LeonaCardHeader(name: baby.displayName)
                 Text(handoffLine)
                     .font(.leona(16, .semibold))
                     .foregroundStyle(.tInk)
@@ -270,6 +270,9 @@ struct SharingView: View {
     // MARK: - Loading
 
     private func initialLoad() async {
+        #if DEBUG
+        if DemoDataGenerator.isDemoMode { return }
+        #endif
         guard baby.isShared else { return }
         isLoading = true
         await sharing.fetchShareInfo(for: baby)

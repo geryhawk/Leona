@@ -22,6 +22,13 @@ struct SharingPeopleSection: View {
         return name.isEmpty ? String(localized: "profile_you") : name
     }
 
+    /// "Camille · you" when a name is set, plain "You" otherwise (never "You · you").
+    private var meRowTitle: String {
+        settings.userDisplayName.trimmingCharacters(in: .whitespaces).isEmpty
+            ? String(localized: "author_you")
+            : String(localized: "sharing_me_row \(myName)")
+    }
+
     private var others: [CKShare.Participant] {
         SharingView.others(for: baby, sharing: sharing)
     }
@@ -79,7 +86,7 @@ struct SharingPeopleSection: View {
         SharingPersonRow(
             badgeName: myName,
             badgeColor: .tMine,
-            title: String(localized: "sharing_me_row \(myName)"),
+            title: meRowTitle,
             subtitle: (isOwner || !baby.isShared)
                 ? String(localized: "sharing_role_owner")
                 : String(localized: "sharing_role_editor")

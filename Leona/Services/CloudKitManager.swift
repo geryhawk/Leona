@@ -57,6 +57,15 @@ final class CloudKitManager {
     // MARK: - Check iCloud Status
 
     func checkiCloudStatus() async {
+        #if DEBUG
+        // Screenshot runs have no iCloud account in the simulator; present sharing as ready.
+        if DemoDataGenerator.isDemoMode {
+            self.iCloudAvailable = true
+            self.iCloudStatus = .available
+            self.syncStatus = .synced
+            return
+        }
+        #endif
         guard let container = container else {
             self.iCloudAvailable = false
             self.syncStatus = .offline

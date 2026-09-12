@@ -1,8 +1,10 @@
 import SwiftUI
 
-/// Leona's line at the bottom of the thread: one sentence, one action, one way to say "not yet".
+/// The suggestion at the bottom of the thread: one sentence, one action, one way to say "not yet".
+/// Headed with the baby's name, like every other card.
 struct LeonaSuggestionCard: View {
     let advice: LeonaAdvice
+    let babyName: String
     let onPrimary: (LeonaAdvice) -> Void
     let onSecondary: (LeonaAdvice) -> Void
     let onWhy: () -> Void
@@ -10,20 +12,16 @@ struct LeonaSuggestionCard: View {
     var body: some View {
         LeonaTintCard {
             VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: 8) {
-                    LeonaMark()
-                    Text("LEONA")
-                        .font(.leona(11, .heavy))
-                        .leonaTracking(0.1, size: 11)
-                        .foregroundStyle(.tLeonaInk)
-                    Spacer(minLength: 0)
-                    Button(action: onWhy) {
-                        Text(String(localized: "leona_why"))
-                            .font(.leona(11, .bold))
-                            .underline()
-                            .foregroundStyle(.tLeonaInk)
-                    }
-                    .buttonStyle(.plain)
+                LeonaCardHeader(name: babyName, size: 11, markSize: 19) {
+                    AnyView(
+                        Button(action: onWhy) {
+                            Text(String(localized: "leona_why"))
+                                .font(.leona(11, .bold))
+                                .underline()
+                                .foregroundStyle(.tLeonaInk)
+                        }
+                        .buttonStyle(.plain)
+                    )
                 }
                 .padding(.bottom, 7)
 

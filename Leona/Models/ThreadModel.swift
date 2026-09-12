@@ -179,17 +179,80 @@ struct ThreadRow: Identifiable {
         case entry(Activity)
         case runningSleep(Activity)
         case runningBreast(Activity)
+        case leona(LeonaRemark)
     }
 
     let id: String
     let kind: Kind
 }
 
+// MARK: - Leona's remarks (what she said, kept in the flow of the conversation)
+
+/// A suggestion the parent answered, kept as a message in the thread. Local to this
+/// phone and pruned after a day: never an Activity, never synced, never exported.
+struct LeonaRemark: Codable, Identifiable, Equatable {
+    enum Outcome: String, Codable {
+        case snoozed
+        case logged
+    }
+
+    var id: UUID = UUID()
+    /// One remark per occasion: answering the same suggestion again updates it.
+    let occasion: String
+    var date: Date
+    let line: String
+    var outcome: Outcome
+    var until: Date?
+
+    var metaText: String {
+        switch outcome {
+        case .snoozed:
+            if let until { return String(localized: "leona_remark_snoozed_meta \(ThreadFormat.clock(until))") }
+            return String(localized: "leona_snooze_not_yet")
+        case .logged:
+            return String(localized: "leona_remark_logged_meta")
+        }
+    }
+}
+
+enum LeonaRemarkStore {
+    private static let keep: TimeInterval = 24 * 60 * 60
+
+    private static func key(_ babyID: UUID) -> String { "leonaRemarks-\(babyID.uuidString)" }
+
+    static func load(for babyID: UUID, now: Date = Date()) -> [LeonaRemark] {
+        guard let data = UserDefaults.standard.data(forKey: key(babyID)),
+              let remarks = try? JSONDecoder().decode([LeonaRemark].self, from: data) else { return [] }
+        return remarks.filter { now.timeIntervalSince($0.date) < keep }
+    }
+
+    static func save(_ remarks: [LeonaRemark], for babyID: UUID) {
+        if let data = try? JSONEncoder().encode(remarks) {
+            UserDefaults.standard.set(data, forKey: key(babyID))
+        }
+    }
+}
+
 enum ThreadBuilder {
+    private enum Item {
+        case activity(Activity)
+        case remark(LeonaRemark)
+
+        var date: Date {
+            switch self {
+            case .activity(let a): return a.sortTime
+            case .remark(let r): return r.date
+            }
+        }
+    }
+
     /// Builds the chronological thread: day dividers, an unread marker for the partner's
-    /// entries since the thread was last seen, then one row per entry, running sessions last.
-    static func rows(activities: [Activity], lastSeen: Date?) -> [ThreadRow] {
-        let finished = activities.filter { !$0.isOngoing }.sorted { $0.sortTime < $1.sortTime }
+    /// entries since the thread was last seen, one row per entry with Leona's remarks
+    /// in between, running sessions last.
+    static func rows(activities: [Activity], lastSeen: Date?, remarks: [LeonaRemark] = []) -> [ThreadRow] {
+        let finished = activities.filter { !$0.isOngoing }
+        let items = (finished.map(Item.activity) + remarks.map(Item.remark))
+            .sorted { $0.date < $1.date }
         var rows: [ThreadRow] = []
         var currentDay: Date?
         var markerDone = false
@@ -197,18 +260,23 @@ enum ThreadBuilder {
             finished.filter { !$0.isMine && $0.createdAt > seen }.count
         } ?? 0
 
-        for activity in finished {
-            let day = activity.sortTime.startOfDay
+        for item in items {
+            let day = item.date.startOfDay
             if currentDay != day {
                 currentDay = day
                 rows.append(ThreadRow(id: "day-\(day.timeIntervalSince1970)", kind: .divider(ThreadFormat.dayDivider(for: day))))
             }
-            if !markerDone, unreadCount > 0, let seen = lastSeen, !activity.isMine, activity.createdAt > seen {
-                let text = String(localized: "thread_unread \(unreadCount) \(activity.authorDisplayName)")
-                rows.append(ThreadRow(id: "unread", kind: .unread(text)))
-                markerDone = true
+            switch item {
+            case .activity(let activity):
+                if !markerDone, unreadCount > 0, let seen = lastSeen, !activity.isMine, activity.createdAt > seen {
+                    let text = String(localized: "thread_unread \(unreadCount) \(activity.authorDisplayName)")
+                    rows.append(ThreadRow(id: "unread", kind: .unread(text)))
+                    markerDone = true
+                }
+                rows.append(ThreadRow(id: activity.id.uuidString, kind: .entry(activity)))
+            case .remark(let remark):
+                rows.append(ThreadRow(id: "leona-\(remark.id.uuidString)", kind: .leona(remark)))
             }
-            rows.append(ThreadRow(id: activity.id.uuidString, kind: .entry(activity)))
         }
 
         if rows.isEmpty {
@@ -299,9 +367,16 @@ struct LeonaAdvice {
     let secondaryTitle: String
     let action: Action
     let secondary: Secondary
+    /// Identifies the situation the advice is about, so a repeated answer updates one remark.
+    let occasion: String
 }
 
 enum LeonaAdvisor {
+    /// How far ahead a predicted feed is worth a card. Beyond that the thread stays quiet.
+    static let dueWindow: TimeInterval = 30 * 60
+
+    /// The card to show at the bottom of the thread, or nil when there is nothing worth saying:
+    /// suggestions off, snoozed, or the next feed still far away.
     static func advice(
         totals: ThreadTotals,
         ongoingSleep: Activity?,
@@ -309,22 +384,16 @@ enum LeonaAdvisor {
         enabled: Bool,
         babyName: String,
         now: Date = Date()
-    ) -> LeonaAdvice {
+    ) -> LeonaAdvice? {
+        guard enabled else { return nil }
         let vol = ThreadFormat.volume(totals.predictedVolumeML)
-        if !enabled {
-            return LeonaAdvice(
-                line: String(localized: "leona_muted \(babyName)"),
-                cta: String(localized: "leona_cta_log \(vol)"),
-                secondaryTitle: String(localized: "leona_snooze_not_yet"),
-                action: .logBottle, secondary: .none
-            )
-        }
         if let sleep = ongoingSleep {
             return LeonaAdvice(
                 line: String(localized: "leona_asleep \(babyName) \(ThreadFormat.clock(sleep.startTime))"),
                 cta: String(localized: "leona_cta_open_session"),
                 secondaryTitle: String(localized: "leona_snooze_fix_start"),
-                action: .openSleep, secondary: .fixSleepStart
+                action: .openSleep, secondary: .fixSleepStart,
+                occasion: "asleep-\(sleep.id.uuidString)"
             )
         }
         guard let next = totals.nextFeed else {
@@ -332,18 +401,22 @@ enum LeonaAdvisor {
                 line: String(localized: "leona_no_data \(babyName)"),
                 cta: String(localized: "leona_cta_log_bottle"),
                 secondaryTitle: String(localized: "leona_snooze_not_now"),
-                action: .openBottleTray, secondary: .snooze
+                action: .openBottleTray, secondary: .snooze,
+                occasion: "nodata-\(Int(now.startOfDay.timeIntervalSince1970))"
             )
         }
         if let until = snoozedUntil, until > now {
-            return LeonaAdvice(
-                line: String(localized: "leona_snoozed \(ThreadFormat.clock(until))"),
-                cta: String(localized: "leona_cta_log \(vol)"),
-                secondaryTitle: String(localized: "leona_snooze_not_yet"),
-                action: .logBottle, secondary: .none
-            )
+            return nil
         }
         let delta = next.timeIntervalSince(now)
+        var window = dueWindow
+        #if DEBUG
+        // Screenshot runs capture at an arbitrary clock time; keep the card visible.
+        if DemoDataGenerator.isDemoMode { window = .infinity }
+        #endif
+        if delta > window {
+            return nil
+        }
         let line = delta >= 0
             ? String(localized: "leona_due \(babyName) \(ThreadFormat.clock(next)) \(vol)")
             : String(localized: "leona_overdue \(babyName) \(ThreadFormat.dur(-delta)) \(vol)")
@@ -351,7 +424,8 @@ enum LeonaAdvisor {
             line: line,
             cta: String(localized: "leona_cta_log \(vol)"),
             secondaryTitle: String(localized: "leona_snooze_not_yet"),
-            action: .logBottle, secondary: .snooze
+            action: .logBottle, secondary: .snooze,
+            occasion: "feed-\(Int(next.timeIntervalSince1970 / 60))"
         )
     }
 }

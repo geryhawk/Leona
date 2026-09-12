@@ -1,100 +1,166 @@
 #!/usr/bin/env python3
+"""Compose App Store promotional frames from the raw simulator captures.
+
+Reads  Screenshots/AppStore_iPhone_6.9/<lang>/*.png and Screenshots/AppStore_iPad_13/<lang>/*.png
+Writes Screenshots/Promo_iPhone_6.9/<lang>/*.png and Screenshots/Promo_iPad_13/<lang>/*.png
+
+Run through Docker (Python is Docker-only on Septeo machines):
+
+    docker run --rm \
+      -v "$PWD":/work -w /work \
+      -v "$HOME/Library/Fonts":/fonts:ro \
+      -e LEONA_FONT_TTC=/fonts/AvenirNext.ttc \
+      python:3.12-slim sh -c "pip install -q pillow && python generate_marketing_screenshots.py"
+
+The Leona palette (Thread v2): canvas #F5F3F4, plum #33224A, vermilion #E24E2B,
+lilac #8A73C4 (sleep), moss #2F7A5A (diapers/health), night #191223.
+"""
+
+import os
+import sys
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
-import os
-import textwrap
 
-ROOT = "/Users/chahine/Projects/Leona"
+ROOT = os.path.dirname(os.path.abspath(__file__))
 RAW_IPHONE = os.path.join(ROOT, "Screenshots", "AppStore_iPhone_6.9")
 RAW_IPAD = os.path.join(ROOT, "Screenshots", "AppStore_iPad_13")
 OUT_IPHONE = os.path.join(ROOT, "Screenshots", "Promo_iPhone_6.9")
 OUT_IPAD = os.path.join(ROOT, "Screenshots", "Promo_iPad_13")
 
-for directory in [OUT_IPHONE, OUT_IPAD]:
-    os.makedirs(directory, exist_ok=True)
+# Avenir Next.ttc face indices: 0 Bold, 2 Demi Bold, 5 Medium, 7 Regular, 8 Heavy.
+FONT_TTC = os.environ.get("LEONA_FONT_TTC", "/System/Library/Fonts/Avenir Next.ttc")
+FACE_TITLE = 8
+FACE_BADGE = 0
+FACE_BODY = 5
 
-TITLE_FONT = "/System/Library/Fonts/Supplemental/Arial Rounded Bold.ttf"
-BODY_FONT = "/System/Library/Fonts/Avenir Next.ttc"
+CANVAS = (245, 243, 244)
+PLUM = (51, 34, 74)
+PLUM_DARK = (91, 62, 134)
+NIGHT = (25, 18, 35)
+VERMILION = (226, 78, 43)
+LILAC = (138, 115, 196)
+MOSS = (47, 122, 90)
+INK = (30, 22, 40)
+MUTED = (107, 100, 112)
+WHITE = (255, 255, 255)
+
+
+def tint(color, amount):
+    """Mix a colour towards white; amount 0 = colour, 1 = white."""
+    return tuple(int(c + (255 - c) * amount) for c in color)
+
 
 SHOTS = [
     {
-        "file": "02_Dashboard.png",
-        "out": "01_Dashboard.png",
-        "badge": "DAILY VIEW",
-        "title": "Everything your day\nneeds in one place",
-        "subtitle": "Feedings, naps, diapers, notes and smart reminders at a glance.",
-        "background": ((255, 244, 240), (255, 227, 221)),
-        "accent": (245, 117, 112),
-        "blob": (255, 196, 186),
+        "file": "02_Thread.png",
+        "out": "01_Thread.png",
+        "accent": VERMILION,
+        "background": (CANVAS, tint(VERMILION, 0.88)),
+        "blob": tint(VERMILION, 0.72),
+        "copy": {
+            "en": ("THE THREAD", "Your baby's day,\nas a conversation",
+                   "Feeds, sleep, diapers and notes land as messages. Leona keeps the totals."),
+            "fr": ("LE FIL", "La journée de bébé,\ncomme une conversation",
+                   "Repas, dodos, couches et notes arrivent en messages. Leona tient les comptes."),
+        },
     },
     {
         "file": "03_Sleep.png",
         "out": "02_Sleep.png",
-        "badge": "SLEEP",
-        "title": "A calmer way\nto track sleep",
-        "subtitle": "Start a session in one tap and keep the whole routine clear.",
-        "background": ((28, 28, 78), (72, 60, 147)),
-        "accent": (160, 143, 255),
-        "blob": (120, 110, 255),
-        "title_fill": (255, 255, 255),
-        "subtitle_fill": (228, 228, 248),
-        "badge_fill": (255, 255, 255),
-        "badge_text_fill": (60, 54, 136),
-        "screenshot_scale_phone": 0.76,
-        "screenshot_scale_ipad": 0.80,
+        "accent": LILAC,
+        "background": (NIGHT, PLUM),
+        "blob": PLUM_DARK,
+        "title_fill": WHITE,
+        "subtitle_fill": (214, 205, 232),
+        "badge_fill": LILAC,
+        "badge_text_fill": WHITE,
+        "border": (255, 255, 255, 70),
+        "copy": {
+            "en": ("SLEEP", "Sleep, timed\nin one tap",
+                   "Start when the eyes close, stop when they open. The night sorts itself out."),
+            "fr": ("DODO", "Le dodo,\nchronométré d'un geste",
+                   "Lancez quand les yeux se ferment, arrêtez quand ils s'ouvrent. La nuit se range seule."),
+        },
     },
     {
-        "file": "05_Statistics.png",
-        "out": "03_Statistics.png",
-        "badge": "INSIGHTS",
-        "title": "See the patterns\nbehind the chaos",
-        "subtitle": "Totals, averages and charts that make your baby's rhythm obvious.",
-        "background": ((255, 248, 243), (255, 232, 226)),
-        "accent": (255, 128, 104),
-        "blob": (255, 202, 188),
+        "file": "04_Trends.png",
+        "out": "03_Trends.png",
+        "accent": VERMILION,
+        "background": (CANVAS, tint(LILAC, 0.86)),
+        "blob": tint(LILAC, 0.70),
+        "copy": {
+            "en": ("TRENDS", "See the rhythm\nbehind the days",
+                   "Milk per day, nights and naps over 3, 7 or 30 days, with what changed this week."),
+            "fr": ("TENDANCES", "Voyez le rythme\nderrière les journées",
+                   "Lait par jour, nuits et siestes sur 3, 7 ou 30 jours, et ce qui a changé cette semaine."),
+        },
     },
     {
-        "file": "06_Growth.png",
+        "file": "05_Growth.png",
         "out": "04_Growth.png",
-        "badge": "GROWTH",
-        "title": "WHO charts,\nbuilt right in",
-        "subtitle": "Track weight, height and head circumference with clear percentiles.",
-        "background": ((240, 252, 248), (224, 245, 238)),
-        "accent": (83, 192, 149),
-        "blob": (181, 233, 209),
+        "accent": MOSS,
+        "background": (CANVAS, tint(MOSS, 0.86)),
+        "blob": tint(MOSS, 0.72),
+        "copy": {
+            "en": ("GROWTH", "WHO curves,\nbuilt right in",
+                   "Weight, height and head circumference with the percentile, in plain words."),
+            "fr": ("CROISSANCE", "Les courbes OMS,\nintégrées",
+                   "Poids, taille et périmètre crânien avec le percentile, en mots simples."),
+        },
     },
     {
-        "file": "07_Health.png",
+        "file": "06_Health.png",
         "out": "05_Health.png",
-        "badge": "HEALTH",
-        "title": "Keep every health\nmoment organized",
-        "subtitle": "Symptoms, temperature and past records stay simple to review.",
-        "background": ((255, 246, 244), (255, 235, 233)),
-        "accent": (255, 126, 112),
-        "blob": (255, 206, 196),
+        "accent": VERMILION,
+        "background": (CANVAS, tint(VERMILION, 0.90)),
+        "blob": tint(VERMILION, 0.76),
+        "copy": {
+            "en": ("HEALTH", "Every fever,\nevery dose",
+                   "Symptoms, temperatures and medication in one record you can show the doctor."),
+            "fr": ("SANTÉ", "Chaque fièvre,\nchaque dose",
+                   "Symptômes, températures et médicaments dans un dossier à montrer au médecin."),
+        },
     },
     {
-        "file": "08_Sharing.png",
+        "file": "07_Sharing.png",
         "out": "06_Sharing.png",
-        "badge": "SHARING",
-        "title": "Stay in sync\nwith your partner",
-        "subtitle": "One shared history, automatic updates, both parents always aligned.",
-        "background": ((246, 244, 255), (233, 237, 255)),
-        "accent": (123, 135, 255),
-        "blob": (199, 208, 255),
-        "screenshot_scale_phone": 0.72,
-        "screenshot_scale_ipad": 0.66,
-        "screenshot_top_phone": 0.40,
-        "screenshot_top_ipad": 0.40,
+        "accent": PLUM_DARK,
+        "background": (CANVAS, tint(PLUM_DARK, 0.86)),
+        "blob": tint(PLUM_DARK, 0.72),
+        "copy": {
+            "en": ("TOGETHER", "Both parents,\none thread",
+                   "Invite your partner with iCloud. Every entry shows who logged it, on every phone."),
+            "fr": ("À DEUX", "Deux parents,\nun seul fil",
+                   "Invitez votre partenaire via iCloud. Chaque entrée dit qui l'a notée, sur chaque téléphone."),
+        },
+    },
+    {
+        "file": "01_Welcome.png",
+        "out": "07_Welcome.png",
+        "accent": VERMILION,
+        "background": (CANVAS, tint(VERMILION, 0.90)),
+        "blob": tint(LILAC, 0.78),
+        # The welcome conversation sits at the bottom of the screen: show that part.
+        "crop_top": 0.34,
+        "crop_top_ipad": 0.42,
+        "copy": {
+            "en": ("30 SECONDS", "Two questions\nand you're in",
+                   "A name, a birth date. Units, reminders and sharing wait until you need them."),
+            "fr": ("30 SECONDES", "Deux questions\net c'est réglé",
+                   "Un prénom, une date de naissance. Unités, rappels et partage attendront."),
+        },
     },
 ]
 
 
-def load_font(path, size):
+def load_font(face, size):
     try:
-        return ImageFont.truetype(path, size)
+        return ImageFont.truetype(FONT_TTC, size, index=face)
     except OSError:
-        return ImageFont.load_default()
+        try:
+            return ImageFont.load_default(size)
+        except TypeError:
+            return ImageFont.load_default()
 
 
 def gradient_background(size, top_color, bottom_color):
@@ -108,41 +174,34 @@ def gradient_background(size, top_color, bottom_color):
     return image
 
 
-def add_blobs(image, cfg):
+def add_blob(image, cfg):
+    """One soft shape behind the device, in the slide's tint."""
     overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
     width, height = image.size
-    blob = cfg["blob"] + (150,)
-    accent = cfg["accent"] + (85,)
-
-    draw.ellipse((-int(width * 0.10), -int(height * 0.02), int(width * 0.44), int(height * 0.34)), fill=blob)
-    draw.ellipse((int(width * 0.58), int(height * 0.04), int(width * 1.02), int(height * 0.38)), fill=accent)
-    draw.ellipse((int(width * 0.25), int(height * 0.78), int(width * 0.88), int(height * 1.18)), fill=blob)
-
-    soft = overlay.filter(ImageFilter.GaussianBlur(radius=int(width * 0.03)))
+    draw.ellipse(
+        (int(width * 0.08), int(height * 0.42), int(width * 1.12), int(height * 1.10)),
+        fill=cfg["blob"] + (170,),
+    )
+    soft = overlay.filter(ImageFilter.GaussianBlur(radius=int(width * 0.05)))
     image.alpha_composite(soft)
 
 
 def rounded_mask(size, radius):
     mask = Image.new("L", size, 0)
-    draw = ImageDraw.Draw(mask)
-    draw.rounded_rectangle((0, 0, size[0], size[1]), radius=radius, fill=255)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, size[0], size[1]), radius=radius, fill=255)
     return mask
 
 
 def add_shadow(base, box, radius, opacity):
     shadow = Image.new("RGBA", base.size, (0, 0, 0, 0))
-    shadow_draw = ImageDraw.Draw(shadow)
-    shadow_draw.rounded_rectangle(box, radius=radius, fill=(18, 20, 30, opacity))
-    shadow = shadow.filter(ImageFilter.GaussianBlur(radius=32))
-    base.alpha_composite(shadow)
+    ImageDraw.Draw(shadow).rounded_rectangle(box, radius=radius, fill=(20, 14, 30, opacity))
+    base.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(radius=40)))
 
 
 def wrap_text(draw, text, font, max_width):
-    words = text.split()
-    lines = []
-    current = []
-    for word in words:
+    lines, current = [], []
+    for word in text.split():
         candidate = " ".join(current + [word])
         if draw.textlength(candidate, font=font) <= max_width or not current:
             current.append(word)
@@ -154,118 +213,103 @@ def wrap_text(draw, text, font, max_width):
     return "\n".join(lines)
 
 
-def paste_screenshot(base, screenshot, cfg, is_ipad):
+def paste_screenshot(base, screenshot, cfg, is_ipad, top_y):
     width, height = base.size
-    scale_key = "screenshot_scale_ipad" if is_ipad else "screenshot_scale_phone"
-    top_key = "screenshot_top_ipad" if is_ipad else "screenshot_top_phone"
-
-    screenshot_scale = cfg.get(scale_key, 0.84 if is_ipad else 0.82)
-    screenshot_top = cfg.get(top_key, 0.35 if is_ipad else 0.36)
-    target_width = int(width * screenshot_scale)
+    scale = 0.86 if is_ipad else 0.84
+    target_width = int(width * scale)
     target_height = int(screenshot.height * (target_width / screenshot.width))
     screenshot = screenshot.resize((target_width, target_height), Image.LANCZOS).convert("RGBA")
 
-    radius = int(width * 0.045)
-    mask = rounded_mask(screenshot.size, radius)
-    screenshot.putalpha(mask)
+    radius = int(target_width * (0.045 if is_ipad else 0.11))
+    screenshot.putalpha(rounded_mask(screenshot.size, radius))
 
     x = (width - target_width) // 2
-    y = int(height * screenshot_top)
-    add_shadow(base, (x + 18, y + 26, x + target_width + 18, y + target_height + 26), radius, 88)
+    y = top_y
+    add_shadow(base, (x + 10, y + 40, x + target_width + 10, y + target_height + 40), radius, 110)
     base.paste(screenshot, (x, y), screenshot)
 
     border = Image.new("RGBA", base.size, (0, 0, 0, 0))
-    border_draw = ImageDraw.Draw(border)
-    border_draw.rounded_rectangle(
+    ImageDraw.Draw(border).rounded_rectangle(
         (x, y, x + target_width, y + target_height),
         radius=radius,
-        outline=(255, 255, 255, 120),
-        width=2,
+        outline=cfg.get("border", (255, 255, 255, 160)),
+        width=3,
     )
     base.alpha_composite(border)
 
 
-def compose(canvas_size, screenshot_path, output_path, cfg, is_ipad):
-    base = gradient_background(canvas_size, cfg["background"][0], cfg["background"][1]).convert("RGBA")
-    add_blobs(base, cfg)
+def compose(canvas_size, screenshot_path, output_path, cfg, lang, is_ipad):
+    top, bottom = cfg["background"]
+    base = gradient_background(canvas_size, top, bottom).convert("RGBA")
+    add_blob(base, cfg)
     draw = ImageDraw.Draw(base)
     width, height = canvas_size
 
-    title_fill = cfg.get("title_fill", (24, 25, 32))
-    subtitle_fill = cfg.get("subtitle_fill", (92, 96, 110))
+    badge_text, title, subtitle_text = cfg["copy"][lang]
+    title_fill = cfg.get("title_fill", PLUM)
+    subtitle_fill = cfg.get("subtitle_fill", MUTED)
     badge_fill = cfg.get("badge_fill", cfg["accent"])
-    badge_text_fill = cfg.get("badge_text_fill", (255, 255, 255))
+    badge_text_fill = cfg.get("badge_text_fill", WHITE)
 
-    margin = int(width * 0.07)
-    badge_font = load_font(BODY_FONT, int(width * (0.034 if is_ipad else 0.040)))
-    title_font = load_font(TITLE_FONT, int(width * (0.072 if is_ipad else 0.090)))
-    subtitle_font = load_font(BODY_FONT, int(width * (0.032 if is_ipad else 0.038)))
+    margin = int(width * 0.075)
+    badge_font = load_font(FACE_BADGE, int(width * (0.026 if is_ipad else 0.034)))
+    title_font = load_font(FACE_TITLE, int(width * (0.066 if is_ipad else 0.088)))
+    subtitle_font = load_font(FACE_BODY, int(width * (0.028 if is_ipad else 0.037)))
 
-    badge_text = cfg["badge"]
-    badge_padding_x = int(width * 0.028)
-    badge_padding_y = int(width * 0.016)
-    badge_box = draw.textbbox((0, 0), badge_text, font=badge_font)
-    badge_width = badge_box[2] - badge_box[0] + badge_padding_x * 2
-    badge_height = badge_box[3] - badge_box[1] + badge_padding_y * 2
-    badge_y = int(height * 0.07)
+    # Badge pill
+    pad_x = int(width * 0.024)
+    pad_y = int(width * 0.012)
+    bbox = draw.textbbox((0, 0), badge_text, font=badge_font)
+    badge_w = bbox[2] - bbox[0] + pad_x * 2
+    badge_h = bbox[3] - bbox[1] + pad_y * 2
+    badge_y = int(height * 0.06)
+    draw.rounded_rectangle((margin, badge_y, margin + badge_w, badge_y + badge_h), radius=badge_h // 2, fill=badge_fill)
+    draw.text((margin + pad_x - bbox[0], badge_y + pad_y - bbox[1]), badge_text, font=badge_font, fill=badge_text_fill)
 
-    draw.rounded_rectangle(
-        (margin, badge_y, margin + badge_width, badge_y + badge_height),
-        radius=badge_height // 2,
-        fill=badge_fill,
-    )
-    draw.text(
-        (margin + badge_padding_x, badge_y + badge_padding_y - 2),
-        badge_text,
-        font=badge_font,
-        fill=badge_text_fill,
-    )
+    # Title
+    title_y = badge_y + badge_h + int(height * 0.028)
+    spacing = int(width * 0.004)
+    draw.multiline_text((margin, title_y), title, font=title_font, fill=title_fill, spacing=spacing)
+    title_box = draw.multiline_textbbox((margin, title_y), title, font=title_font, spacing=spacing)
 
-    title_y = badge_y + badge_height + int(height * 0.04)
-    draw.multiline_text(
-        (margin, title_y),
-        cfg["title"],
-        font=title_font,
-        fill=title_fill,
-        spacing=int(width * 0.01),
-    )
+    # Subtitle
+    subtitle_y = title_box[3] + int(height * 0.016)
+    subtitle = wrap_text(draw, subtitle_text, subtitle_font, int(width * 0.85))
+    draw.multiline_text((margin, subtitle_y), subtitle, font=subtitle_font, fill=subtitle_fill, spacing=int(width * 0.006))
+    subtitle_box = draw.multiline_textbbox((margin, subtitle_y), subtitle, font=subtitle_font, spacing=int(width * 0.006))
 
-    title_box = draw.multiline_textbbox(
-        (margin, title_y),
-        cfg["title"],
-        font=title_font,
-        spacing=int(width * 0.01),
-    )
-    subtitle_y = title_box[3] + int(height * 0.018)
-    subtitle = wrap_text(draw, cfg["subtitle"], subtitle_font, int(width * 0.84))
-    draw.multiline_text(
-        (margin, subtitle_y),
-        subtitle,
-        font=subtitle_font,
-        fill=subtitle_fill,
-        spacing=int(width * 0.008),
-    )
-
+    # Device capture, anchored below the copy
     screenshot = Image.open(screenshot_path)
-    paste_screenshot(base, screenshot, cfg, is_ipad=is_ipad)
+    crop_top = cfg.get("crop_top_ipad" if is_ipad else "crop_top")
+    if crop_top:
+        screenshot = screenshot.crop((0, int(screenshot.height * crop_top), screenshot.width, screenshot.height))
+    top_y = subtitle_box[3] + int(height * 0.035)
+    paste_screenshot(base, screenshot, cfg, is_ipad=is_ipad, top_y=top_y)
 
     base.convert("RGB").save(output_path, quality=95)
 
 
-def generate_family(source_dir, output_dir, is_ipad):
+def generate_family(source_root, output_root, is_ipad):
     canvas = (2064, 2752) if is_ipad else (1320, 2868)
-    for cfg in SHOTS:
-        compose(
-            canvas_size=canvas,
-            screenshot_path=os.path.join(source_dir, cfg["file"]),
-            output_path=os.path.join(output_dir, cfg["out"]),
-            cfg=cfg,
-            is_ipad=is_ipad,
-        )
+    made = 0
+    for lang in sorted(d for d in os.listdir(source_root) if os.path.isdir(os.path.join(source_root, d))):
+        source_dir = os.path.join(source_root, lang)
+        output_dir = os.path.join(output_root, lang)
+        os.makedirs(output_dir, exist_ok=True)
+        for cfg in SHOTS:
+            if lang not in cfg["copy"]:
+                continue
+            source = os.path.join(source_dir, cfg["file"])
+            if not os.path.exists(source):
+                print(f"skip {lang}/{cfg['file']}: missing", file=sys.stderr)
+                continue
+            compose(canvas, source, os.path.join(output_dir, cfg["out"]), cfg, lang, is_ipad)
+            made += 1
+    return made
 
 
 if __name__ == "__main__":
-    generate_family(RAW_IPHONE, OUT_IPHONE, is_ipad=False)
-    generate_family(RAW_IPAD, OUT_IPAD, is_ipad=True)
-    print(f"Created promotional iPhone screenshots in {OUT_IPHONE}")
-    print(f"Created promotional iPad screenshots in {OUT_IPAD}")
+    n_phone = generate_family(RAW_IPHONE, OUT_IPHONE, is_ipad=False)
+    n_pad = generate_family(RAW_IPAD, OUT_IPAD, is_ipad=True)
+    print(f"Created {n_phone} iPhone frames in {OUT_IPHONE}")
+    print(f"Created {n_pad} iPad frames in {OUT_IPAD}")

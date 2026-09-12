@@ -846,3 +846,5 @@
 "tray_send" = "Envoyer";
 "tray_time_now %@" = "Maintenant · %@";
 "thread_refreshed" = "Fil actualisé";
+"leona_remark_snoozed_meta %@" = "Pas encore · retour à %@";
+"leona_remark_logged_meta" = "Noté";
