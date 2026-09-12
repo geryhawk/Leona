@@ -309,12 +309,14 @@ struct ThreadView: View {
     /// Keeps the answered suggestion as a message in the thread, one per occasion.
     private func remember(_ advice: LeonaAdvice, outcome: LeonaRemark.Outcome, until: Date?) {
         let now = Date()
+        let line = LeonaRemark.line(for: advice, outcome: outcome, until: until)
         if let index = remarks.firstIndex(where: { $0.occasion == advice.occasion }) {
             remarks[index].date = now
+            remarks[index].line = line
             remarks[index].outcome = outcome
             remarks[index].until = until
         } else {
-            remarks.append(LeonaRemark(occasion: advice.occasion, date: now, line: advice.line, outcome: outcome, until: until))
+            remarks.append(LeonaRemark(occasion: advice.occasion, date: now, line: line, outcome: outcome, until: until))
         }
         LeonaRemarkStore.save(remarks, for: baby.id)
     }

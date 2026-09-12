@@ -200,18 +200,24 @@ struct LeonaRemark: Codable, Identifiable, Equatable {
     /// One remark per occasion: answering the same suggestion again updates it.
     let occasion: String
     var date: Date
-    let line: String
+    /// What Leona said once the parent answered: the decision after a "not yet",
+    /// the original suggestion when it led to an entry.
+    var line: String
     var outcome: Outcome
     var until: Date?
 
     var metaText: String {
         switch outcome {
-        case .snoozed:
-            if let until { return String(localized: "leona_remark_snoozed_meta \(ThreadFormat.clock(until))") }
-            return String(localized: "leona_snooze_not_yet")
-        case .logged:
-            return String(localized: "leona_remark_logged_meta")
+        case .snoozed: return String(localized: "leona_snooze_not_yet")
+        case .logged: return String(localized: "leona_remark_logged_meta")
         }
+    }
+
+    static func line(for advice: LeonaAdvice, outcome: Outcome, until: Date?) -> String {
+        if outcome == .snoozed, let until {
+            return String(localized: "leona_snoozed \(ThreadFormat.clock(until))")
+        }
+        return advice.line
     }
 }
 
