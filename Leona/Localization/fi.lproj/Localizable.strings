@@ -838,12 +838,13 @@
 /* Tray */
 "tray_unit_min" = "min";
 "tray_title_bottle %@" = "Pullo · %@";
-"tray_title_breast" = "Imetys · minuutit";
+"tray_title_breast" = "Imetys";
 "tray_title_solid %@" = "Kiinteä · %@";
 "tray_title_diaper" = "Vaippa";
 "tray_side_suggested %@" = "%@ · suositus";
 "tray_expressed_milk" = "Lypsetty maito";
 "tray_send" = "Lähetä";
+"tray_start_side %@" = "Aloita · %@";
 "tray_time_now %@" = "Nyt · %@";
 "thread_refreshed" = "Ketju päivitetty";
 "leona_remark_logged %@" = "Kirjattu, %@.";

@@ -838,12 +838,13 @@
 /* Tray */
 "tray_unit_min" = "min";
 "tray_title_bottle %@" = "Biberon · %@";
-"tray_title_breast" = "Tétée · minutes";
+"tray_title_breast" = "Tétée";
 "tray_title_solid %@" = "Solide · %@";
 "tray_title_diaper" = "Couche";
 "tray_side_suggested %@" = "%@ · conseillé";
 "tray_expressed_milk" = "Lait tiré";
 "tray_send" = "Envoyer";
+"tray_start_side %@" = "Démarrer · %@";
 "tray_time_now %@" = "Maintenant · %@";
 "thread_refreshed" = "Fil actualisé";
 "leona_remark_logged %@" = "Noté, %@.";

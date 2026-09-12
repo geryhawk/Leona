@@ -361,7 +361,7 @@ struct ThreadView: View {
                         if feeding != nil {
                             navigator.open(.breastfeeding)
                         } else {
-                            startBreastfeeding()
+                            arm(.breast)
                         }
                     }
                 }
@@ -425,7 +425,9 @@ struct ThreadView: View {
         case .bottle:
             activity = ActivityLogger.logBottle(state.storageVolumeML, kind: state.bottleKind, at: time, baby: baby, context: modelContext)
         case .breast:
-            activity = ActivityLogger.logBreastfeedManual(minutes: Int(state.value), side: state.side, endingAt: time, baby: baby, context: modelContext)
+            // The breast tray only picks the side; the live session starts from here.
+            startBreastfeeding(side: state.side)
+            return
         case .solid:
             activity = ActivityLogger.logSolid(name: state.foodName, quantity: state.value, unit: state.foodUnit, at: time, baby: baby, context: modelContext)
         case .diaper:
@@ -453,9 +455,8 @@ struct ThreadView: View {
         }
     }
 
-    private func startBreastfeeding() {
+    private func startBreastfeeding(side: BreastSide) {
         tray = nil
-        let side: BreastSide = lastBreastSide == .left ? .right : .left
         ActivityLogger.startBreastfeeding(side: side, baby: baby, context: modelContext)
         navigator.open(.breastfeeding)
     }

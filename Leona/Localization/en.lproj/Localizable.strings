@@ -838,12 +838,13 @@
 /* Tray */
 "tray_unit_min" = "min";
 "tray_title_bottle %@" = "Bottle · %@";
-"tray_title_breast" = "Breastfeed · minutes";
+"tray_title_breast" = "Breastfeed";
 "tray_title_solid %@" = "Solid · %@";
 "tray_title_diaper" = "Diaper";
 "tray_side_suggested %@" = "%@ · suggested";
 "tray_expressed_milk" = "Expressed milk";
 "tray_send" = "Send";
+"tray_start_side %@" = "Start · %@";
 "tray_time_now %@" = "Now · %@";
 "thread_refreshed" = "Thread refreshed";
 "leona_remark_logged %@" = "Logged, %@.";

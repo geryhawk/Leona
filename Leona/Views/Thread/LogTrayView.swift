@@ -121,9 +121,7 @@ struct LogTrayView: View {
                 amountRow
                 presetsRow.padding(.top, 12)
             case .breast:
-                amountRow
-                presetsRow.padding(.top, 12)
-                sideRow.padding(.top, 9)
+                sideRow
             case .solid:
                 solidHeader.padding(.bottom, 10)
                 amountRow
@@ -132,7 +130,11 @@ struct LogTrayView: View {
                 diaperRow
             }
 
-            timeRow.padding(.top, 12)
+            if state.kind == .breast {
+                startRow.padding(.top, 12)
+            } else {
+                timeRow.padding(.top, 12)
+            }
         }
         .padding(.top, 14)
         .padding(.horizontal, 18)
@@ -340,6 +342,23 @@ struct LogTrayView: View {
             }
             .buttonStyle(LeonaPressStyle(scale: 0.96))
         }
+    }
+
+    /// Breast tray: no time or amount, the session starts now on the chosen side.
+    private var startRow: some View {
+        Button {
+            HapticManager.impact(.medium)
+            onSend(state)
+        } label: {
+            Text(String(localized: "tray_start_side \(state.side.displayName)"))
+                .font(.leona(15, .heavy))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .background(Color.vermilion)
+                .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+        }
+        .buttonStyle(LeonaPressStyle(scale: 0.96))
     }
 
     private var timeLabel: String {
