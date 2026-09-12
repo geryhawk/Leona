@@ -142,7 +142,12 @@ struct LogTrayView: View {
         .sheet(isPresented: $showTimePicker) {
             TrayTimePicker(time: Binding(
                 get: { state.customTime ?? state.resolvedTime },
-                set: { state.customTime = $0; state.offsetMinutes = 0 }
+                set: { picked in
+                    var next = state
+                    next.customTime = picked
+                    next.offsetMinutes = 0
+                    state = next
+                }
             ))
             .presentationDetents([.medium])
         }
@@ -348,8 +353,10 @@ struct LogTrayView: View {
     private func backButton(_ minutes: Int) -> some View {
         Button {
             HapticManager.selection()
-            state.customTime = nil
-            state.offsetMinutes += minutes
+            var next = state
+            next.customTime = nil
+            next.offsetMinutes += minutes
+            state = next
         } label: {
             Text("−\(minutes)m")
                 .font(.leona(13, .bold))

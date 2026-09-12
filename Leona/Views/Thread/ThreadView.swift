@@ -54,7 +54,7 @@ struct ThreadView: View {
             totalsStrip(snap)
             messages(snap)
             if let tray {
-                LogTrayView(state: Binding(get: { tray }, set: { self.tray = $0 }), baby: baby, onClose: { self.tray = nil }, onSend: send)
+                LogTrayView(state: Binding(get: { self.tray ?? tray }, set: { self.tray = $0 }), baby: baby, onClose: { self.tray = nil }, onSend: send)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             composer(snap)
