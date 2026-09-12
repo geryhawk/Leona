@@ -846,4 +846,4 @@
 "tray_send" = "Lähetä";
 "tray_time_now %@" = "Nyt · %@";
 "thread_refreshed" = "Ketju päivitetty";
-"leona_remark_logged_meta" = "Kirjattu";
+"leona_remark_logged %@" = "Kirjattu, %@.";

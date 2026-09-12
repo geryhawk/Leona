@@ -42,6 +42,15 @@ private struct LeonaRemarkBubble: View {
                 LeonaTintCard(padding: EdgeInsets(top: 12, leading: 15, bottom: 12, trailing: 15), asBubble: true) {
                     VStack(alignment: .leading, spacing: 6) {
                         LeonaCardHeader(name: babyName)
+                        if let prompt = remark.prompt {
+                            // What was asked, quoted above the decision.
+                            Text(prompt)
+                                .font(.leona(13))
+                                .lineSpacing(2)
+                                .foregroundStyle(.tMuted)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                         Text(remark.line)
                             .font(.leona(15, .medium))
                             .lineSpacing(3)
@@ -50,7 +59,7 @@ private struct LeonaRemarkBubble: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                Text("\(remark.metaText) · \(ThreadFormat.clock(remark.date))")
+                Text([remark.metaText, ThreadFormat.clock(remark.date)].compactMap { $0 }.joined(separator: " · "))
                     .font(.leona(11, .semibold))
                     .foregroundStyle(.tMuted)
                     .padding(.horizontal, 8)

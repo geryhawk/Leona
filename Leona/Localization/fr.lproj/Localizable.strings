@@ -846,4 +846,4 @@
 "tray_send" = "Envoyer";
 "tray_time_now %@" = "Maintenant · %@";
 "thread_refreshed" = "Fil actualisé";
-"leona_remark_logged_meta" = "Noté";
+"leona_remark_logged %@" = "Noté, %@.";

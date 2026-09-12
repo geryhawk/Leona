@@ -279,7 +279,8 @@ struct ThreadView: View {
         case .logBottle:
             let ml = snapshot().totals.predictedVolumeML
             // The remark lands just before the entry it led to.
-            remember(advice, outcome: .logged, until: nil)
+            remember(advice, outcome: .logged, until: nil,
+                     decision: String(localized: "leona_remark_logged \(ThreadFormat.volume(ml))"))
             ActivityLogger.logBottle(ml, kind: .formula, at: Date(), baby: baby, context: modelContext)
             snoozedUntil = nil
             navigator.flash(String(localized: "thread_added \(ThreadFormat.title(for: previewBottle(ml)))"))
@@ -298,7 +299,8 @@ struct ThreadView: View {
             let base = snapshot().totals.nextFeed ?? Date()
             let until = max(base, Date()).addingTimeInterval(20 * 60)
             snoozedUntil = until
-            remember(advice, outcome: .snoozed, until: until)
+            remember(advice, outcome: .snoozed, until: until,
+                     decision: String(localized: "leona_snoozed \(ThreadFormat.clock(until))"))
         case .fixSleepStart:
             navigator.open(.sleep)
         case .none:
@@ -306,17 +308,18 @@ struct ThreadView: View {
         }
     }
 
-    /// Keeps the answered suggestion as a message in the thread, one per occasion.
-    private func remember(_ advice: LeonaAdvice, outcome: LeonaRemark.Outcome, until: Date?) {
+    /// Keeps the answered suggestion as a message in the thread, one per occasion:
+    /// what was asked, then what was decided.
+    private func remember(_ advice: LeonaAdvice, outcome: LeonaRemark.Outcome, until: Date?, decision: String) {
         let now = Date()
-        let line = LeonaRemark.line(for: advice, outcome: outcome, until: until)
         if let index = remarks.firstIndex(where: { $0.occasion == advice.occasion }) {
             remarks[index].date = now
-            remarks[index].line = line
+            remarks[index].prompt = advice.line
+            remarks[index].line = decision
             remarks[index].outcome = outcome
             remarks[index].until = until
         } else {
-            remarks.append(LeonaRemark(occasion: advice.occasion, date: now, line: line, outcome: outcome, until: until))
+            remarks.append(LeonaRemark(occasion: advice.occasion, date: now, prompt: advice.line, line: decision, outcome: outcome, until: until))
         }
         LeonaRemarkStore.save(remarks, for: baby.id)
     }

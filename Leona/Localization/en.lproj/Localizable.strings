@@ -846,4 +846,4 @@
 "tray_send" = "Send";
 "tray_time_now %@" = "Now · %@";
 "thread_refreshed" = "Thread refreshed";
-"leona_remark_logged_meta" = "Logged";
+"leona_remark_logged %@" = "Logged, %@.";
