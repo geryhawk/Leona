@@ -67,6 +67,11 @@ final class CloudKitManager {
             self.iCloudStatus = status
             self.iCloudAvailable = status == .available
             self.syncStatus = status == .available ? .synced : .offline
+            // The user record name is the same on every device of this iCloud account; the
+            // thread uses it to attribute entries to a person rather than to an install.
+            if status == .available, let userID = try? await container.userRecordID() {
+                AppSettings.shared.cloudUserID = userID.recordName
+            }
         } catch {
             self.iCloudAvailable = false
             self.syncStatus = .error

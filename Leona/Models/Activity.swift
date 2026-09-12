@@ -38,6 +38,10 @@ final class Activity {
     
     // Note
     var noteText: String?
+
+    // Who logged it: per-install author id and display name, synced through CloudKit
+    var authorID: String?
+    var authorName: String?
     
     // Relationship
     var baby: Baby?
@@ -169,13 +173,13 @@ enum ActivityType: String, Codable, CaseIterable, Identifiable {
     
     var color: Color {
         switch self {
-        case .breastfeeding: return .pink
-        case .formula: return .orange
-        case .momsMilk: return .purple
-        case .solidFood: return .green
-        case .sleep: return .leonaSleep
-        case .diaper: return .cyan
-        case .note: return .gray
+        case .breastfeeding: return .vermilion
+        case .formula: return .vermilion
+        case .momsMilk: return .vermilion
+        case .solidFood: return .vermilion
+        case .sleep: return .lilac
+        case .diaper: return .moss
+        case .note: return .noteGrey
         }
     }
     

@@ -1,181 +1,175 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Navigation model shared by every screen
+
+enum InsightsTab: String, Hashable {
+    case trends, growth, health
+}
+
+enum Route: Hashable {
+    case insights(InsightsTab)
+    case profile
+    case sharing
+    case search
+    case record(UUID)
+}
+
+enum LiveSession: String, Identifiable {
+    case sleep, breastfeeding
+    var id: String { rawValue }
+}
+
+/// One object drives the stack, the full-screen sessions and the toast.
+@Observable
+final class ThreadNavigator {
+    var path: [Route] = []
+    var session: LiveSession?
+    var toast: String?
+    var showWelcomeForNewBaby = false
+
+    @ObservationIgnored private var toastTask: Task<Void, Never>?
+
+    func go(_ route: Route) { path.append(route) }
+    func backToThread() { path.removeAll() }
+    func open(_ session: LiveSession) { self.session = session }
+
+    func flash(_ message: String) {
+        toastTask?.cancel()
+        toast = message
+        toastTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2.3))
+            guard !Task.isCancelled else { return }
+            toast = nil
+        }
+    }
+}
+
+// MARK: - Root
+
 struct ContentView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(CloudKitManager.self) private var cloudKit
     @Environment(NotificationManager.self) private var notifications
     @Environment(\.modelContext) private var modelContext
-    
+    @Environment(\.scenePhase) private var scenePhase
+
     @Query(sort: \Baby.createdAt) private var babies: [Baby]
-    
-    @State private var selectedTab: Tab = .dashboard
-    @State private var activeBabyID: String?
-    #if DEBUG
-    @State private var showSplash = !DemoDataGenerator.isDemoMode
-    #else
-    @State private var showSplash = true
-    #endif
-    @State private var isNightMode = false
-    
-    /// Resolved active baby from the current query
+
+    @State private var navigator = ThreadNavigator()
+    @State private var themeTick = 0
+
+    /// Resolved active baby: settings is @Observable, so reading it here is enough to re-render.
     private var activeBaby: Baby? {
-        if let id = activeBabyID,
+        if let id = settings.activeBabyID,
            let uuid = UUID(uuidString: id),
            let baby = babies.first(where: { $0.id == uuid }) {
             return baby
         }
         return babies.first
     }
-    
-    /// Check if any baby is currently sleeping
-    @Query private var allActivities: [Activity]
-    private var hasOngoingSleep: Bool {
-        guard let baby = activeBaby else { return false }
-        return allActivities.contains { $0.baby?.id == baby.id && $0.type == .sleep && $0.isOngoing }
-    }
-    
-    enum Tab: String, CaseIterable {
-        case dashboard
-        case stats
-        case growth
-        case health
-        case settings
-        
-        var title: String {
-            switch self {
-            case .dashboard: return String(localized: "tab_dashboard")
-            case .stats: return String(localized: "tab_stats")
-            case .growth: return String(localized: "tab_growth")
-            case .health: return String(localized: "tab_health")
-            case .settings: return String(localized: "tab_settings")
-            }
-        }
-        
-        var icon: String {
-            switch self {
-            case .dashboard: return "house.fill"
-            case .stats: return "chart.bar.fill"
-            case .growth: return "chart.line.uptrend.xyaxis"
-            case .health: return "cross.case.fill"
-            case .settings: return "gearshape.fill"
-            }
-        }
-    }
-    
+
     var body: some View {
-        ZStack {
-            // Night mode background layer
-            if isNightMode {
-                NightSkyView()
-                    .ignoresSafeArea()
-                    .allowsHitTesting(false)
-                    .transition(.opacity)
-            }
-            
-            Group {
-                if babies.isEmpty {
-                    // No babies? Show onboarding (regardless of completion flag)
-                    OnboardingView()
-                } else {
-                    // Has babies? Show main app
-                    mainTabView
+        Group {
+            if babies.isEmpty {
+                WelcomeView(isAdditionalBaby: false)
+            } else if let baby = activeBaby {
+                NavigationStack(path: $navigator.path) {
+                    ThreadView(baby: baby)
+                        .navigationDestination(for: Route.self) { route in
+                            destination(for: route, baby: baby)
+                        }
                 }
-            }
-            .onAppear {
-                setupApp()
-                #if DEBUG
-                applyDemoTab()
-                #endif
-            }
-            .onChange(of: babies.count) { _, newCount in
-                // Sync active baby when count changes
-                syncActiveBabyID()
-            }
-            .onChange(of: settings.activeBabyID) { _, newValue in
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    activeBabyID = newValue
-                }
-            }
-            
-            if showSplash {
-                SplashScreenView {
-                    showSplash = false
-                }
-                .transition(.opacity)
-                .zIndex(1)
-            }
-        }
-        .preferredColorScheme(isNightMode ? .dark : settings.colorScheme.colorScheme)
-        .onChange(of: hasOngoingSleep) { _, sleeping in
-            #if DEBUG
-            guard !DemoDataGenerator.isDemoMode else { return }
-            #endif
-            withAnimation(.easeInOut(duration: 0.8)) {
-                isNightMode = sleeping
-            }
-        }
-        .onAppear {
-            #if DEBUG
-            if DemoDataGenerator.isDemoMode { return }
-            #endif
-            isNightMode = hasOngoingSleep
-        }
-    }
-    
-    // MARK: - Main Tab View
-    
-    private var mainTabView: some View {
-        TabView(selection: $selectedTab) {
-            ForEach(Tab.allCases, id: \.rawValue) { tab in
-                tabContent(for: tab)
-                    .tabItem {
-                        Label(tab.title, systemImage: tab.icon)
+                .id(baby.id)
+                .animation(.easeInOut(duration: 0.2), value: settings.activeBabyID)
+                .fullScreenCover(item: $navigator.session) { session in
+                    switch session {
+                    case .sleep: SleepSessionView(baby: baby)
+                    case .breastfeeding: BreastfeedSessionView(baby: baby)
                     }
-                    .tag(tab)
+                }
+                .fullScreenCover(isPresented: $navigator.showWelcomeForNewBaby) {
+                    WelcomeView(isAdditionalBaby: true)
+                }
+            } else {
+                ContentUnavailableView(
+                    String(localized: "no_baby_selected"),
+                    systemImage: "person.crop.circle.badge.plus",
+                    description: Text(String(localized: "add_baby_prompt"))
+                )
             }
         }
-        .id(activeBabyID ?? "none")
-        .tint(isNightMode ? .indigo : settings.accentColor.color)
+        .environment(navigator)
+        .leonaToast($navigator.toast)
+        .tint(.vermilion)
+        .preferredColorScheme(resolvedScheme)
+        .onAppear {
+            setupApp()
+            #if DEBUG
+            applyDemoRoute()
+            #endif
+        }
+        .onChange(of: babies.count) { _, _ in syncActiveBabyID() }
+        .onChange(of: settings.activeBabyID) { _, _ in navigator.backToThread() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { themeTick += 1 }
+        }
     }
-    
+
+    private var resolvedScheme: ColorScheme? {
+        _ = themeTick
+        return settings.resolvedColorScheme
+    }
+
     @ViewBuilder
-    private func tabContent(for tab: Tab) -> some View {
-        if let baby = activeBaby {
-            switch tab {
-            case .dashboard:
-                DashboardView(baby: baby)
-            case .stats:
-                StatsView(baby: baby)
-            case .growth:
-                GrowthView(baby: baby)
-            case .health:
-                HealthView(baby: baby)
-            case .settings:
-                SettingsView(baby: baby)
+    private func destination(for route: Route, baby: Baby) -> some View {
+        switch route {
+        case .insights(let tab):
+            InsightsHubView(baby: baby, initialTab: tab)
+        case .profile:
+            ProfileView(baby: baby)
+        case .sharing:
+            SharingView(baby: baby)
+        case .search:
+            SearchView(baby: baby)
+        case .record(let id):
+            if let activity = fetchActivity(id) {
+                RecordDetailView(activity: activity)
+            } else {
+                ContentUnavailableView(String(localized: "record_missing"), systemImage: "tray")
+                    .leonaScreen()
             }
-        } else {
-            ContentUnavailableView(
-                String(localized: "no_baby_selected"),
-                systemImage: "person.crop.circle.badge.plus",
-                description: Text(String(localized: "add_baby_prompt"))
-            )
         }
     }
-    
-    // MARK: - Demo Tab Selection
+
+    /// One record by id, fetched on demand so the root view does not observe the whole Activity table.
+    private func fetchActivity(_ id: UUID) -> Activity? {
+        let descriptor = FetchDescriptor<Activity>(predicate: #Predicate { $0.id == id })
+        return (try? modelContext.fetch(descriptor))?.first { !$0.isDeleted }
+    }
+
+    // MARK: - Demo / screenshot routing
 
     #if DEBUG
-    private func applyDemoTab() {
-        guard DemoDataGenerator.isDemoMode,
-              let tabName = DemoDataGenerator.requestedTab else { return }
-        switch tabName.lowercased() {
-        case "home", "dashboard": selectedTab = .dashboard
-        case "stats": selectedTab = .stats
-        case "growth": selectedTab = .growth
-        case "health": selectedTab = .health
-        case "settings": selectedTab = .settings
-        default: break
+    private func applyDemoRoute() {
+        guard DemoDataGenerator.isDemoMode, let screen = DemoDataGenerator.requestedScreen else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            switch screen {
+            case .onboarding, .dashboard, .forecast:
+                break
+            case .sleep:
+                navigator.open(.sleep)
+            case .stats:
+                navigator.go(.insights(.trends))
+            case .growth:
+                navigator.go(.insights(.growth))
+            case .health:
+                navigator.go(.insights(.health))
+            case .sharing:
+                navigator.go(.sharing)
+            case .settings:
+                navigator.go(.profile)
+            }
         }
     }
     #endif
@@ -185,104 +179,38 @@ struct ContentView: View {
     private func setupApp() {
         Task {
             await cloudKit.checkiCloudStatus()
+            adoptCloudIdentity()
         }
-        
         Task {
             await notifications.checkAuthorization()
             notifications.setupNotificationCategories()
         }
-        
         syncActiveBabyID()
     }
-    
+
+    /// Repairs a stored active-baby id that no longer matches any baby.
     private func syncActiveBabyID() {
-        activeBabyID = settings.activeBabyID
-        
-        if let id = activeBabyID,
+        if let id = settings.activeBabyID,
            let uuid = UUID(uuidString: id),
            babies.contains(where: { $0.id == uuid }) {
-            // Valid
-        } else if let first = babies.first {
-            let newID = first.id.uuidString
-            activeBabyID = newID
-            settings.activeBabyID = newID
-        } else {
-            activeBabyID = nil
+            return
         }
+        settings.activeBabyID = babies.first?.id.uuidString
     }
-}
 
-// MARK: - Night Sky View (shown when baby is sleeping)
-
-struct NightSkyView: View {
-    @State private var stars: [(x: CGFloat, y: CGFloat, size: CGFloat, opacity: Double, delay: Double)] = []
-    @State private var twinkle = false
-    
-    var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                // Deep night gradient
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.05, green: 0.05, blue: 0.15),
-                        Color(red: 0.08, green: 0.08, blue: 0.22),
-                        Color(red: 0.12, green: 0.1, blue: 0.28)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                
-                // Stars
-                ForEach(Array(stars.enumerated()), id: \.offset) { index, star in
-                    Circle()
-                        .fill(.white)
-                        .frame(width: star.size, height: star.size)
-                        .opacity(twinkle ? star.opacity : star.opacity * 0.3)
-                        .blur(radius: star.size > 2.5 ? 0.5 : 0)
-                        .position(x: star.x, y: star.y)
-                        .animation(
-                            .easeInOut(duration: Double.random(in: 1.5...3.0))
-                            .repeatForever(autoreverses: true)
-                            .delay(star.delay),
-                            value: twinkle
-                        )
-                }
-                
-                // Subtle moon glow in top right
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                Color.white.opacity(0.08),
-                                Color.white.opacity(0.03),
-                                Color.clear
-                            ],
-                            center: .center,
-                            startRadius: 20,
-                            endRadius: 120
-                        )
-                    )
-                    .frame(width: 240, height: 240)
-                    .position(x: geo.size.width - 60, y: 80)
-            }
-            .onAppear {
-                generateStars(in: geo.size)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    twinkle = true
-                }
-            }
+    /// Once the iCloud user is known, re-stamp the entries this install authored with that
+    /// identity so the same person's other devices attribute them correctly.
+    private func adoptCloudIdentity() {
+        guard let cloudID = settings.cloudUserID, cloudID != settings.adoptedCloudUserID else { return }
+        let installID = settings.authorID
+        let previous = settings.adoptedCloudUserID ?? installID
+        let descriptor = FetchDescriptor<Activity>(
+            predicate: #Predicate { $0.authorID == installID || $0.authorID == previous }
+        )
+        if let mine = try? modelContext.fetch(descriptor), !mine.isEmpty {
+            for activity in mine { activity.authorID = cloudID }
+            try? modelContext.save()
         }
-    }
-    
-    private func generateStars(in size: CGSize) {
-        stars = (0..<60).map { _ in
-            (
-                x: CGFloat.random(in: 0...size.width),
-                y: CGFloat.random(in: 0...size.height),
-                size: CGFloat.random(in: 1.0...3.5),
-                opacity: Double.random(in: 0.3...0.9),
-                delay: Double.random(in: 0...2.0)
-            )
-        }
+        settings.adoptedCloudUserID = cloudID
     }
 }

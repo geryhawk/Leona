@@ -1,470 +1,137 @@
 import SwiftUI
 import SwiftData
 
+/// One health record, editable in place: notes, readings, symptoms, medications.
 struct HealthDetailView: View {
     @Bindable var record: HealthRecord
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    @Environment(SharingManager.self) private var sharing
-
-    @State private var newTempDisplay: Double = UnitConversion.displayTemp(37.0)
-    @State private var newSymptom = ""
-    @State private var newSymptomSeverity: SymptomSeverity = .moderate
-    @State private var newMedName = ""
-    @State private var newMedDosage = ""
-    @State private var editingTempID: UUID?
-    @State private var editingTempDisplay: Double = UnitConversion.displayTemp(37.0)
-    @State private var editingSymptomID: UUID?
-    @State private var editingSymptomText = ""
-    @State private var editingSymptomSeverity: SymptomSeverity = .moderate
-    @State private var editingMedID: UUID?
-    @State private var editingMedName = ""
-    @State private var editingMedDosage = ""
     @State private var showDeleteConfirm = false
 
+    init(record: HealthRecord) {
+        _record = Bindable(record)
+    }
+
     var body: some View {
-        NavigationStack {
-            List {
-                // Overview
-                overviewSection
+        VStack(spacing: 0) {
+            InsightsSheetHeader(
+                title: record.illnessType.displayName,
+                leadingTitle: String(localized: "close"),
+                trailingTitle: String(localized: "done"),
+                onLeading: finish,
+                onTrailing: finish
+            )
 
-                // Mark as resolved
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    heroCard
+
+                    LeonaSectionLabel(String(localized: "notes"))
+                        .padding(.top, 6)
+                    notesCard
+
+                    LeonaSectionLabel(String(localized: "temperature_readings"))
+                        .padding(.top, 6)
+                    HealthTemperatureEditor(temperatures: $record.temperatures)
+
+                    LeonaSectionLabel(String(localized: "symptoms"))
+                        .padding(.top, 6)
+                    HealthSymptomEditor(symptoms: $record.symptoms)
+
+                    LeonaSectionLabel(String(localized: "medications"))
+                        .padding(.top, 6)
+                    HealthMedicationEditor(medications: $record.medications)
+
+                    LeonaGroup {
+                        LeonaRow(title: String(localized: "delete_record"), destructive: true) {
+                            showDeleteConfirm = true
+                        }
+                    }
+                    .padding(.top, 10)
+                }
+                .padding(18)
+            }
+            .scrollDismissesKeyboard(.interactively)
+        }
+        .background(Color.tCanvas.ignoresSafeArea())
+        .alert(String(localized: "delete_record"), isPresented: $showDeleteConfirm) {
+            Button(String(localized: "delete"), role: .destructive) {
+                ActivityLogger.delete(record, context: modelContext)
+                HapticManager.impact(.light)
+                dismiss()
+            }
+            Button(String(localized: "cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "delete_record_message"))
+        }
+    }
+
+    // MARK: - Hero
+
+    private var heroCard: some View {
+        PlumCard(padding: 17) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 8) {
+                    if record.isOngoing {
+                        PulseDot(color: .breastDot, size: 7)
+                    }
+                    Text(kindLabel.uppercased())
+                        .font(.leona(11, .heavy))
+                        .leonaTracking(0.12, size: 11)
+                        .foregroundStyle(.highlight)
+                }
+                Text(record.illnessType.displayName)
+                    .font(.leona(25, .bold))
+                    .leonaTracking(-0.03, size: 25)
+                    .padding(.top, 9)
+                Text("\(record.healthRangeText) · \(record.healthDurationText)")
+                    .font(.leona(14))
+                    .foregroundStyle(.white.opacity(0.78))
+                    .padding(.top, 7)
                 if record.isOngoing {
-                    Section {
-                        Button {
-                            record.endDate = Date()
-                            record.updatedAt = Date()
-                            UINotificationFeedbackGenerator().notificationOccurred(.success)
-                        } label: {
-                            Label(String(localized: "mark_resolved"), systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                        }
+                    LeonaSmallButton(title: String(localized: "health_mark_resolved_short"), tone: .vermilion, fontSize: 13, vertical: 10, horizontal: 16, radius: 12) {
+                        record.endDate = Date()
+                        record.updatedAt = Date()
+                        HapticManager.success()
                     }
-                }
-
-                // Notes (editable)
-                Section(String(localized: "notes")) {
-                    TextEditor(text: Binding(
-                        get: { record.notes },
-                        set: { record.notes = $0; record.updatedAt = Date() }
-                    ))
-                    .frame(minHeight: 60)
-                }
-
-                // Temperatures
-                temperatureSection
-
-                // Symptoms
-                symptomSection
-
-                // Medications
-                medicationSection
-
-                // Delete — discreet at the bottom
-                Section {
-                    Button(role: .destructive) {
-                        showDeleteConfirm = true
-                    } label: {
-                        Text(String(localized: "delete_record"))
-                            .font(.subheadline)
-                            .frame(maxWidth: .infinity)
-                    }
+                    .padding(.top, 14)
                 }
             }
-            .navigationTitle(record.illnessType.displayName)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "done")) {
-                        try? modelContext.save()
-                        dismiss()
-                    }
-                }
-            }
-            .alert(String(localized: "delete_record"), isPresented: $showDeleteConfirm) {
-                Button(String(localized: "delete"), role: .destructive) {
-                    deleteRecord()
-                    dismiss()
-                }
-                Button(String(localized: "cancel"), role: .cancel) {}
-            } message: {
-                Text(String(localized: "delete_record_message"))
-            }
+            .padding(.horizontal, 2)
         }
     }
 
-    private func deleteRecord() {
-        let recordID = record.id
-        let baby = record.baby
+    private var kindLabel: String {
+        record.isOngoing
+            ? String(localized: "health_pinned_active_day \((record.durationDays ?? 0) + 1)")
+            : String(localized: "health_record_kind")
+    }
 
-        modelContext.delete(record)
-        try? modelContext.save()
+    // MARK: - Notes
 
-        if let baby, baby.isShared {
-            Task {
-                try? await sharing.deleteRecord(
-                    recordID: recordID,
-                    recordType: HealthRecord.ckRecordType,
-                    for: baby
-                )
-            }
+    private var notesCard: some View {
+        LeonaCard(padding: EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12)) {
+            TextEditor(text: Binding(
+                get: { record.notes },
+                set: {
+                    record.notes = $0
+                    record.updatedAt = Date()
+                }
+            ))
+            .font(.leona(15))
+            .foregroundStyle(.tInk)
+            .scrollContentBackground(.hidden)
+            .frame(minHeight: 80)
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    // MARK: - Overview
+    // MARK: - Actions
 
-    private var overviewSection: some View {
-        Section {
-            HStack(spacing: 12) {
-                Image(systemName: record.illnessType.icon)
-                    .font(.title)
-                    .foregroundStyle(record.illnessType.color)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(record.illnessType.displayName)
-                        .font(.title3.bold())
-
-                    HStack {
-                        Text(record.startDate.dateString)
-                        if let end = record.endDate {
-                            Image(systemName: "arrow.right")
-                                .font(.caption)
-                            Text(end.dateString)
-                        }
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                if record.isOngoing {
-                    Text(String(localized: "ongoing"))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(.red)
-                        .clipShape(Capsule())
-                }
-            }
-        }
-    }
-
-    // MARK: - Temperatures
-
-    private var temperatureSection: some View {
-        Section(String(localized: "temperature_readings")) {
-            ForEach(record.temperatures.sorted(by: { $0.measuredAt > $1.measuredAt })) { temp in
-                if editingTempID == temp.id {
-                    // Inline editing — slider in display units
-                    HStack {
-                        Slider(value: $editingTempDisplay, in: UnitConversion.tempSliderMin...UnitConversion.tempSliderMax, step: 0.1)
-                            .tint(tempColor(UnitConversion.storageTemp(editingTempDisplay)))
-
-                        Text(String(format: "%.1f%@", editingTempDisplay, UnitConversion.tempUnit))
-                            .font(.subheadline.monospacedDigit())
-                            .foregroundStyle(tempColor(UnitConversion.storageTemp(editingTempDisplay)))
-                            .frame(width: 65)
-
-                        Button {
-                            saveEditedTemp(id: temp.id)
-                        } label: {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                        }
-
-                        Button {
-                            editingTempID = nil
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                } else {
-                    // Display mode
-                    HStack {
-                        Image(systemName: temp.isHighFever ? "thermometer.high" : temp.isFever ? "thermometer.medium" : "thermometer.low")
-                            .foregroundStyle(tempColor(temp.temperature))
-
-                        Text(UnitConversion.formatTemp(temp.temperature))
-                            .font(.headline.monospacedDigit())
-                            .foregroundStyle(tempColor(temp.temperature))
-
-                        Spacer()
-
-                        Text(temp.measuredAt.smartDateTimeString)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        editingTempID = temp.id
-                        editingTempDisplay = UnitConversion.displayTemp(temp.temperature)
-                    }
-                }
-            }
-            .onDelete { indexSet in
-                deleteTemperatures(at: indexSet)
-            }
-
-            // Add new temperature
-            HStack {
-                Slider(value: $newTempDisplay, in: UnitConversion.tempSliderMin...UnitConversion.tempSliderMax, step: 0.1)
-                    .tint(tempColor(UnitConversion.storageTemp(newTempDisplay)))
-
-                Text(String(format: "%.1f%@", newTempDisplay, UnitConversion.tempUnit))
-                    .font(.subheadline.monospacedDigit())
-                    .frame(width: 65)
-
-                Button {
-                    var temps = record.temperatures
-                    temps.append(TemperatureReading(temperature: UnitConversion.storageTemp(newTempDisplay)))
-                    record.temperatures = temps
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundStyle(.leonaPink)
-                }
-            }
-        }
-    }
-
-    // MARK: - Symptoms
-
-    private var symptomSection: some View {
-        Section(String(localized: "symptoms")) {
-            ForEach(record.symptoms) { symptom in
-                if editingSymptomID == symptom.id {
-                    // Inline editing
-                    VStack(spacing: 8) {
-                        TextField(String(localized: "add_symptom"), text: $editingSymptomText)
-
-                        HStack {
-                            Picker("", selection: $editingSymptomSeverity) {
-                                ForEach(SymptomSeverity.allCases) { sev in
-                                    Text(sev.displayName).tag(sev)
-                                }
-                            }
-                            .pickerStyle(.segmented)
-
-                            Button {
-                                saveEditedSymptom(id: symptom.id)
-                            } label: {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
-                            }
-
-                            Button {
-                                editingSymptomID = nil
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                } else {
-                    // Display mode
-                    HStack {
-                        Circle()
-                            .fill(symptom.severity.color)
-                            .frame(width: 8)
-                        Text(symptom.description)
-                        Spacer()
-                        Text(symptom.severity.displayName)
-                            .font(.caption)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(symptom.severity.color.opacity(0.15))
-                            .clipShape(Capsule())
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        editingSymptomID = symptom.id
-                        editingSymptomText = symptom.description
-                        editingSymptomSeverity = symptom.severity
-                    }
-                }
-            }
-            .onDelete { indexSet in
-                deleteSymptoms(at: indexSet)
-            }
-
-            // Add new symptom
-            HStack {
-                TextField(String(localized: "add_symptom"), text: $newSymptom)
-
-                Picker("", selection: $newSymptomSeverity) {
-                    ForEach(SymptomSeverity.allCases) { sev in
-                        Text(sev.displayName).tag(sev)
-                    }
-                }
-                .pickerStyle(.menu)
-                .frame(width: 100)
-
-                Button {
-                    guard !newSymptom.isEmpty else { return }
-                    var syms = record.symptoms
-                    syms.append(Symptom(description: newSymptom, severity: newSymptomSeverity))
-                    record.symptoms = syms
-                    newSymptom = ""
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundStyle(.leonaPink)
-                }
-                .disabled(newSymptom.isEmpty)
-            }
-        }
-    }
-
-    // MARK: - Medications
-
-    private var medicationSection: some View {
-        Section(String(localized: "medications")) {
-            ForEach(record.medications) { med in
-                if editingMedID == med.id {
-                    // Inline editing
-                    VStack(spacing: 8) {
-                        HStack {
-                            TextField(String(localized: "medication_name"), text: $editingMedName)
-                            TextField(String(localized: "dosage"), text: $editingMedDosage)
-                                .frame(width: 80)
-                        }
-
-                        HStack {
-                            Spacer()
-                            Button {
-                                saveEditedMed(id: med.id)
-                            } label: {
-                                Label(String(localized: "save"), systemImage: "checkmark.circle.fill")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.green)
-                            }
-
-                            Button {
-                                editingMedID = nil
-                            } label: {
-                                Label(String(localized: "cancel"), systemImage: "xmark.circle.fill")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                } else {
-                    // Display mode
-                    HStack {
-                        Image(systemName: "pills.fill")
-                            .foregroundStyle(.teal)
-                        VStack(alignment: .leading) {
-                            Text(med.name)
-                                .font(.subheadline.weight(.medium))
-                            if !med.dosage.isEmpty {
-                                Text(med.dosage)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        Spacer()
-                        Text(med.administeredAt.smartDateTimeString)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        editingMedID = med.id
-                        editingMedName = med.name
-                        editingMedDosage = med.dosage
-                    }
-                }
-            }
-            .onDelete { indexSet in
-                deleteMedications(at: indexSet)
-            }
-
-            // Add new medication
-            HStack {
-                TextField(String(localized: "medication_name"), text: $newMedName)
-                TextField(String(localized: "dosage"), text: $newMedDosage)
-                    .frame(width: 70)
-                Button {
-                    guard !newMedName.isEmpty else { return }
-                    var meds = record.medications
-                    meds.append(Medication(name: newMedName, dosage: newMedDosage))
-                    record.medications = meds
-                    newMedName = ""
-                    newMedDosage = ""
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundStyle(.leonaPink)
-                }
-                .disabled(newMedName.isEmpty)
-            }
-        }
-    }
-
-    // MARK: - Edit/Delete Helpers
-
-    private func saveEditedTemp(id: UUID) {
-        var temps = record.temperatures
-        if let index = temps.firstIndex(where: { $0.id == id }) {
-            temps[index].temperature = UnitConversion.storageTemp(editingTempDisplay)
-            record.temperatures = temps
-        }
-        editingTempID = nil
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-    }
-
-    private func deleteTemperatures(at offsets: IndexSet) {
-        var temps = record.temperatures.sorted(by: { $0.measuredAt > $1.measuredAt })
-        temps.remove(atOffsets: offsets)
-        record.temperatures = temps
-    }
-
-    private func saveEditedSymptom(id: UUID) {
-        guard !editingSymptomText.isEmpty else { return }
-        var syms = record.symptoms
-        if let index = syms.firstIndex(where: { $0.id == id }) {
-            syms[index].description = editingSymptomText
-            syms[index].severity = editingSymptomSeverity
-            record.symptoms = syms
-        }
-        editingSymptomID = nil
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-    }
-
-    private func deleteSymptoms(at offsets: IndexSet) {
-        var syms = record.symptoms
-        syms.remove(atOffsets: offsets)
-        record.symptoms = syms
-    }
-
-    private func saveEditedMed(id: UUID) {
-        guard !editingMedName.isEmpty else { return }
-        var meds = record.medications
-        if let index = meds.firstIndex(where: { $0.id == id }) {
-            meds[index].name = editingMedName
-            meds[index].dosage = editingMedDosage
-            record.medications = meds
-        }
-        editingMedID = nil
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-    }
-
-    private func deleteMedications(at offsets: IndexSet) {
-        var meds = record.medications
-        meds.remove(atOffsets: offsets)
-        record.medications = meds
-    }
-
-    // MARK: - Helpers
-
-    private func tempColor(_ temp: Double) -> Color {
-        if temp >= 39.0 { return .red }
-        if temp >= 38.0 { return .orange }
-        if temp >= 37.5 { return .yellow }
-        return .green
+    private func finish() {
+        ActivityLogger.save(modelContext)
+        NotificationCenter.default.post(name: .shouldPushLocalChanges, object: nil)
+        dismiss()
     }
 }

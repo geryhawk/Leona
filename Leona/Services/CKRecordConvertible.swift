@@ -7,6 +7,7 @@ protocol CKRecordConvertible: AnyObject {
     static var ckRecordType: String { get }
     var id: UUID { get }
     func toCKRecord(in zone: CKRecordZone.ID) -> CKRecord
+    func updateCKRecord(_ record: CKRecord, in zone: CKRecordZone.ID)
     func applyCKRecord(_ record: CKRecord)
 }
 
@@ -18,13 +19,17 @@ extension Baby: CKRecordConvertible {
     func toCKRecord(in zone: CKRecordZone.ID) -> CKRecord {
         let recordID = CKRecord.ID(recordName: id.uuidString, zoneID: zone)
         let record = CKRecord(recordType: Self.ckRecordType, recordID: recordID)
+        updateCKRecord(record, in: zone)
+        return record
+    }
+
+    func updateCKRecord(_ record: CKRecord, in zone: CKRecordZone.ID) {
         record["firstName"] = firstName as CKRecordValue
         record["lastName"] = lastName as CKRecordValue
         record["dateOfBirth"] = dateOfBirth as CKRecordValue
         record["gender"] = gender.rawValue as CKRecordValue
         record["bloodType"] = bloodType as CKRecordValue
         record["isActive"] = (isActive ? 1 : 0) as CKRecordValue
-        record["ownerName"] = ownerName as CKRecordValue?
         record["createdAt"] = createdAt as CKRecordValue
         record["updatedAt"] = updatedAt as CKRecordValue
 
@@ -33,25 +38,32 @@ extension Baby: CKRecordConvertible {
                 .appendingPathComponent(UUID().uuidString + ".jpg")
             try? imageData.write(to: tempURL)
             record["profileImage"] = CKAsset(fileURL: tempURL)
+        } else {
+            record["profileImage"] = nil
         }
-
-        return record
     }
 
     func applyCKRecord(_ record: CKRecord) {
+        // Last writer wins: a local edit made after the remote snapshot must survive the
+        // pull that runs before every push (same rule as Activity/Growth/Health below).
+        let remoteModificationDate = record.modificationDate ?? Date.distantPast
+        let isNewLocalRecord = ckRecordName == nil || ckChangeTag == nil
+        if !isNewLocalRecord && updatedAt > remoteModificationDate {
+            return
+        }
+
         if let val = record["firstName"] as? String { firstName = val }
         if let val = record["lastName"] as? String { lastName = val }
         if let val = record["dateOfBirth"] as? Date { dateOfBirth = val }
         if let val = record["gender"] as? String { gender = BabyGender(rawValue: val) ?? .unspecified }
         if let val = record["bloodType"] as? String { bloodType = val }
         if let val = record["isActive"] as? Int { isActive = val == 1 }
-        if let val = record["ownerName"] as? String,
-           !val.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            ownerName = val
-        }
 
-        if let asset = record["profileImage"] as? CKAsset, let url = asset.fileURL {
-            profileImageData = try? Data(contentsOf: url)
+        // A missing asset never erases a local photo: the only way a photo leaves the
+        // record is a local change pushed by its author.
+        if let asset = record["profileImage"] as? CKAsset, let url = asset.fileURL,
+           let data = try? Data(contentsOf: url) {
+            profileImageData = data
         }
 
         ckRecordName = record.recordID.recordName
@@ -68,6 +80,11 @@ extension Activity: CKRecordConvertible {
     func toCKRecord(in zone: CKRecordZone.ID) -> CKRecord {
         let recordID = CKRecord.ID(recordName: id.uuidString, zoneID: zone)
         let record = CKRecord(recordType: Self.ckRecordType, recordID: recordID)
+        updateCKRecord(record, in: zone)
+        return record
+    }
+
+    func updateCKRecord(_ record: CKRecord, in zone: CKRecordZone.ID) {
         record["type"] = type.rawValue as CKRecordValue
         record["startTime"] = startTime as CKRecordValue
         record["endTime"] = endTime as CKRecordValue?
@@ -81,6 +98,8 @@ extension Activity: CKRecordConvertible {
         record["foodUnit"] = foodUnit?.rawValue as CKRecordValue?
         record["diaperType"] = diaperType?.rawValue as CKRecordValue?
         record["noteText"] = noteText as CKRecordValue?
+        record["authorID"] = authorID as CKRecordValue?
+        record["authorName"] = authorName as CKRecordValue?
         record["createdAt"] = createdAt as CKRecordValue
         record["updatedAt"] = updatedAt as CKRecordValue
 
@@ -89,9 +108,10 @@ extension Activity: CKRecordConvertible {
             let babyRecordID = CKRecord.ID(recordName: babyID.uuidString, zoneID: zone)
             record["baby"] = CKRecord.Reference(recordID: babyRecordID, action: .deleteSelf)
             record.parent = CKRecord.Reference(recordID: babyRecordID, action: .none)
+        } else {
+            record["baby"] = nil
+            record.parent = nil
         }
-
-        return record
     }
 
     func applyCKRecord(_ record: CKRecord) {
@@ -119,6 +139,11 @@ extension Activity: CKRecordConvertible {
         if let val = record["foodUnit"] as? String { foodUnit = FoodUnit(rawValue: val) }
         if let val = record["diaperType"] as? String { diaperType = DiaperType(rawValue: val) }
         noteText = record["noteText"] as? String
+        if let val = record["authorID"] as? String { authorID = val }
+        if let val = record["authorName"] as? String { authorName = val }
+        // Keep the authoring time so the unread marker compares against when the partner
+        // logged the entry, not when this device imported it.
+        if let val = record["createdAt"] as? Date { createdAt = val }
 
         ckRecordName = record.recordID.recordName
         ckChangeTag = record.recordChangeTag
@@ -134,6 +159,11 @@ extension GrowthRecord: CKRecordConvertible {
     func toCKRecord(in zone: CKRecordZone.ID) -> CKRecord {
         let recordID = CKRecord.ID(recordName: id.uuidString, zoneID: zone)
         let record = CKRecord(recordType: Self.ckRecordType, recordID: recordID)
+        updateCKRecord(record, in: zone)
+        return record
+    }
+
+    func updateCKRecord(_ record: CKRecord, in zone: CKRecordZone.ID) {
         record["date"] = date as CKRecordValue
         record["weightKg"] = weightKg as CKRecordValue?
         record["heightCm"] = heightCm as CKRecordValue?
@@ -145,9 +175,10 @@ extension GrowthRecord: CKRecordConvertible {
             let babyRecordID = CKRecord.ID(recordName: babyID.uuidString, zoneID: zone)
             record["baby"] = CKRecord.Reference(recordID: babyRecordID, action: .deleteSelf)
             record.parent = CKRecord.Reference(recordID: babyRecordID, action: .none)
+        } else {
+            record["baby"] = nil
+            record.parent = nil
         }
-
-        return record
     }
 
     func applyCKRecord(_ record: CKRecord) {
@@ -179,6 +210,11 @@ extension HealthRecord: CKRecordConvertible {
     func toCKRecord(in zone: CKRecordZone.ID) -> CKRecord {
         let recordID = CKRecord.ID(recordName: id.uuidString, zoneID: zone)
         let record = CKRecord(recordType: Self.ckRecordType, recordID: recordID)
+        updateCKRecord(record, in: zone)
+        return record
+    }
+
+    func updateCKRecord(_ record: CKRecord, in zone: CKRecordZone.ID) {
         record["illnessType"] = illnessType.rawValue as CKRecordValue
         record["startDate"] = startDate as CKRecordValue
         record["endDate"] = endDate as CKRecordValue?
@@ -193,9 +229,10 @@ extension HealthRecord: CKRecordConvertible {
             let babyRecordID = CKRecord.ID(recordName: babyID.uuidString, zoneID: zone)
             record["baby"] = CKRecord.Reference(recordID: babyRecordID, action: .deleteSelf)
             record.parent = CKRecord.Reference(recordID: babyRecordID, action: .none)
+        } else {
+            record["baby"] = nil
+            record.parent = nil
         }
-
-        return record
     }
 
     func applyCKRecord(_ record: CKRecord) {

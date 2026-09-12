@@ -1,98 +1,118 @@
 #!/bin/bash
-# Leona App Store Screenshot Automation
-# Takes real screenshots from the iOS Simulator
+# Leona App Store screenshot automation.
+# Captures real simulator screenshots with deterministic mock data.
 
-set -e
+set -euo pipefail
 
-IPHONE_ID="618215CB-0A77-432C-BCF8-45806704DD73"
-IPAD_ID="27D2A055-6D7A-4713-A946-B0A0D87A75EE"
-APP="com.leona.app"
-BUILD_DIR="$HOME/Library/Developer/Xcode/DerivedData/Leona-fvrutsyenmpbqwfngovkwleyjsdh/Build/Products/Debug-iphonesimulator/Leona.app"
-OUT_IPHONE="/Users/chahine/Projects/Leona/Screenshots/iPhone"
-OUT_IPAD="/Users/chahine/Projects/Leona/Screenshots/iPad"
+ROOT="/Users/chahine/Projects/Leona"
+APP_BUNDLE_ID="com.leona.app"
+DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-/tmp/LeonaScreenshotsDerivedData}"
+APP_PATH="$DERIVED_DATA_PATH/Build/Products/Debug-iphonesimulator/Leona.app"
+
+IPHONE_NAME="${IPHONE_NAME:-iPhone 17 Pro Max}"
+IPAD_NAME="${IPAD_NAME:-iPad Pro 13-inch (M5)}"
+
+OUT_IPHONE="$ROOT/Screenshots/AppStore_iPhone_6.9"
+OUT_IPAD="$ROOT/Screenshots/AppStore_iPad_13"
 
 mkdir -p "$OUT_IPHONE" "$OUT_IPAD"
 
-take_screenshot() {
-    local device_id="$1"
-    local tab="$2"
-    local filename="$3"
-    local output_dir="$4"
-    local extra_args="${5:-}"
+find_device_id() {
+    local device_name="$1"
+    local line
 
-    echo "  Taking: $filename (tab=$tab)..."
+    line="$(xcrun simctl list devices available | grep -F "    $device_name (" | head -n 1 || true)"
+    if [ -z "$line" ]; then
+        echo "Unable to find simulator: $device_name" >&2
+        exit 1
+    fi
 
-    # Terminate any running instance
-    xcrun simctl terminate "$device_id" "$APP" 2>/dev/null || true
-    sleep 1
-
-    # Launch with demo data and tab selection
-    xcrun simctl launch "$device_id" "$APP" -demo -tab "$tab" $extra_args 2>/dev/null
-
-    # Wait for app to load and render
-    sleep 4
-
-    # Take screenshot
-    xcrun simctl io "$device_id" screenshot "$output_dir/$filename" 2>/dev/null
-    echo "    Saved: $output_dir/$filename"
+    echo "$line" | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/'
 }
 
-# Set clean status bar
-setup_statusbar() {
+boot_device() {
     local device_id="$1"
-    echo "Setting clean status bar on $device_id..."
+
+    xcrun simctl boot "$device_id" >/dev/null 2>&1 || true
+    xcrun simctl bootstatus "$device_id" -b
+    xcrun simctl ui "$device_id" appearance light >/dev/null 2>&1 || true
     xcrun simctl status_bar "$device_id" override \
         --time "9:41" \
-        --batteryLevel 100 \
         --batteryState charged \
+        --batteryLevel 100 \
+        --cellularMode active \
         --cellularBars 4 \
-        --wifiBars 3 2>/dev/null || true
+        --wifiMode active \
+        --wifiBars 3 >/dev/null 2>&1 || true
 }
 
-# ── iPhone Screenshots ──
-echo "=== iPhone 17 Pro Max Screenshots ==="
+build_app() {
+    echo "==> Building app for simulator"
+    xcodebuild \
+        -project "$ROOT/Leona.xcodeproj" \
+        -scheme Leona \
+        -sdk iphonesimulator \
+        -destination "generic/platform=iOS Simulator" \
+        -derivedDataPath "$DERIVED_DATA_PATH" \
+        build >/dev/null
+}
 
-# Install app
-echo "Installing app..."
-xcrun simctl install "$IPHONE_ID" "$BUILD_DIR"
-setup_statusbar "$IPHONE_ID"
+install_app() {
+    local device_id="$1"
+    echo "==> Installing on $device_id"
+    xcrun simctl uninstall "$device_id" "$APP_BUNDLE_ID" >/dev/null 2>&1 || true
+    xcrun simctl install "$device_id" "$APP_PATH"
+}
 
-# 1. Dashboard (Home)
-take_screenshot "$IPHONE_ID" "home" "01_Dashboard.png" "$OUT_IPHONE"
+capture_screen() {
+    local device_id="$1"
+    local output_dir="$2"
+    local filename="$3"
+    local screen="$4"
+    shift 4
 
-# 2. Stats
-take_screenshot "$IPHONE_ID" "stats" "02_Statistics.png" "$OUT_IPHONE"
+    echo "  -> $filename [$screen]"
+    xcrun simctl terminate "$device_id" "$APP_BUNDLE_ID" >/dev/null 2>&1 || true
+    xcrun simctl launch "$device_id" "$APP_BUNDLE_ID" -demo -screen "$screen" "$@" >/dev/null
+    sleep 5
+    xcrun simctl io "$device_id" screenshot "$output_dir/$filename" >/dev/null
+}
 
-# 3. Growth
-take_screenshot "$IPHONE_ID" "growth" "03_Growth.png" "$OUT_IPHONE"
+capture_device_set() {
+    local device_id="$1"
+    local output_dir="$2"
 
-# 4. Health
-take_screenshot "$IPHONE_ID" "health" "04_Health.png" "$OUT_IPHONE"
+    capture_screen "$device_id" "$output_dir" "01_Welcome.png" onboarding -page 0
+    capture_screen "$device_id" "$output_dir" "02_Dashboard.png" dashboard
+    capture_screen "$device_id" "$output_dir" "03_Sleep.png" sleep
+    capture_screen "$device_id" "$output_dir" "04_Forecast.png" forecast
+    capture_screen "$device_id" "$output_dir" "05_Statistics.png" stats -variant sleep
+    capture_screen "$device_id" "$output_dir" "06_Growth.png" growth -variant weight
+    capture_screen "$device_id" "$output_dir" "07_Health.png" health
+    capture_screen "$device_id" "$output_dir" "08_Sharing.png" sharing
+}
 
-# 5. Settings
-take_screenshot "$IPHONE_ID" "settings" "05_Settings.png" "$OUT_IPHONE"
+main() {
+    local iphone_id ipad_id
+    iphone_id="$(find_device_id "$IPHONE_NAME")"
+    ipad_id="$(find_device_id "$IPAD_NAME")"
 
-echo ""
-echo "=== iPad Pro 13-inch Screenshots ==="
+    build_app
 
-# Build for iPad
-echo "Building for iPad..."
-xcodebuild -project Leona.xcodeproj -scheme Leona \
-    -destination "id=$IPAD_ID" \
-    -configuration Debug build 2>&1 | tail -2
+    echo "==> Booting iPhone simulator"
+    boot_device "$iphone_id"
+    install_app "$iphone_id"
+    capture_device_set "$iphone_id" "$OUT_IPHONE"
 
-echo "Installing app on iPad..."
-xcrun simctl install "$IPAD_ID" "$BUILD_DIR"
-setup_statusbar "$IPAD_ID"
+    echo "==> Booting iPad simulator"
+    boot_device "$ipad_id"
+    install_app "$ipad_id"
+    capture_device_set "$ipad_id" "$OUT_IPAD"
 
-# Same screenshots for iPad
-take_screenshot "$IPAD_ID" "home" "01_Dashboard.png" "$OUT_IPAD"
-take_screenshot "$IPAD_ID" "stats" "02_Statistics.png" "$OUT_IPAD"
-take_screenshot "$IPAD_ID" "growth" "03_Growth.png" "$OUT_IPAD"
-take_screenshot "$IPAD_ID" "health" "04_Health.png" "$OUT_IPAD"
-take_screenshot "$IPAD_ID" "settings" "05_Settings.png" "$OUT_IPAD"
+    echo ""
+    echo "Done."
+    echo "iPhone screenshots: $OUT_IPHONE"
+    echo "iPad screenshots:   $OUT_IPAD"
+}
 
-echo ""
-echo "=== Done! ==="
-echo "iPhone screenshots: $OUT_IPHONE"
-echo "iPad screenshots: $OUT_IPAD"
+main "$@"

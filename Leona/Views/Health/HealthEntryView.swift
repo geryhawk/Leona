@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 
+/// New health record: kind, dates, then whatever was observed so far.
 struct HealthEntryView: View {
     let baby: Baby
 
@@ -12,248 +13,112 @@ struct HealthEntryView: View {
     @State private var hasEndDate = false
     @State private var endDate = Date()
     @State private var notes = ""
-
-    // Symptoms
     @State private var symptoms: [Symptom] = []
-    @State private var newSymptom = ""
-    @State private var newSeverity: SymptomSeverity = .moderate
-
-    // Medications
     @State private var medications: [Medication] = []
-    @State private var newMedName = ""
-    @State private var newMedDosage = ""
-
-    // Temperature — slider works in display units, stored in °C
     @State private var temperatures: [TemperatureReading] = []
-    @State private var newTempDisplay: Double = UnitConversion.displayTemp(37.0)
 
-    /// Convert display slider value to °C for storage
-    private var newTempCelsius: Double { UnitConversion.storageTemp(newTempDisplay) }
+    init(baby: Baby) {
+        self.baby = baby
+    }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                illnessTypeSection
-                datesSection
-                temperatureSection
-                symptomsSection
-                medicationsSection
-                notesSection
-            }
-            .navigationTitle(String(localized: "add_health_record"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "cancel")) { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "save")) { save() }
-                        .fontWeight(.semibold)
-                }
-            }
-        }
-    }
+        VStack(spacing: 0) {
+            InsightsSheetHeader(
+                title: String(localized: "add_health_record"),
+                onLeading: { dismiss() },
+                onTrailing: save
+            )
 
-    // MARK: - Sections
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    LeonaSectionLabel(String(localized: "illness_type"))
+                    illnessPills
 
-    private var illnessTypeSection: some View {
-        Section(String(localized: "illness_type")) {
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                ForEach(IllnessType.allCases) { type in
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) { illnessType = type }
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: type.icon)
-                                .foregroundStyle(type.color)
-                                .font(.subheadline)
-                            Text(type.displayName)
-                                .font(.caption.weight(illnessType == type ? .semibold : .regular))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
+                    LeonaSectionLabel(String(localized: "dates"))
+                        .padding(.top, 6)
+                    LeonaGroup {
+                        dateRow(String(localized: "start_date"), selection: $startDate)
+                        LeonaToggleRow(title: String(localized: "has_end_date"), isOn: $hasEndDate)
+                        if hasEndDate {
+                            dateRow(String(localized: "end_date"), selection: $endDate)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(10)
-                        .background(illnessType == type ? type.color.opacity(0.12) : Color(.systemGray6))
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(illnessType == type ? type.color : .clear, lineWidth: 1.5)
-                        )
-                        .scaleEffect(illnessType == type ? 1.02 : 1.0)
                     }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.primary)
-                }
-            }
-        }
-    }
 
-    private var datesSection: some View {
-        Section(String(localized: "dates")) {
-            DatePicker(String(localized: "start_date"), selection: $startDate, displayedComponents: .date)
-            Toggle(String(localized: "has_end_date"), isOn: $hasEndDate)
-            if hasEndDate {
-                DatePicker(String(localized: "end_date"), selection: $endDate, displayedComponents: .date)
-            }
-        }
-    }
+                    LeonaSectionLabel(String(localized: "temperature"))
+                        .padding(.top, 6)
+                    HealthTemperatureEditor(temperatures: $temperatures)
 
-    private var temperatureSection: some View {
-        Section(String(localized: "temperature")) {
-            HStack {
-                Slider(value: $newTempDisplay, in: UnitConversion.tempSliderMin...UnitConversion.tempSliderMax, step: UnitConversion.tempSliderStep)
-                    .tint(temperatureColor(newTempCelsius))
-                Text(String(format: "%.1f%@", newTempDisplay, UnitConversion.tempUnit))
-                    .font(.headline.monospacedDigit())
-                    .foregroundStyle(temperatureColor(newTempCelsius))
-                    .frame(width: 80, alignment: .trailing)
-            }
-            Button {
-                addTemperature()
-            } label: {
-                Label(String(localized: "add_temperature"), systemImage: "plus.circle.fill")
-            }
-            ForEach(temperatures) { temp in
-                HStack {
-                    Text(UnitConversion.formatTemp(temp.temperature))
-                        .foregroundStyle(temperatureColor(temp.temperature))
-                    Spacer()
-                    Text(temp.measuredAt.timeString)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .onDelete { indexSet in
-                temperatures.remove(atOffsets: indexSet)
-            }
-        }
-    }
+                    LeonaSectionLabel(String(localized: "symptoms"))
+                        .padding(.top, 6)
+                    HealthSymptomEditor(symptoms: $symptoms)
 
-    private var symptomsSection: some View {
-        Section(String(localized: "symptoms")) {
-            HStack {
-                TextField(String(localized: "symptom_placeholder"), text: $newSymptom)
-                Picker("", selection: $newSeverity) {
-                    ForEach(SymptomSeverity.allCases) { sev in
-                        Text(sev.displayName).tag(sev)
+                    LeonaSectionLabel(String(localized: "medications"))
+                        .padding(.top, 6)
+                    HealthMedicationEditor(medications: $medications)
+
+                    LeonaSectionLabel(String(localized: "notes"))
+                        .padding(.top, 6)
+                    LeonaCard(padding: EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12)) {
+                        TextEditor(text: $notes)
+                            .font(.leona(15))
+                            .foregroundStyle(.tInk)
+                            .scrollContentBackground(.hidden)
+                            .frame(minHeight: 80)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                .pickerStyle(.menu)
-                .frame(width: 100)
-                Button {
-                    addSymptom()
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundStyle(.leonaPink)
-                }
-                .disabled(newSymptom.isEmpty)
+                .padding(18)
             }
-            ForEach(symptoms) { symptom in
-                HStack {
-                    Circle()
-                        .fill(symptom.severity.color)
-                        .frame(width: 8)
-                    Text(symptom.description)
-                    Spacer()
-                    Text(symptom.severity.displayName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            .scrollDismissesKeyboard(.interactively)
+        }
+        .background(Color.tCanvas.ignoresSafeArea())
+    }
+
+    // MARK: - Pieces
+
+    private var illnessPills: some View {
+        HealthFlowLayout(spacing: 7) {
+            ForEach(IllnessType.allCases) { type in
+                LeonaPill(title: type.displayName, isOn: illnessType == type, fontSize: 12, vertical: 9, horizontal: 14, fill: false) {
+                    withAnimation(.easeOut(duration: 0.15)) { illnessType = type }
                 }
-            }
-            .onDelete { indexSet in
-                symptoms.remove(atOffsets: indexSet)
             }
         }
     }
 
-    private var medicationsSection: some View {
-        Section(String(localized: "medications")) {
-            TextField(String(localized: "medication_name"), text: $newMedName)
-            TextField(String(localized: "dosage"), text: $newMedDosage)
-            Button {
-                addMedication()
-            } label: {
-                Label(String(localized: "add_medication"), systemImage: "plus.circle.fill")
-                    .foregroundStyle(newMedName.isEmpty ? Color.secondary : Color.leonaPink)
-            }
-            .disabled(newMedName.isEmpty)
-            ForEach(medications) { med in
-                HStack {
-                    Image(systemName: "pills.fill")
-                        .foregroundStyle(.teal)
-                    Text(med.name)
-                    if !med.dosage.isEmpty {
-                        Text("(\(med.dosage))")
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Text(med.administeredAt.timeString)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .onDelete { indexSet in
-                medications.remove(atOffsets: indexSet)
-            }
+    private func dateRow(_ label: String, selection: Binding<Date>) -> some View {
+        HStack(spacing: 12) {
+            Text(label)
+                .font(.leona(15, .bold))
+                .foregroundStyle(.tInk)
+            Spacer(minLength: 0)
+            DatePicker("", selection: selection, displayedComponents: .date)
+                .labelsHidden()
+                .datePickerStyle(.compact)
         }
+        .padding(.vertical, 11)
+        .padding(.horizontal, 17)
     }
 
-    private var notesSection: some View {
-        Section(String(localized: "notes")) {
-            TextEditor(text: $notes)
-                .frame(minHeight: 80)
-        }
-    }
-
-    private func addTemperature() {
-        // Store in °C regardless of display unit
-        temperatures.append(TemperatureReading(temperature: newTempCelsius))
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-    }
-
-    private func addSymptom() {
-        guard !newSymptom.isEmpty else { return }
-        symptoms.append(Symptom(description: newSymptom, severity: newSeverity))
-        newSymptom = ""
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-    }
-
-    private func addMedication() {
-        guard !newMedName.isEmpty else { return }
-        medications.append(Medication(name: newMedName, dosage: newMedDosage))
-        newMedName = ""
-        newMedDosage = ""
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-    }
-
-    /// Temperature color thresholds (always in °C since stored values are °C)
-    private func temperatureColor(_ tempCelsius: Double) -> Color {
-        if tempCelsius >= 39.0 { return .red }
-        if tempCelsius >= 38.0 { return .orange }
-        if tempCelsius >= 37.5 { return .yellow }
-        return .green
-    }
+    // MARK: - Save
 
     private func save() {
         let record = HealthRecord(
             illnessType: illnessType,
             startDate: startDate,
-            endDate: hasEndDate ? endDate : nil,
+            endDate: hasEndDate ? max(endDate, startDate) : nil,
             notes: notes,
             baby: baby
         )
-        // Insert into context FIRST so SwiftData tracks property changes
+        // Insert first so SwiftData tracks the embedded JSON mutations below.
         modelContext.insert(record)
-
-        // Now set embedded JSON data — context tracks these mutations
         record.symptoms = symptoms
         record.medications = medications
         record.temperatures = temperatures
 
-        try? modelContext.save()
-
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        ActivityLogger.save(modelContext)
+        NotificationCenter.default.post(name: .shouldPushLocalChanges, object: nil)
+        HapticManager.success()
         dismiss()
     }
 }

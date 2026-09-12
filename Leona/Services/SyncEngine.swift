@@ -15,37 +15,73 @@ final class SyncEngine {
     private var isSyncing = false
     private var lastSyncDate: Date?
     private var pendingSyncTask: Task<Void, Never>?
+    /// True while a debounced full sync (with push) is queued and has not run yet.
+    private var pushPending = false
     private var syncDebounceCount = 0
+    private var cooldownUntil: Date?
     
-    private let minSyncInterval: TimeInterval = 5.0 // Minimum 5 seconds between syncs (increased from 2)
-    private let maxSyncDebounceCount = 3 // Stop syncing after 3 rapid-fire attempts
+    private let minSyncInterval: TimeInterval = 1.5
+    private let debounceDelay: TimeInterval = 0.75
+    private let maxSyncDebounceCount = 5
+    private let syncStormCooldown: TimeInterval = 6.0
 
     /// Syncs all shared babies (both pull and push).
     func syncAllSharedBabies(context: ModelContext) async {
+        await runSync(context: context, force: false, pushLocalChanges: true)
+    }
+
+    /// Forces an immediate refresh for shared babies: pull-only, unless a debounced push was
+    /// queued, in which case the queued push rides along instead of being dropped.
+    /// Used for remote push handling and pull-to-refresh gestures.
+    func forcePullSharedBabies(context: ModelContext) async {
+        let carryPush = pushPending
+        pushPending = false
+        pendingSyncTask?.cancel()
+        pendingSyncTask = nil
+        await waitForCurrentSyncIfNeeded()
+        await runSync(context: context, force: true, pushLocalChanges: carryPush)
+    }
+
+    private func waitForCurrentSyncIfNeeded() async {
+        while isSyncing {
+            try? await Task.sleep(for: .milliseconds(150))
+        }
+    }
+
+    private func runSync(
+        context: ModelContext,
+        force: Bool,
+        pushLocalChanges: Bool
+    ) async {
+        if force {
+            syncDebounceCount = 0
+            cooldownUntil = nil
+        } else {
+            if let cooldownUntil, Date() < cooldownUntil {
+                logger.info("Sync cooling down until \(cooldownUntil.formatted())")
+                return
+            }
+
+            if let lastSync = lastSyncDate {
+                let timeSinceLastSync = Date().timeIntervalSince(lastSync)
+                if timeSinceLastSync < minSyncInterval {
+                    syncDebounceCount += 1
+                    if syncDebounceCount >= maxSyncDebounceCount {
+                        logger.warning("Sync storm detected, cooling down briefly")
+                        cooldownUntil = Date().addingTimeInterval(syncStormCooldown)
+                        syncDebounceCount = 0
+                    }
+                    logger.info("Sync debounced (too soon after last sync: \(String(format: "%.1f", timeSinceLastSync))s ago)")
+                    return
+                }
+
+                syncDebounceCount = 0
+            }
+        }
+
         guard !isSyncing else {
             logger.info("Sync already in progress, skipping")
             return
-        }
-        
-        // Debouncing: Don't sync too frequently
-        if let lastSync = lastSyncDate {
-            let timeSinceLastSync = Date().timeIntervalSince(lastSync)
-            if timeSinceLastSync < minSyncInterval {
-                syncDebounceCount += 1
-                if syncDebounceCount >= maxSyncDebounceCount {
-                    logger.warning("Sync storm detected! Stopping sync for 30 seconds to prevent infinite loop")
-                    // Wait 30 seconds before allowing syncs again
-                    try? await Task.sleep(for: .seconds(30))
-                    syncDebounceCount = 0
-                    lastSyncDate = Date()
-                    return
-                }
-                logger.info("Sync debounced (too soon after last sync: \(String(format: "%.1f", timeSinceLastSync))s ago)")
-                return
-            } else {
-                // Reset counter if enough time has passed
-                syncDebounceCount = 0
-            }
         }
 
         isSyncing = true
@@ -73,11 +109,11 @@ final class SyncEngine {
 
             for baby in sharedBabies {
                 do {
-                    // First pull remote changes
                     try await sharing.syncSharedRecords(for: baby, in: context)
 
-                    // Then push local changes (both owner and participants can push)
-                    try await sharing.pushLocalChanges(for: baby)
+                    if pushLocalChanges {
+                        try await sharing.pushLocalChanges(for: baby, in: context)
+                    }
                 } catch {
                     logger.error("Sync failed for baby \(baby.displayName): \(error.localizedDescription)")
                     // Don't throw - continue with other babies
@@ -85,23 +121,23 @@ final class SyncEngine {
             }
 
             lastSyncDate = Date()
-            logger.info("Automatic sync completed for \(sharedBabies.count) shared babies")
+            let syncMode = pushLocalChanges ? "full sync" : "pull refresh"
+            logger.info("Shared \(syncMode) completed for \(sharedBabies.count) babies")
         } catch {
             logger.error("Failed to fetch shared babies: \(error.localizedDescription)")
             lastSyncDate = Date() // Still update to prevent rapid retries
         }
     }
     
-    /// Triggers a debounced sync (waits 2 seconds before actually syncing to batch multiple changes)
+    /// Triggers a debounced sync to batch nearby local changes.
     func triggerDebouncedSync(context: ModelContext) {
-        // Cancel any pending sync
         pendingSyncTask?.cancel()
-        
-        // Schedule a new sync after a longer delay to batch changes
+        pushPending = true
+
         pendingSyncTask = Task {
-            try? await Task.sleep(for: .seconds(2)) // Increased from 1 second
-            
+            try? await Task.sleep(for: .milliseconds(Int(debounceDelay * 1000)))
             guard !Task.isCancelled else { return }
+            pushPending = false
             await syncAllSharedBabies(context: context)
         }
     }

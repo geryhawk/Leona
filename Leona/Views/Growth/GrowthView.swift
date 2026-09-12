@@ -1,722 +1,329 @@
 import SwiftUI
 import SwiftData
-import Charts
 
-struct GrowthView: View {
-    let baby: Baby
+// MARK: - Metric
 
-    @Environment(\.modelContext) private var modelContext
-    @Environment(SharingManager.self) private var sharing
-    @Query(sort: \GrowthRecord.date, order: .reverse) private var allRecords: [GrowthRecord]
+enum GrowthMetric: String, CaseIterable, Identifiable {
+    case weight, height, head
 
-    @State private var showAddRecord = false
-    @State private var selectedChart: GrowthChartType = .weight
-    @State private var editingRecord: GrowthRecord?
-    @State private var recordToDelete: GrowthRecord?
-    @State private var chartScale: CGFloat = 1.0
-    @State private var lastChartScale: CGFloat = 1.0
+    var id: String { rawValue }
 
-    private var settings: AppSettings { AppSettings.shared }
-
-    private var babyRecords: [GrowthRecord] {
-        allRecords.filter { $0.baby?.id == baby.id }
-    }
-
-    enum GrowthChartType: String, CaseIterable, Identifiable {
-        case weight, height, headCircumference
-
-        var id: String { rawValue }
-
-        var displayName: String {
-            switch self {
-            case .weight: return String(localized: "growth_weight")
-            case .height: return String(localized: "growth_height")
-            case .headCircumference: return String(localized: "growth_head")
-            }
-        }
-
-        var unit: String {
-            switch self {
-            case .weight: return UnitConversion.weightUnit
-            case .height, .headCircumference: return UnitConversion.heightUnit
-            }
-        }
-
-        var icon: String {
-            switch self {
-            case .weight: return "scalemass.fill"
-            case .height: return "ruler.fill"
-            case .headCircumference: return "circle.dashed"
-            }
-        }
-
-        var color: Color {
-            switch self {
-            case .weight: return Color(red: 0.35, green: 0.55, blue: 0.9)
-            case .height: return Color(red: 0.3, green: 0.75, blue: 0.55)
-            case .headCircumference: return Color(red: 0.6, green: 0.45, blue: 0.85)
-            }
+    var title: String {
+        switch self {
+        case .weight: return String(localized: "growth_weight")
+        case .height: return String(localized: "growth_height")
+        case .head: return String(localized: "growth_head")
         }
     }
 
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    latestMeasurementsCard
-                    chartTypeSelector
-                    growthChart
-                    recordsList
-                }
-                .padding()
-            }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle(String(localized: "growth"))
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showAddRecord = true
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(.leonaPink)
-                    }
-                }
-            }
-            .sheet(isPresented: $showAddRecord) {
-                GrowthEntryView(baby: baby)
-            }
-            .sheet(item: $editingRecord) { record in
-                GrowthEntryView(baby: baby, editingRecord: record)
-            }
-            .alert(String(localized: "delete_record"), isPresented: Binding<Bool>(
-                get: { recordToDelete != nil },
-                set: { if !$0 { recordToDelete = nil } }
-            )) {
-                Button(String(localized: "delete"), role: .destructive) {
-                    if let record = recordToDelete {
-                        deleteRecord(record)
-                    }
-                    recordToDelete = nil
-                }
-                Button(String(localized: "cancel"), role: .cancel) {
-                    recordToDelete = nil
-                }
-            } message: {
-                Text(String(localized: "delete_record_message"))
-            }
+    var unit: String {
+        self == .weight ? UnitConversion.weightUnit : UnitConversion.heightUnit
+    }
+
+    /// The stored (metric) value of this measurement on a record.
+    func storedValue(of record: GrowthRecord) -> Double? {
+        switch self {
+        case .weight: return record.weightKg
+        case .height: return record.heightCm
+        case .head: return record.headCircumferenceCm
         }
     }
 
-    private func deleteRecord(_ record: GrowthRecord) {
-        let recordID = record.id
-        let baby = record.baby
+    /// Stored value → display unit.
+    func display(_ stored: Double) -> Double {
+        self == .weight ? UnitConversion.displayWeight(stored) : UnitConversion.displayHeight(stored)
+    }
 
-        modelContext.delete(record)
-        try? modelContext.save()
+    func format(_ displayValue: Double) -> String {
+        String(format: self == .weight ? "%.2f" : "%.1f", displayValue)
+    }
 
-        if let baby, baby.isShared {
-            Task {
-                try? await sharing.deleteRecord(
-                    recordID: recordID,
-                    recordType: GrowthRecord.ckRecordType,
-                    for: baby
-                )
-            }
+    func percentiles(gender: BabyGender) -> [WHOPercentilePoint] {
+        switch self {
+        case .weight: return WHODataService.weightPercentiles(gender: gender)
+        case .height: return WHODataService.heightPercentiles(gender: gender)
+        case .head: return WHODataService.headCircumferencePercentiles(gender: gender)
         }
     }
 
-    // MARK: - Latest Measurements
-
-    private var latestMeasurementsCard: some View {
-        Group {
-            if let latest = babyRecords.first {
-                VStack(spacing: 16) {
-                    HStack {
-                        Text(String(localized: "latest_measurements"))
-                            .font(.headline)
-                        Spacer()
-                        Text(latest.date.dateString)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    HStack(spacing: 16) {
-                        if let weight = latest.weightKg {
-                            let display = UnitConversion.displayWeight(weight)
-                            measurementPill(
-                                icon: "scalemass.fill",
-                                value: String(format: "%.2f", display),
-                                unit: UnitConversion.weightUnit,
-                                color: .blue,
-                                percentile: calculatePercentile(value: weight, type: .weight)
-                            )
-                        }
-
-                        if let height = latest.heightCm {
-                            let display = UnitConversion.displayHeight(height)
-                            measurementPill(
-                                icon: "ruler.fill",
-                                value: String(format: "%.1f", display),
-                                unit: UnitConversion.heightUnit,
-                                color: .green,
-                                percentile: calculatePercentile(value: height, type: .height)
-                            )
-                        }
-
-                        if let head = latest.headCircumferenceCm {
-                            let display = UnitConversion.displayHeight(head)
-                            measurementPill(
-                                icon: "circle.dashed",
-                                value: String(format: "%.1f", display),
-                                unit: UnitConversion.heightUnit,
-                                color: .purple,
-                                percentile: calculatePercentile(value: head, type: .headCircumference)
-                            )
-                        }
-                    }
-                }
-                .padding()
-                .leonaCard()
-            } else {
-                VStack(spacing: 12) {
-                    Image(systemName: "chart.line.uptrend.xyaxis")
-                        .font(.largeTitle)
-                        .foregroundStyle(.secondary)
-
-                    Text(String(localized: "growth_no_records"))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Button {
-                        showAddRecord = true
-                    } label: {
-                        Label(String(localized: "add_measurement"), systemImage: "plus.circle.fill")
-                    }
-                    .buttonStyle(LeonaSecondaryButtonStyle(color: .leonaPink))
-                }
-                .padding(32)
-                .frame(maxWidth: .infinity)
-                .leonaCard()
-            }
-        }
-    }
-
-    private func measurementPill(icon: String, value: String, unit: String, color: Color, percentile: Double?) -> some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.caption)
-                .foregroundStyle(color)
-
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(value)
-                    .font(.headline.monospacedDigit())
-                Text(unit)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            if let p = percentile {
-                Text("P\(Int(p))")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(percentileColor(p))
-                    .clipShape(Capsule())
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    // MARK: - Chart Type Selector
-
-    private var chartTypeSelector: some View {
-        Picker(String(localized: "chart_type"), selection: $selectedChart) {
-            ForEach(GrowthChartType.allCases) { type in
-                Label(type.displayName, systemImage: type.icon).tag(type)
-            }
-        }
-        .pickerStyle(.segmented)
-    }
-
-    // MARK: - Growth Chart
-
-    private var growthChart: some View {
-        let rawPercentiles = whoPercentiles(for: selectedChart)
-        let rawBabyPoints = chartPoints(for: selectedChart)
-
-        // Convert to display units (imperial if needed)
-        let percentiles = convertedPercentiles(rawPercentiles)
-        let babyPoints = convertedBabyPoints(rawBabyPoints)
-
-        let chartColor = selectedChart.color
-        let xDomain = chartXDomain(babyPoints: rawBabyPoints, percentiles: rawPercentiles)
-        let yDomain = chartYDomain(percentiles: percentiles, babyPoints: babyPoints, xDomain: xDomain)
-        let useYears = xDomain.upperBound > 36
-
-        return VStack(alignment: .leading, spacing: 12) {
-            // Chart header
-            HStack(alignment: .firstTextBaseline) {
-                Text(selectedChart.displayName)
-                    .font(.headline)
-                Text("(\(selectedChart.unit))")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                if let lastPoint = babyPoints.last {
-                    Text(String(format: selectedChart == .weight ? "%.2f" : "%.1f", lastPoint.value))
-                        .font(.title3.weight(.semibold).monospacedDigit())
-                        .foregroundStyle(chartColor)
-                    + Text(" \(selectedChart.unit)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Chart {
-                // === WHO shaded band P3–P97 (single color, subtle fill) ===
-                ForEach(percentiles) { point in
-                    AreaMark(
-                        x: .value("Age", point.ageInMonths),
-                        yStart: .value("P3", point.p3),
-                        yEnd: .value("P97", point.p97)
-                    )
-                    .foregroundStyle(chartColor.opacity(0.12))
-                    .interpolationMethod(.catmullRom)
-                }
-
-                // === WHO percentile lines (same color family, varying weight) ===
-
-                // P3 line (bottom boundary)
-                ForEach(percentiles) { point in
-                    LineMark(
-                        x: .value("Age", point.ageInMonths),
-                        y: .value("Value", point.p3),
-                        series: .value("Series", "P3")
-                    )
-                    .foregroundStyle(chartColor.opacity(0.35))
-                    .lineStyle(StrokeStyle(lineWidth: 1.0))
-                    .interpolationMethod(.catmullRom)
-                }
-
-                // P50 median line (dashed, most visible)
-                ForEach(percentiles) { point in
-                    LineMark(
-                        x: .value("Age", point.ageInMonths),
-                        y: .value("Value", point.p50),
-                        series: .value("Series", "P50")
-                    )
-                    .foregroundStyle(chartColor.opacity(0.50))
-                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
-                    .interpolationMethod(.catmullRom)
-                }
-
-                // P97 line (top boundary)
-                ForEach(percentiles) { point in
-                    LineMark(
-                        x: .value("Age", point.ageInMonths),
-                        y: .value("Value", point.p97),
-                        series: .value("Series", "P97")
-                    )
-                    .foregroundStyle(chartColor.opacity(0.35))
-                    .lineStyle(StrokeStyle(lineWidth: 1.0))
-                    .interpolationMethod(.catmullRom)
-                }
-
-                // === Baby's data ===
-
-                // Baby's curve — main line
-                ForEach(babyPoints) { point in
-                    LineMark(
-                        x: .value("Age", point.ageInMonths),
-                        y: .value("Value", point.value),
-                        series: .value("Series", "Baby")
-                    )
-                    .foregroundStyle(chartColor)
-                    .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
-                    .interpolationMethod(.catmullRom)
-                }
-
-                // Data points
-                ForEach(babyPoints) { point in
-                    PointMark(
-                        x: .value("Age", point.ageInMonths),
-                        y: .value("Value", point.value)
-                    )
-                    .symbol {
-                        Circle()
-                            .fill(.white)
-                            .frame(width: 10, height: 10)
-                        Circle()
-                            .fill(chartColor)
-                            .frame(width: 7, height: 7)
-                    }
-                    .symbolSize(80)
-                }
-            }
-            .chartXScale(domain: xDomain)
-            .chartYScale(domain: yDomain)
-            .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: 6)) { value in
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.3))
-                        .foregroundStyle(Color.secondary.opacity(0.3))
-                    AxisTick(stroke: StrokeStyle(lineWidth: 0.3))
-                        .foregroundStyle(Color.secondary.opacity(0.3))
-                    AxisValueLabel {
-                        if let v = value.as(Double.self) {
-                            Text(ageLabel(months: v, useYears: useYears))
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
-            .chartYAxis {
-                AxisMarks(position: .leading, values: .automatic(desiredCount: 5)) { value in
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.3))
-                        .foregroundStyle(Color.secondary.opacity(0.2))
-                    AxisValueLabel {
-                        if let v = value.as(Double.self) {
-                            Text(selectedChart == .weight ? String(format: "%.1f", v) : String(format: "%.0f", v))
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                }
-            }
-            .frame(height: max(300, 300 * chartScale))
-            .padding(.top, 8)
-            .padding(.bottom, 4)
-            .padding(.horizontal, 4)
-            .gesture(
-                MagnifyGesture()
-                    .onChanged { value in
-                        let newScale = lastChartScale * value.magnification
-                        chartScale = min(max(newScale, 1.0), 3.0)
-                    }
-                    .onEnded { _ in
-                        lastChartScale = chartScale
-                    }
-            )
-            .animation(.easeInOut(duration: 0.2), value: chartScale)
-
-            // Legend
-            HStack(spacing: 12) {
-                legendItem(color: chartColor, label: baby.displayName)
-                legendItem(color: chartColor.opacity(0.50), label: "P50", dashed: true)
-                legendItem(color: chartColor.opacity(0.25), label: "P3–P97", isFill: true)
-            }
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 4)
-
-            if chartScale > 1.0 {
-                Button {
-                    withAnimation(.spring(response: 0.3)) {
-                        chartScale = 1.0
-                        lastChartScale = 1.0
-                    }
-                } label: {
-                    Label(String(localized: "reset_zoom"), systemImage: "arrow.down.right.and.arrow.up.left")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 4)
-            }
-        }
-        .padding(16)
-        .leonaCard()
-    }
-
-    // MARK: - Chart Domain Helpers
-
-    /// Adapt X domain to baby's age — scales with available WHO data
-    private func chartXDomain(babyPoints: [GrowthChartPoint], percentiles: [WHOPercentilePoint]) -> ClosedRange<Double> {
-        let maxDataAge = babyPoints.map(\.ageInMonths).max() ?? 0
-        let babyAge = max(maxDataAge, max(0, baby.ageInMonths))
-        let maxWHO = percentiles.map(\.ageInMonths).max() ?? 24
-
-        // Adaptive lookahead based on baby's age
-        let rawUpper: Double
-        if babyAge <= 1 {
-            rawUpper = 3           // newborn → show 0–3 months
-        } else if babyAge <= 3 {
-            rawUpper = 6           // 1–3 months → show 0–6 months
-        } else if babyAge <= 6 {
-            rawUpper = 9           // 3–6 months → show 0–9 months
-        } else if babyAge <= 12 {
-            rawUpper = babyAge + 3 // 6–12 months → 3 months ahead
-        } else {
-            rawUpper = babyAge * 1.15 + 3 // older → 15% ahead + 3 months
-        }
-
-        // Round to nice intervals
-        let upper: Double
-        if rawUpper <= 6 {
-            upper = ceil(rawUpper / 1) * 1        // round to nearest month
-        } else if rawUpper <= 24 {
-            upper = ceil(rawUpper / 3) * 3        // round to nearest 3 months
-        } else if rawUpper <= 60 {
-            upper = ceil(rawUpper / 6) * 6        // round to nearest 6 months
-        } else {
-            upper = ceil(rawUpper / 12) * 12      // round to nearest year
-        }
-
-        return 0...min(upper, maxWHO)
-    }
-
-    /// Adapt Y domain: encompass WHO bands and baby data with some breathing room
-    private func chartYDomain(percentiles: [WHOPercentilePoint], babyPoints: [GrowthChartPoint], xDomain: ClosedRange<Double>) -> ClosedRange<Double> {
-        let relevantPercentiles = percentiles.filter { $0.ageInMonths <= xDomain.upperBound }
-        let whoMin = relevantPercentiles.map(\.p3).min() ?? 0
-        let whoMax = relevantPercentiles.map(\.p97).max() ?? 100
-        let dataMin = babyPoints.map(\.value).min() ?? whoMin
-        let dataMax = babyPoints.map(\.value).max() ?? whoMax
-        let low = min(whoMin, dataMin)
-        let high = max(whoMax, dataMax)
-        let padding = (high - low) * 0.08
-        return max(0, low - padding)...(high + padding)
-    }
-
-    /// Format age label: months for short ranges, years for longer ranges
-    private func ageLabel(months: Double, useYears: Bool) -> String {
-        if useYears {
-            let years = months / 12
-            if years == floor(years) {
-                return "\(Int(years))y"
-            }
-            return String(format: "%.1fy", years)
-        } else {
-            return "\(Int(months))m"
-        }
-    }
-
-    // MARK: - Unit Conversion for Chart Data
-
-    /// Convert WHO percentile values to display units
-    private func convertedPercentiles(_ points: [WHOPercentilePoint]) -> [WHOPercentilePoint] {
-        guard !settings.useMetric else { return points }
-        let convert: (Double) -> Double = selectedChart == .weight
-            ? UnitConversion.kgToLbs
-            : UnitConversion.cmToInches
-        return points.map { point in
-            WHOPercentilePoint(
-                ageInMonths: point.ageInMonths,
-                p3: convert(point.p3),
-                p15: convert(point.p15),
-                p50: convert(point.p50),
-                p85: convert(point.p85),
-                p97: convert(point.p97)
-            )
-        }
-    }
-
-    /// Convert baby measurement points to display units
-    private func convertedBabyPoints(_ points: [GrowthChartPoint]) -> [GrowthChartPoint] {
-        guard !settings.useMetric else { return points }
-        let convert: (Double) -> Double = selectedChart == .weight
-            ? UnitConversion.kgToLbs
-            : UnitConversion.cmToInches
-        return points.map {
-            GrowthChartPoint(ageInMonths: $0.ageInMonths, value: convert($0.value), percentile: $0.percentile)
-        }
-    }
-
-    private func legendItem(color: Color, label: String, dashed: Bool = false, isFill: Bool = false) -> some View {
-        HStack(spacing: 4) {
-            if isFill {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(color)
-                    .frame(width: 16, height: 8)
-            } else if dashed {
-                Rectangle()
-                    .fill(color)
-                    .frame(width: 16, height: 1)
-                    .overlay(
-                        Rectangle()
-                            .stroke(color, style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
-                            .frame(height: 1)
-                    )
-            } else {
-                Capsule()
-                    .fill(color)
-                    .frame(width: 16, height: 3)
-            }
-            Text(label)
-        }
-    }
-
-    /// Interpolate P3 value at a given age from percentile data points
-    private func interpolatedP3(at age: Double, percentiles: [WHOPercentilePoint]) -> Double {
-        guard !percentiles.isEmpty else { return 0 }
-        // Find surrounding points
-        if let exact = percentiles.first(where: { $0.ageInMonths == age }) {
-            return exact.p3
-        }
-        guard let upper = percentiles.first(where: { $0.ageInMonths > age }),
-              let lowerIdx = percentiles.lastIndex(where: { $0.ageInMonths < age }) else {
-            return percentiles.first?.p3 ?? 0
-        }
-        let lower = percentiles[lowerIdx]
-        let ratio = (age - lower.ageInMonths) / (upper.ageInMonths - lower.ageInMonths)
-        return lower.p3 + (upper.p3 - lower.p3) * ratio
-    }
-
-    // MARK: - Records List
-
-    private var recordsList: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "all_measurements"))
-                .font(.headline)
-                .foregroundStyle(.secondary)
-
-            ForEach(babyRecords) { record in
-                GrowthRecordRow(record: record) {
-                    editingRecord = record
-                } onDelete: {
-                    recordToDelete = record
-                }
-            }
-        }
-    }
-
-    // MARK: - Helpers
-
-    private func whoPercentiles(for type: GrowthChartType) -> [WHOPercentilePoint] {
-        switch type {
-        case .weight: return WHODataService.weightPercentiles(gender: baby.gender)
-        case .height: return WHODataService.heightPercentiles(gender: baby.gender)
-        case .headCircumference: return WHODataService.headCircumferencePercentiles(gender: baby.gender)
-        }
-    }
-
-    private func chartPoints(for type: GrowthChartType) -> [GrowthChartPoint] {
-        babyRecords
-            .sorted { $0.date < $1.date }
-            .compactMap { record in
-                guard let age = record.ageInMonthsAtMeasurement else { return nil }
-                let value: Double?
-                switch type {
-                case .weight: value = record.weightKg
-                case .height: value = record.heightCm
-                case .headCircumference: value = record.headCircumferenceCm
-                }
-                guard let v = value else { return nil }
-                return GrowthChartPoint(ageInMonths: age, value: v, percentile: nil)
-            }
-    }
-
-    private func calculatePercentile(value: Double, type: GrowthChartType) -> Double? {
-        let data = whoPercentiles(for: type)
-        return WHODataService.calculatePercentile(
-            value: value,
-            ageInMonths: baby.ageInMonths,
-            data: data
-        )
-    }
-
-    private func percentileColor(_ percentile: Double) -> Color {
-        if percentile < 3 || percentile > 97 { return .red }
-        if percentile < 15 || percentile > 85 { return .orange }
-        return .green
+    func percentile(value: Double, ageInMonths: Double, gender: BabyGender) -> Int? {
+        WHODataService.calculatePercentile(value: value, ageInMonths: max(0, ageInMonths), data: percentiles(gender: gender))
+            .map { Int($0.rounded()) }
     }
 }
 
-// MARK: - Growth Record Row with swipe-to-delete
+// MARK: - Age wording
 
-private struct GrowthRecordRow: View {
-    let record: GrowthRecord
-    let onTap: () -> Void
-    let onDelete: () -> Void
+enum GrowthAge {
+    static func months(from birth: Date, to date: Date) -> Double {
+        let components = Calendar.current.dateComponents([.month, .day], from: birth, to: date)
+        return Double(components.month ?? 0) + Double(components.day ?? 0) / 30.44
+    }
 
-    @State private var offset: CGFloat = 0
+    /// "Birth", "3 weeks", "3 months", "1 year, 2 months"
+    static func phrase(from birth: Date, to date: Date) -> String {
+        let calendar = Calendar.current
+        let days = calendar.dateComponents([.day], from: birth, to: date).day ?? 0
+        if days <= 0 { return String(localized: "growth_age_birth") }
+        if days < 7 { return String(localized: "growth_age_in_days \(days)") }
+        let parts = calendar.dateComponents([.year, .month], from: birth, to: date)
+        let years = parts.year ?? 0
+        let months = parts.month ?? 0
+        if years > 0 {
+            return months > 0
+                ? String(localized: "age_years_months \(years) \(months)")
+                : String(localized: "age_years \(years)")
+        }
+        if months == 0 { return String(localized: "growth_age_in_weeks \(days / 7)") }
+        return String(localized: "age_months \(months)")
+    }
+}
+
+// MARK: - Percentile badge
+
+struct GrowthPercentileBadge: View {
+    let percentile: Int?
 
     var body: some View {
-        ZStack(alignment: .trailing) {
-            HStack {
-                Spacer()
-                Button(role: .destructive) {
-                    onDelete()
-                } label: {
-                    Image(systemName: "trash.fill")
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-                .frame(width: 80)
-                .background(.red)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            }
+        Text(percentile.map { "P\($0)" } ?? "—")
+            .font(.leona(13, .heavy))
+            .foregroundStyle(.white)
+            .padding(.vertical, 5)
+            .padding(.horizontal, 11)
+            .background(percentile == nil ? Color.tDisabled : Color.vermilion)
+            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+    }
+}
 
-            cardContent
-                .offset(x: offset)
-                .simultaneousGesture(swipeGesture)
+// MARK: - Screen
+
+struct GrowthView: View {
+    let baby: Baby
+    @Binding var metric: GrowthMetric
+
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \GrowthRecord.date, order: .reverse) private var allRecords: [GrowthRecord]
+    @State private var sheet: GrowthSheet?
+
+    private enum GrowthSheet: Identifiable {
+        case add
+        case edit(GrowthRecord)
+
+        var id: String {
+            switch self {
+            case .add: return "add"
+            case .edit(let record): return record.id.uuidString
+            }
         }
     }
 
-    private var swipeGesture: some Gesture {
-        DragGesture(minimumDistance: 20, coordinateSpace: .local)
-            .onChanged { value in
-                let horizontal = abs(value.translation.width)
-                let vertical = abs(value.translation.height)
-                guard horizontal > vertical else { return }
-                if value.translation.width < 0 {
-                    offset = max(value.translation.width, -80)
+    /// Newest first.
+    private var records: [GrowthRecord] { allRecords.filter { $0.baby?.id == baby.id } }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                metricPills
+                if records.isEmpty {
+                    emptyBubble
+                } else {
+                    leonaCard
+                }
+                GrowthChartCard(baby: baby, metric: metric, records: records)
+                HStack {
+                    LeonaSectionLabel(String(localized: "growth_every_measurement"))
+                    Spacer(minLength: 8)
+                    LeonaSmallButton(title: String(localized: "growth_add_short")) { sheet = .add }
+                }
+                .padding(.top, 4)
+                ForEach(records) { record in
+                    recordRow(record)
                 }
             }
-            .onEnded { value in
-                withAnimation(.spring(response: 0.3)) {
-                    offset = value.translation.width < -40 ? -80 : 0
-                }
+            .padding(EdgeInsets(top: 4, leading: 18, bottom: 20, trailing: 18))
+        }
+        .scrollIndicators(.hidden)
+        .refreshable { await refreshSharedData() }
+        .sheet(item: $sheet) { sheet in
+            switch sheet {
+            case .add: GrowthEntryView(baby: baby)
+            case .edit(let record): GrowthEntryView(baby: baby, editingRecord: record)
             }
+        }
     }
 
-    private var cardContent: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(record.date.dateString)
-                    .font(.subheadline.weight(.semibold))
+    // MARK: - Pills
 
-                if let age = record.ageInMonthsAtMeasurement {
-                    Text(String(localized: "growth_age_months \(String(format: "%.1f", age))"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+    private var metricPills: some View {
+        HStack(spacing: 7) {
+            ForEach(GrowthMetric.allCases) { candidate in
+                LeonaPill(title: candidate.title, isOn: metric == candidate) {
+                    withAnimation(.easeOut(duration: 0.18)) { metric = candidate }
                 }
             }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 2) {
-                if let w = record.weightKg {
-                    Text(UnitConversion.formatWeight(w))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.blue)
-                }
-                if let h = record.heightCm {
-                    Text(UnitConversion.formatHeight(h))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.green)
-                }
-                if let hc = record.headCircumferenceCm {
-                    Text(UnitConversion.formatHeight(hc))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.purple)
-                }
-            }
-
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
         }
-        .padding()
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 1)
-        .onTapGesture {
-            if offset < 0 {
-                withAnimation(.spring(response: 0.3)) { offset = 0 }
+    }
+
+    // MARK: - Leona's card
+
+    private var latest: GrowthRecord? { records.first { metric.storedValue(of: $0) != nil } }
+
+    private var previous: GrowthRecord? {
+        guard let latest else { return nil }
+        return records.first { $0.date < latest.date && metric.storedValue(of: $0) != nil }
+    }
+
+    private var leonaCard: some View {
+        LeonaTintCard(padding: EdgeInsets(top: 16, leading: 18, bottom: 16, trailing: 18), asBubble: true) {
+            VStack(alignment: .leading, spacing: 10) {
+                LeonaCardHeader()
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(latestValueText)
+                        .font(.leona(38, .bold))
+                        .leonaTracking(-0.045, size: 38)
+                        .foregroundStyle(.tInk)
+                    Text(metric.unit)
+                        .font(.leona(16, .bold))
+                        .foregroundStyle(.tMuted)
+                    if let delta = deltaText {
+                        Text(delta.text)
+                            .font(.leona(14, .bold))
+                            .foregroundStyle(delta.isGain ? Color.moss : Color.vermilion)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                    Spacer(minLength: 4)
+                    GrowthPercentileBadge(percentile: latestPercentile)
+                }
+                Text(verdict)
+                    .font(.leona(15, .medium))
+                    .lineSpacing(4)
+                    .foregroundStyle(.tInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var latestValueText: String {
+        guard let latest, let value = metric.storedValue(of: latest) else { return "—" }
+        return metric.format(metric.display(value))
+    }
+
+    private var deltaText: (text: String, isGain: Bool)? {
+        guard let latest, let previous,
+              let now = metric.storedValue(of: latest), let before = metric.storedValue(of: previous) else { return nil }
+        let delta = metric.display(now) - metric.display(before)
+        guard abs(delta) >= 0.005 else { return nil }
+        let signed = (delta < 0 ? "−" : "+") + metric.format(abs(delta)) + " " + metric.unit
+        return (String(localized: "growth_delta_since_last \(signed)"), delta > 0)
+    }
+
+    private func percentile(of record: GrowthRecord) -> Int? {
+        guard let value = metric.storedValue(of: record) else { return nil }
+        let age = record.ageInMonthsAtMeasurement ?? GrowthAge.months(from: baby.dateOfBirth, to: record.date)
+        return metric.percentile(value: value, ageInMonths: age, gender: baby.gender)
+    }
+
+    private var latestPercentile: Int? { latest.flatMap(percentile(of:)) }
+
+    private var verdict: String {
+        guard let latest else {
+            return String(localized: "growth_metric_empty \(metric.title.lowercased())")
+        }
+        let name = baby.displayName
+        var parts: [String] = []
+        if let p = latestPercentile {
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .ordinal
+            let ordinal = formatter.string(from: NSNumber(value: p)) ?? "\(p)"
+            let who: String
+            switch baby.gender {
+            case .girl: who = String(localized: "growth_gender_girl")
+            case .boy: who = String(localized: "growth_gender_boy")
+            case .unspecified: who = String(localized: "growth_gender_baby")
+            }
+            let age = GrowthAge.phrase(from: baby.dateOfBirth, to: latest.date)
+            parts.append(String(localized: "growth_verdict_percentile \(ordinal) \(who) \(age)"))
+        }
+
+        let history = records
+            .filter { metric.storedValue(of: $0) != nil }
+            .sorted { $0.date < $1.date }
+            .suffix(4)
+            .compactMap(percentile(of:))
+        if history.count < 2 {
+            parts.append(String(localized: "growth_steady_single"))
+        } else if let first = history.first, let last = history.last {
+            let drift = last - first
+            if abs(drift) <= 15 {
+                parts.append(String(localized: "growth_steady_held \(name)"))
+            } else if drift > 0 {
+                parts.append(String(localized: "growth_steady_up \(name)"))
             } else {
-                onTap()
+                parts.append(String(localized: "growth_steady_down \(name)"))
             }
         }
+        return parts.joined(separator: " ")
+    }
+
+    // MARK: - Empty state
+
+    private var emptyBubble: some View {
+        LeonaTintCard(padding: EdgeInsets(top: 16, leading: 18, bottom: 16, trailing: 18), asBubble: true) {
+            VStack(alignment: .leading, spacing: 10) {
+                LeonaCardHeader()
+                Text(String(localized: "growth_empty_bubble \(baby.displayName)"))
+                    .font(.leona(15, .medium))
+                    .lineSpacing(4)
+                    .foregroundStyle(.tInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                LeonaSmallButton(title: String(localized: "add_measurement"), tone: .vermilion, fontSize: 13, vertical: 10, horizontal: 16, radius: 12) {
+                    sheet = .add
+                }
+            }
+        }
+    }
+
+    // MARK: - Rows
+
+    private func recordRow(_ record: GrowthRecord) -> some View {
+        Button {
+            HapticManager.selection()
+            sheet = .edit(record)
+        } label: {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(record.date.formatted(.dateTime.day().month(.abbreviated).year()))
+                        .font(.leona(14, .bold))
+                        .foregroundStyle(.tTheirsInk)
+                    Text(GrowthAge.phrase(from: baby.dateOfBirth, to: record.date))
+                        .font(.leona(12))
+                        .foregroundStyle(.tMuted)
+                }
+                Spacer(minLength: 8)
+                HStack(spacing: 12) {
+                    Text(record.weightKg.map { UnitConversion.formatWeight($0) } ?? "—")
+                        .foregroundStyle(.tTheirsInk)
+                    Text(record.heightCm.map { UnitConversion.formatHeight($0) } ?? "—")
+                        .foregroundStyle(.tMuted)
+                    Text(record.headCircumferenceCm.map { UnitConversion.formatHeight($0) } ?? "—")
+                        .foregroundStyle(.tMuted)
+                }
+                .font(.leona(13, .bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            }
+            .padding(.vertical, 13)
+            .padding(.horizontal, 15)
+            .background(Color.tTheirs)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(.leonaPress)
+    }
+
+    private func refreshSharedData() async {
+        guard baby.isShared else { return }
+        await SyncEngine.shared.forcePullSharedBabies(context: modelContext)
     }
 }

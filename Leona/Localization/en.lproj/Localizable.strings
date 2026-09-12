@@ -193,8 +193,8 @@
 /* Diaper */
 "diaper_change" = "Diaper Change";
 "diaper_type" = "Diaper Type";
-"diaper_pee" = "Pee";
-"diaper_poop" = "Poop";
+"diaper_pee" = "Wet";
+"diaper_poop" = "Dirty";
 "diaper_both" = "Both";
 "save_diaper" = "Save Diaper";
 
@@ -426,6 +426,15 @@
 "notification_snoozed_body" = "Snoozed reminder";
 "notification_action_snooze" = "Snooze 30m";
 "notification_action_dismiss" = "Dismiss";
+"notification_shared_update_title" = "Shared Update";
+"notification_shared_update_activity_body %@ %@" = "A parent added %@ for %@";
+"notification_shared_update_activity_by_parent_body %@ %@ %@" = "%@ added %@ for %@";
+"notification_shared_update_growth_body %@" = "A parent added a growth entry for %@";
+"notification_shared_update_growth_by_parent_body %@ %@" = "%@ added a growth entry for %@";
+"notification_shared_update_health_body %@" = "A parent added a health entry for %@";
+"notification_shared_update_health_by_parent_body %@ %@" = "%@ added a health entry for %@";
+"notification_shared_update_multiple_body %lld %@" = "%lld new shared updates for %@";
+"notification_shared_update_multiple_by_parent_body %@ %lld %@" = "%@ added %lld new shared updates for %@";
 
 /* iCloud Settings */
 "icloud_sync_toggle" = "iCloud Sync";
@@ -494,3 +503,346 @@
 "icloud_consent_title" = "Enable iCloud Sync";
 "icloud_consent_accept" = "Enable";
 "icloud_consent_message" = "When enabled, your baby's data (name, date of birth, activities, growth, and health records) will be stored in your personal iCloud account managed by Apple. This allows syncing across your devices and sharing with your partner. No data is sent to third parties. You can disable this at any time.";
+
+/* === insights (Thread v2) === */
+/* Insights hub · Trends */
+"trends_title" = "Trends";
+"trends_days %lld" = "%lld days";
+"trends_milk_steady" = "Milk is steady.";
+"trends_milk_varies" = "Milk varies from day to day.";
+"trends_night_up %@" = "%@'s nights are getting longer.";
+"trends_night_down %@" = "%@'s nights are shorter than before.";
+"trends_night_flat %@" = "%@'s nights are holding steady.";
+"trends_night_only %@ %@" = "%@ is sleeping about %@ a night so far.";
+"trends_verdict_thin %@" = "A few more days of %@'s thread and I will have something to say.";
+"trends_why_milk_band %@" = "Daily milk has stayed inside a %@ band.";
+"trends_why_milk_vs_prev %lld %lld" = "Intake is within %lld%% of the previous %lld-day average.";
+"trends_why_night_up %@" = "Night sleep is up about %@ a night on average.";
+"trends_why_night_down %@" = "Night sleep is down about %@ a night on average.";
+"trends_why_night_flat" = "Night sleep is about the same as before.";
+"trends_why_naps_shorter %@" = "Naps shortened by about %@ a day.";
+"trends_why_naps_longer %@" = "Naps lengthened by about %@ a day.";
+"trends_why_thin %@" = "Once %@'s thread has a few more days in it, I will explain what is moving.";
+"trends_milk_per_day" = "Milk per day";
+"trends_sleep_night_naps" = "Sleep · night vs naps";
+"trends_avg %@" = "avg %@";
+"trends_hours %@" = "%@h";
+"trends_what_changed_week" = "What changed this week";
+"trends_what_changed_days %lld" = "What changed in %lld days";
+"trends_change_none %@" = "Nothing has moved yet. Keep %@'s thread going and the deltas will show up here.";
+"trends_change_nights_longer" = "longer nights";
+"trends_change_nights_shorter" = "shorter nights";
+"trends_change_naps_longer" = "longer naps";
+"trends_change_naps_shorter" = "shorter naps";
+"trends_change_weight_gained %@" = "gained since %@";
+"trends_change_weight_lost %@" = "lost since %@";
+"trends_change_feeds_more" = "more feeds a day";
+"trends_change_feeds_fewer" = "fewer feeds a day";
+"trends_change_diapers_more" = "more diapers a day";
+"trends_change_diapers_fewer" = "fewer diapers a day";
+"trends_send_pdf" = "Send this to the paediatrician";
+"trends_pdf_failed" = "Could not build the PDF.";
+
+/* Growth */
+"growth_axis_birth" = "Birth";
+"growth_axis_months %lld" = "%lld mo";
+"growth_axis_years %@" = "%@ y";
+"growth_age_birth" = "Birth";
+"growth_age_in_days %lld" = "%lld days";
+"growth_age_in_weeks %lld" = "%lld weeks";
+"growth_every_measurement" = "Every measurement";
+"growth_add_short" = "+ Add";
+"growth_delta_since_last %@" = "%@ since last visit";
+"growth_metric_empty %@" = "No %@ measurement yet. Add one and I will place it on the WHO chart.";
+"growth_gender_girl" = "a girl";
+"growth_gender_boy" = "a boy";
+"growth_gender_baby" = "a baby";
+"growth_verdict_percentile %@ %@ %@" = "Around the %@ percentile for %@ of %@.";
+"growth_steady_single" = "One measurement is a starting point; the next one will show the direction.";
+"growth_steady_held %@" = "%@ has held the same band across the last measurements. That steadiness is what to look for, not the number itself.";
+"growth_steady_up %@" = "%@ has been moving up the chart over the last measurements. Worth a mention at the next visit.";
+"growth_steady_down %@" = "%@ has drifted down the chart over the last measurements. Worth raising at the next visit.";
+"growth_empty_bubble %@" = "No measurements yet. Add %@'s first weight, height or head circumference and I will place it on the WHO chart.";
+"growth_percentile_note %@" = "Percentiles are calculated for the age on that date: %@.";
+"growth_delete_measurement" = "Delete this measurement";
+"growth_delete_message" = "This measurement will be removed from the chart and from the shared record.";
+
+/* Health */
+"health_history_short" = "History";
+"health_log_short" = "+ Log";
+"health_same_day" = "same day";
+"health_pinned_active_day %lld" = "Pinned · active day %lld";
+"health_record_kind" = "Health record";
+"health_open_record" = "Open record";
+"health_mark_resolved_short" = "Mark resolved";
+"health_resolved_toast %@" = "%@ marked resolved";
+"health_summary_line %@ %@ %@" = "Since %@. %@, %@.";
+"health_summary_no_symptoms" = "No symptoms noted";
+"health_summary_one_symptom" = "One symptom";
+"health_summary_symptoms %lld" = "%lld symptoms";
+"health_summary_fever %@" = "fever at %@";
+"health_summary_warm %@" = "slightly warm at %@";
+"health_summary_no_fever %@" = "no fever (%@)";
+"health_summary_no_temp" = "no temperature taken";
+"health_empty_bubble %@" = "Nothing on record for %@ yet. Log an illness, a vaccination or a temperature when it comes up and I will keep the dates straight.";
+
+/* Next vaccination */
+"vax_next" = "Next vaccination";
+"vax_not_set" = "Not set";
+"vax_not_set_caption %@" = "Add the date of %@'s next appointment and I can remind you a week before.";
+"vax_choose_date" = "Choose a date";
+"vax_caption %@" = "%@ · tap the date to change it";
+"vax_passed" = "That date has passed. Tap it to set the next one.";
+"vax_remind" = "Remind me a week before";
+"vax_reminder_set" = "Reminder set";
+"vax_reminder_toast %@" = "Reminder set for %@";
+"vax_reminder_denied" = "Turn on notifications in Settings to get the reminder.";
+"vax_clear" = "Clear the date";
+"notification_vaccination_title" = "Vaccination next week";
+"notification_vaccination_body %@" = "%@'s vaccination is in a week. Time to book the appointment.";
+
+/* === profile (Thread v2) === */
+/* Profile */
+"profile_you" = "You";
+"profile_born %@" = "Born %@";
+"profile_entries_kept %lld" = "%lld entries kept";
+"profile_in_this_thread" = "In this thread";
+"profile_names_and %@ %@" = "%@ & %@";
+"profile_synced %@" = "synced %@";
+"profile_threads" = "Threads";
+"profile_switch_toast %@" = "Now in %@'s thread";
+"profile_preferences" = "Preferences";
+"profile_night_theme" = "Night theme";
+"profile_night_on" = "On · plum and warm ink";
+"profile_night_off" = "Off · light canvas";
+"profile_auto_dusk" = "Switch automatically at dusk";
+"profile_auto_dusk_sub" = "Dim and warm after the evening feed";
+"profile_leona_speak" = "Let Leona speak";
+"profile_leona_speak_sub" = "Suggestions in the thread, never a push";
+"profile_metric" = "Metric units";
+"profile_metric_on" = "kg, cm, ml, °C";
+"profile_metric_off" = "lb, in, oz, °F";
+"profile_reminders" = "Reminders";
+"profile_tracks" = "What Leona tracks";
+"profile_track_sleep" = "Sleep";
+"profile_track_breastfeeding" = "Breastfeeding";
+"profile_track_diapers" = "Diapers";
+"profile_track_bottles" = "Bottles & solids";
+"profile_icloud" = "iCloud";
+"profile_icloud_last_sync %@" = "last sync %@";
+"profile_record" = "The record";
+"profile_print_book" = "Print the thread as a keepsake book";
+"profile_export_csv" = "Export raw data · CSV";
+"profile_new_thread" = "Start a thread for another baby";
+"profile_delete_everything %@" = "Delete everything for %@";
+"profile_export_failed" = "Could not build the export";
+"profile_thread_cleared" = "Thread cleared";
+"profile_about" = "About";
+"profile_photo_updated" = "Photo updated";
+"profile_delete_thread %@" = "Delete %@'s thread";
+"profile_delete_thread_confirm %@" = "Delete %@'s thread?";
+"profile_delete_thread_warning" = "Every entry, measurement and health record goes with it. This cannot be undone.";
+"profile_delete_last_title" = "Delete the last thread?";
+"profile_delete_last_message" = "Everything is removed and Leona starts over from the welcome screen.";
+"profile_delete_and_reset" = "Delete and start over";
+
+/* Sharing */
+"sharing_title" = "Sharing";
+"sharing_invite_line %@" = "Share %@'s thread with a partner: everything either of you logs shows up here for both.";
+"sharing_quiet_line %@" = "Nothing from your partner today yet. Everything either of you logs for %@ lands here for both.";
+"sharing_handoff_one %@ %@" = "%@ logged the last entry. You have been off duty since %@.";
+"sharing_handoff %@ %lld %@" = "%@ logged the last %lld entries. You have been off duty since %@.";
+"sharing_people" = "People";
+"sharing_me_row %@" = "%@ · you";
+"sharing_role_owner" = "Owner";
+"sharing_role_editor" = "Can log and edit";
+"sharing_here_now" = "here now";
+"sharing_your_name_title" = "Your name in the thread";
+"sharing_your_name_placeholder" = "First name";
+"sharing_name_saved" = "Name saved";
+"sharing_remove_participant" = "Remove from the thread";
+"sharing_invite_partner" = "Invite a partner";
+"sharing_invite_someone_else" = "Invite someone else";
+"sharing_send" = "Send";
+"sharing_sent" = "Sent";
+"sharing_link_caption" = "A link over any app — no iCloud address needed.";
+"sharing_link_copied_toast" = "Invite link copied";
+"sharing_who_logged_today" = "Who logged what · today";
+"sharing_everyone_else" = "Everyone else";
+"sharing_off_duty_balance" = "Off-duty balance";
+"sharing_balance %@ %lld %lld" = "%@ has taken %lld of the last %lld entries.";
+"sharing_balance_empty" = "No entries yet — the balance shows up once the thread fills.";
+"sharing_needs_icloud %@" = "Sharing runs through iCloud. Turn on iCloud sync and I will keep %@'s thread the same on both phones.";
+"sharing_turn_on_icloud" = "Turn on iCloud sync";
+"sharing_stopped_toast" = "Sharing stopped";
+
+/* Search */
+"search_title" = "Search";
+"search_placeholder" = "Search every entry…";
+"search_filter_feeds" = "Feeds";
+"search_filter_sleep" = "Sleep";
+"search_filter_diapers" = "Diapers";
+"search_filter_notes" = "Notes";
+"search_entry_one" = "1 entry";
+"search_entries %lld" = "%lld entries";
+"search_logged_by %@" = "logged by %@";
+"search_no_results" = "Nothing matches yet.";
+
+/* Record */
+"record_title" = "Record";
+"record_started" = "Started";
+"record_ended" = "Ended";
+"record_logged_by" = "Logged by";
+"record_against_average %@" = "Against %@'s average";
+"record_note" = "Note";
+"record_no_baseline" = "not enough history yet";
+"record_on_average" = "right on average";
+"record_under_average %@" = "%@ under the average";
+"record_over_average %@" = "%@ over the average";
+"record_usual_length" = "about the usual length";
+"record_longer_than_usual %@" = "%@ longer than usual";
+"record_shorter_than_usual %@" = "%@ shorter than usual";
+"record_usual_spacing" = "usual spacing";
+"record_sooner_than_usual %@" = "%@ sooner than usual";
+"record_later_than_usual %@" = "%@ later than usual";
+"record_removed_toast" = "Removed from the thread";
+"record_edit_title" = "Edit record";
+"record_mark_finished" = "Mark as finished";
+
+/* === sessions (Thread v2) === */
+
+/* Welcome (first run, in-thread) */
+"welcome_setting_up" = "Setting up · 30 seconds";
+"welcome_hello" = "Hello. I keep the record so you don't have to remember any of it.";
+"welcome_two_questions" = "Two questions and we're done. Who are we keeping track of?";
+"welcome_name_placeholder" = "The baby's name";
+"welcome_greeting %@" = "Lovely. When was %@ born?";
+"welcome_pick_date" = "Pick a date";
+"welcome_age_today" = "Born today. Congratulations — I will start the record from now.";
+"welcome_age_one_day" = "One day old. I will keep every entry from here.";
+"welcome_age_days %lld" = "%lld days old. I will use that for the percentiles.";
+"welcome_age_weeks %lld" = "%lld weeks old. I will use that for the percentiles.";
+"welcome_age_months %lld" = "%lld months old. I will use that for the percentiles.";
+"welcome_gender_question" = "Girl or boy? I use it for the growth curves.";
+"welcome_gender_skip" = "Rather not say";
+"welcome_cta_start" = "Start the thread";
+"welcome_cta_answer_both" = "Answer both to continue";
+"welcome_helper" = "Units, reminders and sharing come up when you need them";
+"welcome_thread_started %@" = "Thread started for %@";
+
+/* Sleep session */
+"sleep_went_down %@ %@ %@" = "%@ went down at %@. I'll post it to the thread when %@ wakes.";
+"sleep_asleep_for" = "Asleep for";
+"sleep_against_average %@" = "Against %@'s own average";
+"sleep_usual %@" = "Usual %@";
+"sleep_obs_longer %lld" = "Recent sleeps are running %lld minutes longer than the ones before.";
+"sleep_obs_shorter %lld" = "Recent sleeps are running %lld minutes shorter than the ones before.";
+"sleep_obs_steady" = "Recent sleeps have been steady — about the usual length.";
+"sleep_obs_thin %@" = "I will compare this one with %@'s usual once there are a few more sleeps.";
+"sleep_last_24h" = "Last 24h";
+"sleep_naps_today" = "Naps today";
+"sleep_awake_cta %@" = "%@'s awake";
+"sleep_slept_added %@" = "Slept %@ · added to the thread";
+"sleep_fix_start" = "Fix start time";
+"sleep_log_past" = "Log a past sleep";
+"sleep_no_running %@" = "%@ isn't asleep right now. Log a sleep from earlier?";
+"sleep_save_past" = "Save this sleep";
+"sleep_invalid_range" = "The wake time has to come after the start.";
+
+/* Breastfeed session */
+"bf_status_recording" = "Recording";
+"bf_status_paused" = "Paused";
+"bf_hint_first" = "First session. Tap a side any time to switch; I keep each stretch separately.";
+"bf_hint_previous %@ %@ %@ %@" = "%@ fed %@ at %@, so I have started on the %@.";
+"bf_hint_switched_one" = "Switched once so far. Tap a side to switch; I keep each stretch separately.";
+"bf_hint_switched %lld" = "Switched %lld times so far. Tap a side to switch; I keep each stretch separately.";
+"bf_feeding_for" = "Feeding for";
+"bf_paused_at" = "Paused at";
+"bf_pause %@" = "Pause · %@ came off";
+"bf_resume" = "Resume";
+"bf_this_session" = "This session";
+"bf_done %lld" = "Done · %lldm";
+"bf_too_short" = "Too short to save — discarded";
+"bf_added %@ %lld" = "Breastfed · %@ · %lldm · added";
+"bf_discard" = "Discard";
+"bf_discarded" = "Session discarded";
+"bf_no_session %@" = "No feed is running for %@. Start one from the thread.";
+
+/* === thread (Thread v2) === */
+/* Thread */
+"thread_back" = "Thread";
+"author_you" = "You";
+"thread_today_divider %@" = "Today · %@";
+"thread_yesterday_divider %@" = "Yesterday · %@";
+"thread_unread %lld %@" = "%lld new while you were away · from %@";
+"thread_bottle_formula %@" = "Bottle · %@ formula";
+"thread_bottle_milk %@" = "Bottle · %@ expressed milk";
+"thread_breastfed %@ %lld" = "Breastfed · %@ · %lldm";
+"thread_solid %@ %@" = "Solid · %@ · %@";
+"thread_solid_no_name %@" = "Solid · %@";
+"thread_diaper %@" = "Diaper · %@";
+"thread_slept %@ %@" = "Slept %@ → %@";
+"side_left_lower" = "left";
+"side_right_lower" = "right";
+"side_both_lower" = "left + right";
+"record_kind_sleep" = "Sleep record";
+"record_kind_diaper" = "Diaper record";
+"record_kind_note" = "Note";
+"record_kind_feed" = "Feed record";
+"record_missing" = "This entry is no longer in the thread";
+"thread_asleep_now" = "asleep now";
+"thread_next %@" = "next %@";
+"thread_overdue %@" = "%@ overdue";
+"thread_feeds %lld" = "%lld feeds";
+"thread_diapers %lld" = "%lld diapers";
+"thread_presence_asleep %@" = "Asleep · %@";
+"thread_presence_shared %@" = "With %@ · in this thread";
+"thread_presence_shared_generic" = "Shared thread";
+"thread_now %@" = "Now · %@";
+"thread_synced %@" = "Synced %@";
+"thread_added %@" = "%@ · added";
+"thread_note_placeholder" = "Note anything…";
+"thread_note_added" = "Note added to the thread";
+"thread_chip_bottle %@" = "Bottle %@";
+"thread_chip_feeding %@" = "Feeding · %@";
+"thread_chip_breast" = "Breast";
+"thread_chip_woke %@" = "%@ woke";
+"thread_chip_sleep" = "Sleep";
+"thread_chip_diaper" = "Diaper";
+"thread_chip_solid" = "Solid";
+"thread_slept_added %@" = "Slept %@ · added to the thread";
+"thread_sleep_started %@" = "Sleep started · %@";
+"thread_asleep_since %@" = "Asleep since %@";
+"thread_running_sub %@" = "%@ so far · tap to open";
+"thread_meta_now" = "now";
+"thread_feeding_side %@" = "Feeding · %@ side";
+"thread_bf_running %@" = "running · %@ · tap to open";
+"thread_bf_paused %@" = "paused at %@ · tap to open";
+"thread_started_at %@" = "started %@";
+
+/* Leona's suggestion */
+"leona_why" = "Why?";
+"leona_muted %@" = "Muted. Turn me back on in %@ → Let Leona speak.";
+"leona_asleep %@ %@" = "%@ went down at %@. I will post it here on waking.";
+"leona_snoozed %@" = "Fine — I will hold off until %@.";
+"leona_due %@ %@ %@" = "%@ is usually hungry around %@, roughly %@. Want me to log it?";
+"leona_overdue %@ %@ %@" = "%@ is %@ past the usual feed. Log %@?";
+"leona_no_data %@" = "Log a couple of feeds and I will start predicting %@'s next one.";
+"leona_cta_log %@" = "Log %@";
+"leona_cta_open_session" = "Open the session";
+"leona_cta_log_bottle" = "Log a bottle";
+"leona_snooze_not_yet" = "Not yet";
+"leona_snooze_not_now" = "Not now";
+"leona_snooze_fix_start" = "Fix start time";
+
+/* Tray */
+"tray_unit_min" = "min";
+"tray_title_bottle %@" = "Bottle · %@";
+"tray_title_breast" = "Breastfeed · minutes";
+"tray_title_solid %@" = "Solid · %@";
+"tray_title_diaper" = "Diaper";
+"tray_side_suggested %@" = "%@ · suggested";
+"tray_expressed_milk" = "Expressed milk";
+"tray_send" = "Send";
+"tray_time_now %@" = "Now · %@";
+"thread_refreshed" = "Thread refreshed";

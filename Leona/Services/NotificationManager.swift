@@ -2,6 +2,17 @@ import Foundation
 import UserNotifications
 import SwiftUI
 
+enum SharedEntryNotificationKind {
+    case activity(ActivityType)
+    case growth
+    case health
+}
+
+struct SharedEntryNotificationEvent {
+    let kind: SharedEntryNotificationKind
+    let authorFirstName: String?
+}
+
 @MainActor
 @Observable
 final class NotificationManager {
@@ -152,6 +163,36 @@ final class NotificationManager {
         
         try? await center.add(request)
     }
+
+    // MARK: - Shared Data Notifications
+
+    func scheduleSharedEntryNotification(
+        babyName: String,
+        entries: [SharedEntryNotificationEvent]
+    ) async {
+        guard !entries.isEmpty else { return }
+
+        if !isAuthorized {
+            await checkAuthorization()
+        }
+        guard isAuthorized else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "notification_shared_update_title")
+        content.body = sharedEntryBody(for: entries, babyName: babyName)
+        content.sound = .default
+        content.categoryIdentifier = "SHARED_UPDATE"
+        content.threadIdentifier = "shared-update-\(babyName)"
+        content.interruptionLevel = .active
+
+        let request = UNNotificationRequest(
+            identifier: "shared-update-\(UUID().uuidString)",
+            content: content,
+            trigger: nil
+        )
+
+        try? await center.add(request)
+    }
     
     // MARK: - Cancel
     
@@ -220,7 +261,58 @@ final class NotificationManager {
             actions: [dismissAction],
             intentIdentifiers: []
         )
+
+        let sharedUpdateCategory = UNNotificationCategory(
+            identifier: "SHARED_UPDATE",
+            actions: [dismissAction],
+            intentIdentifiers: []
+        )
         
-        center.setNotificationCategories([feedingCategory, bfCategory, sleepCategory])
+        center.setNotificationCategories([feedingCategory, bfCategory, sleepCategory, sharedUpdateCategory])
+    }
+
+    private func sharedEntryBody(
+        for entries: [SharedEntryNotificationEvent],
+        babyName: String
+    ) -> String {
+        let authorFirstName = commonAuthorFirstName(for: entries)
+
+        if entries.count == 1, let entry = entries.first {
+            switch entry.kind {
+            case .activity(let type):
+                if let authorFirstName {
+                    return String(localized: "notification_shared_update_activity_by_parent_body \(authorFirstName) \(type.displayName) \(babyName)")
+                }
+                return String(localized: "notification_shared_update_activity_body \(type.displayName) \(babyName)")
+            case .growth:
+                if let authorFirstName {
+                    return String(localized: "notification_shared_update_growth_by_parent_body \(authorFirstName) \(babyName)")
+                }
+                return String(localized: "notification_shared_update_growth_body \(babyName)")
+            case .health:
+                if let authorFirstName {
+                    return String(localized: "notification_shared_update_health_by_parent_body \(authorFirstName) \(babyName)")
+                }
+                return String(localized: "notification_shared_update_health_body \(babyName)")
+            }
+        }
+
+        if let authorFirstName {
+            return String(localized: "notification_shared_update_multiple_by_parent_body \(authorFirstName) \(Int64(entries.count)) \(babyName)")
+        }
+
+        return String(localized: "notification_shared_update_multiple_body \(Int64(entries.count)) \(babyName)")
+    }
+
+    private func commonAuthorFirstName(for entries: [SharedEntryNotificationEvent]) -> String? {
+        let names = entries.compactMap(\.authorFirstName).map {
+            $0.trimmingCharacters(in: .whitespacesAndNewlines)
+        }.filter { !$0.isEmpty }
+
+        guard names.count == entries.count else { return nil }
+
+        let uniqueNames = Set(names)
+        guard uniqueNames.count == 1 else { return nil }
+        return uniqueNames.first
     }
 }

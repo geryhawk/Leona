@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import CloudKit
+import UserNotifications
 import os.log
 
 private let logger = Logger(subsystem: "com.leona.app", category: "App")
@@ -31,6 +32,7 @@ private func enqueueAcceptedShareMetadata(_ metadata: CKShare.Metadata, source: 
 extension Notification.Name {
     static let didAcceptCloudKitShare = Notification.Name("didAcceptCloudKitShare")
     static let shouldPushLocalChanges = Notification.Name("shouldPushLocalChanges")
+    static let didReceiveCloudKitShareChange = Notification.Name("didReceiveCloudKitShareChange")
 }
 
 // MARK: - App Delegate for CloudKit Share Acceptance
@@ -43,11 +45,12 @@ class LeonaSceneDelegate: NSObject, UIWindowSceneDelegate {
     }
 }
 
-class LeonaAppDelegate: NSObject, UIApplicationDelegate {
+class LeonaAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         application.registerForRemoteNotifications()
         // Allow scroll to pass through buttons without delay
         UIScrollView.appearance().delaysContentTouches = false
+        UNUserNotificationCenter.current().delegate = self
         return true
     }
     
@@ -67,8 +70,10 @@ class LeonaAppDelegate: NSObject, UIApplicationDelegate {
         fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
     ) {
         let notification = CKNotification(fromRemoteNotificationDictionary: userInfo)
-        if notification?.subscriptionID == SharingManager.sharedSubscriptionID {
-            logger.info("Received shared data push notification")
+        if let subscriptionID = notification?.subscriptionID,
+           subscriptionID == SharingManager.sharedSubscriptionID || subscriptionID == SharingManager.privateSubscriptionID {
+            logger.info("Received CloudKit sharing push notification for subscription \(subscriptionID)")
+            NotificationCenter.default.post(name: .didReceiveCloudKitShareChange, object: subscriptionID)
         }
         completionHandler(.newData)
     }
@@ -77,6 +82,14 @@ class LeonaAppDelegate: NSObject, UIApplicationDelegate {
         Task { @MainActor in
             enqueueAcceptedShareMetadata(cloudKitShareMetadata, source: "application delegate")
         }
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound, .list])
     }
 
     static var pendingShareMetadata: CKShare.Metadata?
@@ -128,7 +141,7 @@ struct LeonaApp: App {
                 .environment(cloudKit)
                 .environment(notifications)
                 .environment(sharing)
-                .tint(settings.accentColor.color)
+                .tint(.vermilion)
                 .onReceive(NotificationCenter.default.publisher(
                     for: .NSPersistentStoreRemoteChange
                 ).receive(on: DispatchQueue.main)) { _ in
@@ -200,6 +213,10 @@ struct LeonaApp: App {
                     logger.info("Triggering immediate sync after local change")
                     triggerSharedSync()
                 }
+                .onReceive(NotificationCenter.default.publisher(for: .didReceiveCloudKitShareChange)) { _ in
+                    logger.info("CloudKit sharing push received, starting immediate pull refresh")
+                    forceSharedPull()
+                }
                 .alert(
                     String(localized: "share_error_title"),
                     isPresented: Binding(
@@ -221,6 +238,13 @@ struct LeonaApp: App {
         Task { @MainActor in
             let context = ModelContext(sharedModelContainer)
             SyncEngine.shared.triggerDebouncedSync(context: context)
+        }
+    }
+
+    private func forceSharedPull() {
+        Task { @MainActor in
+            let context = ModelContext(sharedModelContainer)
+            await SyncEngine.shared.forcePullSharedBabies(context: context)
         }
     }
 

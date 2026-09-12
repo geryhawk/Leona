@@ -63,16 +63,15 @@ A beautiful, native iOS app for tracking your baby's daily activities, growth, a
 - French (Français)
 - Finnish (Suomi)
 
-### Beautiful UI/UX
-- Apple Human Interface Guidelines compliance
-- SF Symbols throughout
-- Dynamic backgrounds (day/night themes for sleep)
-- Haptic feedback on interactions
-- Confetti celebrations for birthdays and milestones
-- Smooth animations and transitions
-- Pull-to-refresh
-- Swipe-to-delete on activity cards
-- Dark mode support
+### The Thread (v2 design)
+- One conversation per baby: every feed, sleep, diaper and note is a message bubble
+- Your entries sit on the right (plum), your partner's on the left, with an unread marker after a handoff
+- A totals strip (feeds · slept · diapers · next feed) above the conversation
+- Leona speaks in the thread: predicts the next feed, offers to log it, can be snoozed or muted
+- Composer chips for Bottle / Breast / Sleep / Diaper / Solid with an inline logging tray
+- Live sleep and breastfeeding sessions as full-screen dark scenes with per-side timers
+- Sub-screens: Trends · Growth · Health hub, Profile, Sharing, Search, Record detail
+- Night theme (manual or automatic at dusk), haptics, confetti on monthly milestones
 
 ### Data Export
 - CSV export for activities
@@ -99,36 +98,45 @@ A beautiful, native iOS app for tracking your baby's daily activities, growth, a
 ```
 Leona/
 ├── LeonaApp.swift              # App entry point
-├── ContentView.swift            # Root tab navigation
+├── ContentView.swift            # Root: thread + navigation stack + live sessions
+├── Theme/
+│   ├── LeonaTheme.swift         # Palette tokens (light/dark), typography, shapes
+│   └── LeonaComponents.swift    # Cards, pills, toggles, headers, bar chart, toast
 ├── Models/
 │   ├── Baby.swift               # Baby profile model
-│   ├── Activity.swift           # Activity tracking model
+│   ├── Activity.swift           # Activity model (with author stamping)
 │   ├── GrowthRecord.swift       # Growth measurement model
 │   ├── HealthRecord.swift       # Health/illness model
 │   ├── AppSettings.swift        # UserDefaults settings
+│   ├── ThreadModel.swift        # Thread rows, totals, Leona's suggestion
 │   └── MealForecast.swift       # Forecast data models
 ├── Views/
-│   ├── Onboarding/              # First-launch setup
-│   ├── Dashboard/               # Main tracking screen
-│   ├── Feeding/                 # All feeding views
-│   ├── Sleep/                   # Sleep tracking
-│   ├── Diaper/                  # Diaper logging
-│   ├── Growth/                  # Growth charts
-│   ├── Health/                  # Health records
-│   ├── Stats/                   # Statistics & charts
-│   ├── Profile/                 # Baby profile management
-│   ├── Settings/                # App settings
-│   └── Components/              # Reusable components
+│   ├── Welcome/                 # First run, inside the thread
+│   ├── Thread/                  # The conversation, tray, Leona card
+│   ├── Sleep/                   # Live sleep session
+│   ├── Feeding/                 # Live breastfeeding session
+│   ├── Insights/                # Trends + hub (Trends · Growth · Health)
+│   ├── Growth/                  # WHO chart, measurements
+│   ├── Health/                  # Records, vaccination card
+│   ├── Profile/                 # Baby profile, preferences, the record
+│   ├── Sharing/                 # Partner sharing
+│   ├── Search/                  # Search every entry
+│   ├── Record/                  # Entry detail and editor
+│   └── Components/              # Confetti
 ├── Services/
+│   ├── ActivityLogger.swift     # Every write to the thread
 │   ├── CloudKitManager.swift    # iCloud sync
-│   ├── NotificationManager.swift # Push notifications
+│   ├── SharingManager.swift     # CloudKit sharing
+│   ├── SyncEngine.swift         # Shared-record sync
+│   ├── NotificationManager.swift # Reminders
 │   ├── StatisticsEngine.swift   # Stats calculations
 │   ├── MealForecastEngine.swift # Meal predictions
 │   ├── WHODataService.swift     # WHO percentile data
-│   └── ExportService.swift      # Data export
+│   ├── ExportService.swift      # CSV/XML/report text
+│   └── ReportExporter.swift     # PDF and CSV files for sharing
 ├── Extensions/
-│   ├── Color+Theme.swift        # App color theme
 │   ├── Date+Extensions.swift    # Date formatting
+│   ├── UnitConversion.swift     # Metric/imperial
 │   └── View+Extensions.swift    # View modifiers
 ├── Localization/
 │   ├── en.lproj/                # English
@@ -151,7 +159,6 @@ Leona/
 1. **Using XcodeGen** (recommended):
    ```bash
    brew install xcodegen
-   cd Leona
    xcodegen generate
    open Leona.xcodeproj
    ```
@@ -178,14 +185,14 @@ Leona/
 
 ## Design Philosophy
 
-Leona follows Apple's Human Interface Guidelines with a warm, nurturing aesthetic:
+Leona follows the "Thread v2" design: the app is a conversation, not a dashboard.
 
-- **Soft pink accent** (`#DC84A3`) with complementary blues and purples
-- **Material backgrounds** for depth and hierarchy
-- **Generous spacing** for easy one-handed use while holding a baby
-- **Large touch targets** (44pt minimum)
-- **Contextual animations** (pulsing heart for breastfeeding, day/night for sleep)
-- **SF Symbols** for consistent, scalable iconography
+- **Five colours with fixed meanings**: plum for structure and your own bubbles, vermilion (`#E24E2B`) for action and for Leona, lilac for sleep only, moss for diapers only, on a warm canvas — no system blue, no rainbow
+- **A real night theme** (`#191223` canvas) toggled from the thread header or automatically at dusk
+- **Message bubbles instead of cards**, with a coloured tick per entry type and a "who · when" meta line
+- **One-tap logging** from the composer chips; a bottom tray for amounts, sides and times
+- **Generous spacing and large targets** for one-handed use while holding a baby
+- **System font** stands in for the design's Instrument Sans; sizes, weights and tracking follow the design
 - **Dynamic Type** support for accessibility
 
 ## License

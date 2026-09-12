@@ -1,15 +1,64 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Wording shared by the health screens
+
+extension HealthRecord {
+    /// "14 Feb → 18 Feb" or "Since 14 Feb"
+    var healthRangeText: String {
+        let start = startDate.formatted(.dateTime.day().month(.abbreviated))
+        if let endDate {
+            return "\(start) → \(endDate.formatted(.dateTime.day().month(.abbreviated)))"
+        }
+        return String(localized: "health_since \(start)")
+    }
+
+    /// "4 days" or "same day"
+    var healthDurationText: String {
+        let days = durationDays ?? 0
+        return days <= 0 ? String(localized: "health_same_day") : String(localized: "health_days \(days)")
+    }
+
+    /// "Since 19 Feb. Two symptoms, no fever." plus a short note when there is one.
+    var healthSummaryText: String {
+        let since = startDate.formatted(.dateTime.day().month(.abbreviated))
+        let symptomsText: String
+        switch symptoms.count {
+        case 0: symptomsText = String(localized: "health_summary_no_symptoms")
+        case 1: symptomsText = String(localized: "health_summary_one_symptom")
+        default: symptomsText = String(localized: "health_summary_symptoms \(symptoms.count)")
+        }
+        let feverText: String
+        if let latest = latestTemperature {
+            let reading = UnitConversion.formatTemp(latest)
+            if latest >= 38.0 {
+                feverText = String(localized: "health_summary_fever \(reading)")
+            } else if latest >= 37.5 {
+                feverText = String(localized: "health_summary_warm \(reading)")
+            } else {
+                feverText = String(localized: "health_summary_no_fever \(reading)")
+            }
+        } else {
+            feverText = String(localized: "health_summary_no_temp")
+        }
+        var text = String(localized: "health_summary_line \(since) \(symptomsText) \(feverText)")
+        let note = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !note.isEmpty, note.count <= 90 { text += " " + note }
+        return text
+    }
+}
+
+// MARK: - Screen
+
 struct HealthView: View {
     let baby: Baby
 
     @Environment(\.modelContext) private var modelContext
-    @Environment(SharingManager.self) private var sharing
+    @Environment(ThreadNavigator.self) private var navigator
     @Query(sort: \HealthRecord.startDate, order: .reverse) private var allRecords: [HealthRecord]
+    @State private var sheet: HealthSheet?
 
-    /// Unified sheet presentation to avoid SwiftUI multiple-sheet conflicts
-    enum SheetType: Identifiable {
+    private enum HealthSheet: Identifiable {
         case add
         case detail(HealthRecord)
 
@@ -21,342 +70,144 @@ struct HealthView: View {
         }
     }
 
-    @State private var activeSheet: SheetType?
-    @State private var recordToDelete: HealthRecord?
-    
-    private var babyRecords: [HealthRecord] {
-        allRecords.filter { $0.baby?.id == baby.id }
-    }
-    
-    private var activeRecords: [HealthRecord] {
-        babyRecords.filter { $0.isOngoing }
-    }
-    
-    private var pastRecords: [HealthRecord] {
-        babyRecords.filter { !$0.isOngoing }
-    }
-    
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Active health issues
-                    if !activeRecords.isEmpty {
-                        activeHealthSection
-                    }
-                    
-                    // Quick temp check
-                    if let latestTemp = activeRecords.compactMap({ $0.latestTemperature }).max() {
-                        temperatureAlert(temperature: latestTemp)
-                    }
-                    
-                    // Health history
-                    if babyRecords.isEmpty {
-                        emptyState
-                    } else {
-                        healthHistorySection
-                    }
-                }
-                .padding()
-            }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle(String(localized: "health"))
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        activeSheet = .add
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(.leonaPink)
-                    }
-                }
-            }
-            .sheet(item: $activeSheet) { sheet in
-                switch sheet {
-                case .add:
-                    HealthEntryView(baby: baby)
-                case .detail(let record):
-                    HealthDetailView(record: record)
-                }
-            }
-            .alert(String(localized: "delete_record"), isPresented: Binding<Bool>(
-                get: { recordToDelete != nil },
-                set: { if !$0 { recordToDelete = nil } }
-            )) {
-                Button(String(localized: "delete"), role: .destructive) {
-                    if let record = recordToDelete {
-                        deleteRecord(record)
-                    }
-                    recordToDelete = nil
-                }
-                Button(String(localized: "cancel"), role: .cancel) {
-                    recordToDelete = nil
-                }
-            } message: {
-                Text(String(localized: "delete_record_message"))
-            }
-        }
-    }
-
-    private func deleteRecord(_ record: HealthRecord) {
-        let recordID = record.id
-        let baby = record.baby
-
-        modelContext.delete(record)
-        try? modelContext.save()
-
-        if let baby, baby.isShared {
-            Task {
-                try? await sharing.deleteRecord(
-                    recordID: recordID,
-                    recordType: HealthRecord.ckRecordType,
-                    for: baby
-                )
-            }
-        }
-    }
-
-    // MARK: - Active Health Issues
-    
-    private var activeHealthSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label(String(localized: "active_health_issues"), systemImage: "exclamationmark.triangle.fill")
-                .font(.headline)
-                .foregroundStyle(.red)
-            
-            ForEach(activeRecords) { record in
-                HealthRecordRow(record: record, isActive: true) {
-                    activeSheet = .detail(record)
-                } onDelete: {
-                    recordToDelete = record
-                }
-            }
-        }
-    }
-
-    // MARK: - Temperature Alert
-    
-    private func temperatureAlert(temperature: Double) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: "thermometer.high")
-                .font(.title2)
-                .foregroundStyle(temperatureColor(temperature))
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(String(localized: "current_temperature"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Text(UnitConversion.formatTemp(temperature))
-                    .font(.title2.bold())
-                    .foregroundStyle(temperatureColor(temperature))
-            }
-            
-            Spacer()
-            
-            Text(temperatureLabel(temperature))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(temperatureColor(temperature))
-                .clipShape(Capsule())
-        }
-        .padding()
-        .leonaCard()
-    }
-    
-    // MARK: - Empty State
-    
-    private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "cross.case")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
-            
-            Text(String(localized: "health_no_records"))
-                .font(.headline)
-                .foregroundStyle(.secondary)
-            
-            Text(String(localized: "health_no_records_desc"))
-                .font(.subheadline)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-            
-            Button {
-                activeSheet = .add
-            } label: {
-                Label(String(localized: "add_health_record"), systemImage: "plus.circle.fill")
-            }
-            .buttonStyle(LeonaSecondaryButtonStyle(color: .leonaPink))
-        }
-        .padding(40)
-    }
-    
-    // MARK: - Health History
-    
-    private var healthHistorySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "health_history"))
-                .font(.headline)
-                .foregroundStyle(.secondary)
-            
-            ForEach(pastRecords) { record in
-                HealthRecordRow(record: record, isActive: false) {
-                    activeSheet = .detail(record)
-                } onDelete: {
-                    recordToDelete = record
-                }
-            }
-        }
-    }
-    
-    // MARK: - Helpers
-    
-    private func temperatureColor(_ temp: Double) -> Color {
-        if temp >= 39.0 { return .red }
-        if temp >= 38.0 { return .orange }
-        if temp >= 37.5 { return .yellow }
-        return .green
-    }
-    
-    private func temperatureLabel(_ temp: Double) -> String {
-        if temp >= 39.0 { return String(localized: "temp_high_fever") }
-        if temp >= 38.0 { return String(localized: "temp_fever") }
-        if temp >= 37.5 { return String(localized: "temp_elevated") }
-        return String(localized: "temp_normal")
-    }
-}
-
-// MARK: - Health Record Row with swipe-to-delete
-
-private struct HealthRecordRow: View {
-    let record: HealthRecord
-    let isActive: Bool
-    let onTap: () -> Void
-    let onDelete: () -> Void
-
-    @State private var offset: CGFloat = 0
+    private var records: [HealthRecord] { allRecords.filter { $0.baby?.id == baby.id } }
+    private var ongoing: [HealthRecord] { records.filter(\.isOngoing) }
+    private var history: [HealthRecord] { records.filter { !$0.isOngoing } }
 
     var body: some View {
-        ZStack(alignment: .trailing) {
-            // Delete button behind the card — matches card height
-            HStack {
-                Spacer()
-
-                Button(role: .destructive) {
-                    onDelete()
-                } label: {
-                    Image(systemName: "trash.fill")
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                if let pinned = ongoing.first {
+                    pinnedCard(pinned)
                 }
-                .frame(width: 80)
-                .background(.red)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            }
+                ForEach(Array(ongoing.dropFirst())) { record in
+                    recordRow(record)
+                }
 
-            // Card content — slides to reveal delete
-            cardContent
-                .offset(x: offset)
-                .simultaneousGesture(swipeGesture)
+                HStack {
+                    LeonaSectionLabel(String(localized: "health_history_short"))
+                    Spacer(minLength: 8)
+                    LeonaSmallButton(title: String(localized: "health_log_short")) { sheet = .add }
+                }
+                .padding(.top, ongoing.isEmpty ? 0 : 4)
+
+                if history.isEmpty {
+                    emptyBubble
+                } else {
+                    ForEach(history) { record in
+                        recordRow(record)
+                    }
+                }
+
+                HealthVaccinationCard(baby: baby)
+                    .padding(.top, 4)
+            }
+            .padding(EdgeInsets(top: 4, leading: 18, bottom: 20, trailing: 18))
+        }
+        .scrollIndicators(.hidden)
+        .refreshable { await refreshSharedData() }
+        .sheet(item: $sheet) { sheet in
+            switch sheet {
+            case .add: HealthEntryView(baby: baby)
+            case .detail(let record): HealthDetailView(record: record)
+            }
         }
     }
 
-    private var swipeGesture: some Gesture {
-        DragGesture(minimumDistance: 20, coordinateSpace: .local)
-            .onChanged { value in
-                let horizontal = abs(value.translation.width)
-                let vertical = abs(value.translation.height)
-                guard horizontal > vertical else { return }
-                if value.translation.width < 0 {
-                    offset = max(value.translation.width, -80)
-                }
-            }
-            .onEnded { value in
-                withAnimation(.spring(response: 0.3)) {
-                    if value.translation.width < -40 {
-                        offset = -80
-                    } else {
-                        offset = 0
-                    }
-                }
-            }
-    }
+    // MARK: - Pinned record
 
-    private var cardContent: some View {
-        HStack(spacing: 12) {
-            Image(systemName: record.illnessType.icon)
-                .font(isActive ? .title2 : .body)
-                .foregroundStyle(record.illnessType.color)
-                .frame(width: isActive ? 44 : 32)
-
-            VStack(alignment: .leading, spacing: 4) {
+    private func pinnedCard(_ record: HealthRecord) -> some View {
+        PlumCard(padding: 17) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 8) {
+                    PulseDot(color: .breastDot, size: 7)
+                    Text(String(localized: "health_pinned_active_day \((record.durationDays ?? 0) + 1)").uppercased())
+                        .font(.leona(11, .heavy))
+                        .leonaTracking(0.12, size: 11)
+                        .foregroundStyle(.highlight)
+                }
                 Text(record.illnessType.displayName)
-                    .font(.subheadline.weight(isActive ? .semibold : .medium))
-
-                HStack(spacing: 4) {
-                    if isActive {
-                        Text(String(localized: "health_since \(record.startDate.dateString)"))
-                    } else {
-                        Text(record.startDate.dateString)
-                        if let end = record.endDate {
-                            Text("→")
-                            Text(end.dateString)
-                        }
+                    .font(.leona(25, .bold))
+                    .leonaTracking(-0.03, size: 25)
+                    .padding(.top, 9)
+                Text(record.healthSummaryText)
+                    .font(.leona(14))
+                    .lineSpacing(4)
+                    .foregroundStyle(.white.opacity(0.78))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 7)
+                HStack(spacing: 8) {
+                    LeonaSmallButton(title: String(localized: "health_open_record"), tone: .vermilion, fontSize: 13, vertical: 10, horizontal: 16, radius: 12) {
+                        sheet = .detail(record)
+                    }
+                    LeonaSmallButton(title: String(localized: "health_mark_resolved_short"), tone: .ghost, fontSize: 13, vertical: 10, horizontal: 16, radius: 12) {
+                        resolve(record)
                     }
                 }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-                if isActive, let days = record.durationDays {
-                    Text(String(localized: "health_days \(days)"))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.red)
-                }
-
-                if isActive, let temp = record.latestTemperature {
-                    HStack(spacing: 4) {
-                        Image(systemName: "thermometer.medium")
-                            .font(.caption2)
-                        Text(UnitConversion.formatTemp(temp))
-                            .font(.caption.weight(.semibold))
-                    }
-                    .foregroundStyle(temp >= 39.0 ? .red : temp >= 38.0 ? .orange : temp >= 37.5 ? .yellow : .green)
-                }
+                .padding(.top, 14)
             }
-
-            Spacer()
-
-            if !isActive, let days = record.durationDays {
-                Text(String(localized: "health_days \(days)"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            .padding(.horizontal, 2)
         }
-        .padding()
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 1)
-        .overlay(
-            isActive
-                ? RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(.red.opacity(0.04))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(.red.opacity(0.15), lineWidth: 1)
-                    )
-                : nil
-        )
-        .onTapGesture {
-            if offset < 0 {
-                withAnimation(.spring(response: 0.3)) { offset = 0 }
-            } else {
-                onTap()
+    }
+
+    private func resolve(_ record: HealthRecord) {
+        record.endDate = Date()
+        record.updatedAt = Date()
+        ActivityLogger.save(modelContext)
+        NotificationCenter.default.post(name: .shouldPushLocalChanges, object: nil)
+        HapticManager.success()
+        navigator.flash(String(localized: "health_resolved_toast \(record.illnessType.displayName)"))
+    }
+
+    // MARK: - Rows
+
+    private func recordRow(_ record: HealthRecord) -> some View {
+        Button {
+            HapticManager.selection()
+            sheet = .detail(record)
+        } label: {
+            HStack(spacing: 12) {
+                ColorTick(color: record.illnessType.color, height: 32)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(record.illnessType.displayName)
+                        .font(.leona(15, .bold))
+                        .foregroundStyle(.tTheirsInk)
+                    Text(record.healthRangeText)
+                        .font(.leona(12))
+                        .foregroundStyle(.tMuted)
+                }
+                Spacer(minLength: 8)
+                Text(record.healthDurationText)
+                    .font(.leona(12, .bold))
+                    .foregroundStyle(.tMuted)
+            }
+            .padding(.vertical, 14)
+            .padding(.horizontal, 16)
+            .background(Color.tTheirs)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(.leonaPress)
+    }
+
+    // MARK: - Empty state
+
+    private var emptyBubble: some View {
+        LeonaTintCard(padding: EdgeInsets(top: 14, leading: 17, bottom: 14, trailing: 17), asBubble: true) {
+            VStack(alignment: .leading, spacing: 7) {
+                LeonaCardHeader()
+                Text(String(localized: "health_empty_bubble \(baby.displayName)"))
+                    .font(.leona(15, .medium))
+                    .lineSpacing(4)
+                    .foregroundStyle(.tInk)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .padding(.trailing, 34)
+    }
+
+    private func refreshSharedData() async {
+        guard baby.isShared else { return }
+        await SyncEngine.shared.forcePullSharedBabies(context: modelContext)
     }
 }

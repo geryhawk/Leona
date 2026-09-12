@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 
+/// Add or edit one measurement. Inputs are in the display unit; storage stays metric.
 struct GrowthEntryView: View {
     let baby: Baby
     var editingRecord: GrowthRecord?
@@ -12,194 +13,143 @@ struct GrowthEntryView: View {
     @State private var weightStr: String
     @State private var heightStr: String
     @State private var headStr: String
+    @State private var showDeleteConfirm = false
 
     var isEditing: Bool { editingRecord != nil }
 
     init(baby: Baby, editingRecord: GrowthRecord? = nil) {
         self.baby = baby
         self.editingRecord = editingRecord
-        self._date = State(initialValue: editingRecord?.date ?? Date())
-
-        // Convert from metric storage to display units
-        let settings = AppSettings.shared
-        if let w = editingRecord?.weightKg {
-            let display = settings.useMetric ? w : UnitConversion.kgToLbs(w)
-            self._weightStr = State(initialValue: String(format: "%.2f", display))
-        } else {
-            self._weightStr = State(initialValue: "")
-        }
-        if let h = editingRecord?.heightCm {
-            let display = settings.useMetric ? h : UnitConversion.cmToInches(h)
-            self._heightStr = State(initialValue: String(format: "%.1f", display))
-        } else {
-            self._heightStr = State(initialValue: "")
-        }
-        if let hc = editingRecord?.headCircumferenceCm {
-            let display = settings.useMetric ? hc : UnitConversion.cmToInches(hc)
-            self._headStr = State(initialValue: String(format: "%.1f", display))
-        } else {
-            self._headStr = State(initialValue: "")
-        }
+        _date = State(initialValue: editingRecord?.date ?? Date())
+        _weightStr = State(initialValue: editingRecord?.weightKg.map { GrowthMetric.weight.format(GrowthMetric.weight.display($0)) } ?? "")
+        _heightStr = State(initialValue: editingRecord?.heightCm.map { GrowthMetric.height.format(GrowthMetric.height.display($0)) } ?? "")
+        _headStr = State(initialValue: editingRecord?.headCircumferenceCm.map { GrowthMetric.head.format(GrowthMetric.head.display($0)) } ?? "")
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section(String(localized: "measurement_date")) {
-                    DatePicker(String(localized: "date"), selection: $date, in: ...Date(), displayedComponents: .date)
-                }
+        VStack(spacing: 0) {
+            InsightsSheetHeader(
+                title: isEditing ? String(localized: "edit_measurement") : String(localized: "add_measurement"),
+                trailingEnabled: hasAnyValue,
+                onLeading: { dismiss() },
+                onTrailing: save
+            )
 
-                Section(String(localized: "measurements")) {
-                    HStack {
-                        Label(String(localized: "weight"), systemImage: "scalemass.fill")
-                            .foregroundStyle(.blue)
-                        Spacer()
-                        TextField("0.00", text: $weightStr)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 100)
-                        Text(UnitConversion.weightUnit)
-                            .foregroundStyle(.secondary)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    LeonaGroup {
+                        dateRow
+                        valueRow(String(localized: "growth_weight"), text: $weightStr, placeholder: "0.00", unit: UnitConversion.weightUnit)
+                        valueRow(String(localized: "growth_height"), text: $heightStr, placeholder: "0.0", unit: UnitConversion.heightUnit)
+                        valueRow(String(localized: "head_circumference"), text: $headStr, placeholder: "0.0", unit: UnitConversion.heightUnit)
                     }
 
-                    HStack {
-                        Label(String(localized: "height"), systemImage: "ruler.fill")
-                            .foregroundStyle(.green)
-                        Spacer()
-                        TextField("0.0", text: $heightStr)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 100)
-                        Text(UnitConversion.heightUnit)
-                            .foregroundStyle(.secondary)
+                    if hasAnyValue {
+                        LeonaSectionLabel(String(localized: "percentiles"))
+                            .padding(.top, 6)
+                        LeonaGroup {
+                            if let kg = metricWeight { percentileRow(String(localized: "growth_weight"), value: kg, metric: .weight) }
+                            if let cm = metricHeight { percentileRow(String(localized: "growth_height"), value: cm, metric: .height) }
+                            if let cm = metricHead { percentileRow(String(localized: "head_circumference"), value: cm, metric: .head) }
+                        }
+                        Text(String(localized: "growth_percentile_note \(GrowthAge.phrase(from: baby.dateOfBirth, to: date))"))
+                            .font(.leona(12, .semibold))
+                            .foregroundStyle(.tMuted)
+                            .padding(.horizontal, 4)
                     }
 
-                    HStack {
-                        Label(String(localized: "head_circumference"), systemImage: "circle.dashed")
-                            .foregroundStyle(.purple)
-                        Spacer()
-                        TextField("0.0", text: $headStr)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 100)
-                        Text(UnitConversion.heightUnit)
-                            .foregroundStyle(.secondary)
+                    if isEditing {
+                        LeonaGroup {
+                            LeonaRow(title: String(localized: "growth_delete_measurement"), destructive: true) {
+                                showDeleteConfirm = true
+                            }
+                        }
+                        .padding(.top, 10)
                     }
                 }
-
-                // Percentile preview
-                if hasAnyValue {
-                    Section(String(localized: "percentiles")) {
-                        if let weightKg = metricWeight {
-                            percentileRow(
-                                label: String(localized: "weight"),
-                                metricValue: weightKg,
-                                type: .weight,
-                                color: .blue
-                            )
-                        }
-                        if let heightCm = metricHeight {
-                            percentileRow(
-                                label: String(localized: "height"),
-                                metricValue: heightCm,
-                                type: .height,
-                                color: .green
-                            )
-                        }
-                        if let headCm = metricHead {
-                            percentileRow(
-                                label: String(localized: "head_circumference"),
-                                metricValue: headCm,
-                                type: .head,
-                                color: .purple
-                            )
-                        }
-                    }
-                }
+                .padding(18)
             }
-            .navigationTitle(isEditing ? String(localized: "edit_measurement") : String(localized: "add_measurement"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "cancel")) { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "save")) { save() }
-                        .fontWeight(.semibold)
-                        .disabled(!hasAnyValue)
-                }
-            }
+            .scrollDismissesKeyboard(.interactively)
+        }
+        .background(Color.tCanvas.ignoresSafeArea())
+        .alert(String(localized: "delete_record"), isPresented: $showDeleteConfirm) {
+            Button(String(localized: "delete"), role: .destructive) { deleteRecord() }
+            Button(String(localized: "cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "growth_delete_message"))
         }
     }
 
-    // MARK: - Metric Conversion
+    // MARK: - Rows
 
-    /// Convert display input to metric kg
-    private var metricWeight: Double? {
-        guard let v = Double(weightStr), v > 0 else { return nil }
-        return UnitConversion.storageWeight(v)
-    }
-
-    /// Convert display input to metric cm
-    private var metricHeight: Double? {
-        guard let v = Double(heightStr), v > 0 else { return nil }
-        return UnitConversion.storageHeight(v)
-    }
-
-    /// Convert display input to metric cm
-    private var metricHead: Double? {
-        guard let v = Double(headStr), v > 0 else { return nil }
-        return UnitConversion.storageHeight(v)
-    }
-
-    private var hasAnyValue: Bool {
-        !weightStr.isEmpty || !heightStr.isEmpty || !headStr.isEmpty
-    }
-
-    private enum PercentileType {
-        case weight, height, head
-    }
-
-    private func percentileRow(label: String, metricValue: Double, type: PercentileType, color: Color) -> some View {
-        let data: [WHOPercentilePoint]
-        switch type {
-        case .weight: data = WHODataService.weightPercentiles(gender: baby.gender)
-        case .height: data = WHODataService.heightPercentiles(gender: baby.gender)
-        case .head: data = WHODataService.headCircumferencePercentiles(gender: baby.gender)
+    private var dateRow: some View {
+        HStack(spacing: 12) {
+            Text(String(localized: "measurement_date"))
+                .font(.leona(15, .bold))
+                .foregroundStyle(.tInk)
+            Spacer(minLength: 0)
+            DatePicker("", selection: $date, in: ...Date(), displayedComponents: .date)
+                .labelsHidden()
+                .datePickerStyle(.compact)
         }
+        .padding(.vertical, 11)
+        .padding(.horizontal, 17)
+    }
 
-        let percentile = WHODataService.calculatePercentile(
-            value: metricValue,
-            ageInMonths: baby.ageInMonths,
-            data: data
-        )
+    private func valueRow(_ label: String, text: Binding<String>, placeholder: String, unit: String) -> some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .font(.leona(15, .bold))
+                .foregroundStyle(.tInk)
+            Spacer(minLength: 0)
+            TextField(placeholder, text: text)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .font(.leona(15, .bold))
+                .foregroundStyle(.tInk)
+                .frame(width: 96)
+            Text(unit)
+                .font(.leona(13, .semibold))
+                .foregroundStyle(.tMuted)
+                .frame(width: 30, alignment: .leading)
+        }
+        .padding(.vertical, 15)
+        .padding(.horizontal, 17)
+    }
 
+    private func percentileRow(_ label: String, value: Double, metric: GrowthMetric) -> some View {
+        let age = GrowthAge.months(from: baby.dateOfBirth, to: date)
         return HStack {
             Text(label)
-                .foregroundStyle(color)
-            Spacer()
-            if let p = percentile {
-                Text("P\(Int(p))")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(percentileColor(p))
-                    .clipShape(Capsule())
-            } else {
-                Text("--")
-                    .foregroundStyle(.secondary)
-            }
+                .font(.leona(15, .bold))
+                .foregroundStyle(.tInk)
+            Spacer(minLength: 0)
+            GrowthPercentileBadge(percentile: metric.percentile(value: value, ageInMonths: age, gender: baby.gender))
         }
+        .padding(.vertical, 11)
+        .padding(.horizontal, 17)
     }
 
-    private func percentileColor(_ p: Double) -> Color {
-        if p < 3 || p > 97 { return .red }
-        if p < 15 || p > 85 { return .orange }
-        return .green
+    // MARK: - Parsing (display unit → metric storage)
+
+    private func parsed(_ text: String) -> Double? {
+        let cleaned = text.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+        guard let value = Double(cleaned), value > 0 else { return nil }
+        return value
     }
+
+    private var metricWeight: Double? { parsed(weightStr).map(UnitConversion.storageWeight) }
+    private var metricHeight: Double? { parsed(heightStr).map(UnitConversion.storageHeight) }
+    private var metricHead: Double? { parsed(headStr).map(UnitConversion.storageHeight) }
+
+    private var hasAnyValue: Bool {
+        metricWeight != nil || metricHeight != nil || metricHead != nil
+    }
+
+    // MARK: - Actions
 
     private func save() {
+        guard hasAnyValue else { return }
         if let record = editingRecord {
             record.date = date
             record.weightKg = metricWeight
@@ -216,10 +166,16 @@ struct GrowthEntryView: View {
             )
             modelContext.insert(record)
         }
+        ActivityLogger.save(modelContext)
+        NotificationCenter.default.post(name: .shouldPushLocalChanges, object: nil)
+        HapticManager.success()
+        dismiss()
+    }
 
-        try? modelContext.save()
-
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+    private func deleteRecord() {
+        guard let record = editingRecord else { return }
+        ActivityLogger.delete(record, context: modelContext)
+        HapticManager.impact(.light)
         dismiss()
     }
 }

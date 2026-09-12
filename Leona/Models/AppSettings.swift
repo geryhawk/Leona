@@ -40,7 +40,7 @@ final class AppSettings {
         didSet { defaults.set(showOngoingStatus, forKey: "showOngoingStatus") }
     }
     
-    // MARK: - Menu Visibility
+    // MARK: - Menu Visibility (kept for existing installs; the thread shows everything)
     
     var showProfile: Bool {
         didSet { defaults.set(showProfile, forKey: "showProfile") }
@@ -73,6 +73,11 @@ final class AppSettings {
     var colorScheme: AppColorScheme {
         didSet { defaults.set(colorScheme.rawValue, forKey: "colorScheme") }
     }
+
+    /// Night theme switches on by itself between 20:00 and 07:00.
+    var autoNightTheme: Bool {
+        didSet { defaults.set(autoNightTheme, forKey: "autoNightTheme") }
+    }
     
     var accentColor: AppAccentColor {
         didSet { defaults.set(accentColor.rawValue, forKey: "accentColor") }
@@ -103,6 +108,34 @@ final class AppSettings {
     var useMetric: Bool {
         didSet { defaults.set(useMetric, forKey: "useMetric") }
     }
+
+    // MARK: - Leona (suggestions in the thread)
+
+    var leonaSuggestions: Bool {
+        didSet { defaults.set(leonaSuggestions, forKey: "leonaSuggestions") }
+    }
+
+    // MARK: - Who is logging on this device
+
+    /// Stable per-install identity, used before the iCloud identity is known and as a fallback without iCloud.
+    let authorID: String
+
+    /// The iCloud user record name, identical on every device signed into the same account.
+    var cloudUserID: String? {
+        didSet { defaults.set(cloudUserID, forKey: "cloudUserID") }
+    }
+
+    /// The iCloud identity whose entries have already been re-stamped from the install id.
+    var adoptedCloudUserID: String? {
+        didSet { defaults.set(adoptedCloudUserID, forKey: "adoptedCloudUserID") }
+    }
+
+    /// What new entries are stamped with: the person when known, else this install.
+    var effectiveAuthorID: String { cloudUserID ?? authorID }
+
+    var userDisplayName: String {
+        didSet { defaults.set(userDisplayName, forKey: "userDisplayName") }
+    }
     
     // MARK: - Notification Preferences
     
@@ -124,6 +157,43 @@ final class AppSettings {
     
     var hasCompletedOnboarding: Bool {
         didSet { defaults.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
+    }
+
+    // MARK: - Per-baby device-local state
+
+    func threadLastSeen(for babyID: UUID) -> Date? {
+        defaults.object(forKey: "threadSeen-\(babyID.uuidString)") as? Date
+    }
+
+    func markThreadSeen(for babyID: UUID, at date: Date = Date()) {
+        defaults.set(date, forKey: "threadSeen-\(babyID.uuidString)")
+    }
+
+    func nextVaccinationDate(for babyID: UUID) -> Date? {
+        defaults.object(forKey: "nextVaccination-\(babyID.uuidString)") as? Date
+    }
+
+    func setNextVaccinationDate(_ date: Date?, for babyID: UUID) {
+        defaults.set(date, forKey: "nextVaccination-\(babyID.uuidString)")
+        vaccinationVersion += 1
+    }
+
+    /// Bumped whenever a per-baby stored value changes so views re-read it.
+    var vaccinationVersion = 0
+
+    // MARK: - Resolved appearance
+
+    var resolvedColorScheme: ColorScheme? {
+        if autoNightTheme {
+            let hour = Calendar.current.component(.hour, from: Date())
+            return (hour >= 20 || hour < 7) ? .dark : .light
+        }
+        return colorScheme.colorScheme
+    }
+
+    /// iOS's own appearance, independent of the app's override.
+    static var systemPrefersDark: Bool {
+        UIScreen.main.traitCollection.userInterfaceStyle == .dark
     }
     
     // MARK: - Init (read from UserDefaults; didSet is NOT called during init)
@@ -149,10 +219,26 @@ final class AppSettings {
         
         // Appearance
         colorScheme = AppColorScheme(rawValue: defaults.string(forKey: "colorScheme") ?? "system") ?? .system
+        autoNightTheme = defaults.object(forKey: "autoNightTheme") as? Bool ?? false
         accentColor = AppAccentColor(rawValue: defaults.string(forKey: "accentColor") ?? "rose") ?? .rose
         useCelsius = defaults.object(forKey: "useCelsius") as? Bool ?? true
         useMetric = defaults.object(forKey: "useMetric") as? Bool ?? true
-        
+
+        // Leona
+        leonaSuggestions = defaults.object(forKey: "leonaSuggestions") as? Bool ?? true
+
+        // Identity
+        if let existing = defaults.string(forKey: "authorID") {
+            authorID = existing
+        } else {
+            let fresh = UUID().uuidString
+            defaults.set(fresh, forKey: "authorID")
+            authorID = fresh
+        }
+        cloudUserID = defaults.string(forKey: "cloudUserID")
+        adoptedCloudUserID = defaults.string(forKey: "adoptedCloudUserID")
+        userDisplayName = defaults.string(forKey: "userDisplayName") ?? ""
+
         // Notifications
         feedingReminderInterval = defaults.object(forKey: "feedingReminderInterval") as? TimeInterval ?? 10800
         enableFeedingReminders = defaults.object(forKey: "enableFeedingReminders") as? Bool ?? true
@@ -203,7 +289,7 @@ enum AppColorScheme: String, CaseIterable, Identifiable {
     }
 }
 
-// MARK: - Accent Color
+// MARK: - Accent Color (kept for stored settings of existing installs; the thread palette is fixed)
 
 enum AppAccentColor: String, CaseIterable, Identifiable {
     case rose
@@ -230,44 +316,9 @@ enum AppAccentColor: String, CaseIterable, Identifiable {
         }
     }
 
-    var color: Color {
-        switch self {
-        case .rose: return Color(red: 0.863, green: 0.518, blue: 0.639)
-        case .bleu: return Color(red: 0.4, green: 0.6, blue: 0.85)
-        case .violet: return Color(red: 0.6, green: 0.4, blue: 0.8)
-        case .vert: return Color(red: 0.34, green: 0.7, blue: 0.53)
-        case .orange: return Color(red: 0.95, green: 0.6, blue: 0.3)
-        case .corail: return Color(red: 0.96, green: 0.45, blue: 0.45)
-        case .ardoise: return Color(red: 0.42, green: 0.48, blue: 0.55)
-        case .custom: return AppSettings.shared.customAccentColor
-        }
-    }
-
-    var colorLight: Color {
-        switch self {
-        case .rose: return Color(red: 0.949, green: 0.784, blue: 0.847)
-        case .bleu: return Color(red: 0.7, green: 0.82, blue: 0.95)
-        case .violet: return Color(red: 0.8, green: 0.7, blue: 0.93)
-        case .vert: return Color(red: 0.7, green: 0.9, blue: 0.78)
-        case .orange: return Color(red: 0.98, green: 0.82, blue: 0.6)
-        case .corail: return Color(red: 0.99, green: 0.75, blue: 0.72)
-        case .ardoise: return Color(red: 0.72, green: 0.76, blue: 0.80)
-        case .custom: return AppSettings.shared.customAccentColor.opacity(0.5)
-        }
-    }
-
-    var colorDark: Color {
-        switch self {
-        case .rose: return Color(red: 0.694, green: 0.361, blue: 0.478)
-        case .bleu: return Color(red: 0.2, green: 0.3, blue: 0.55)
-        case .violet: return Color(red: 0.4, green: 0.25, blue: 0.6)
-        case .vert: return Color(red: 0.2, green: 0.5, blue: 0.35)
-        case .orange: return Color(red: 0.75, green: 0.4, blue: 0.15)
-        case .corail: return Color(red: 0.70, green: 0.25, blue: 0.25)
-        case .ardoise: return Color(red: 0.25, green: 0.30, blue: 0.35)
-        case .custom: return AppSettings.shared.customAccentColor
-        }
-    }
+    var color: Color { .vermilion }
+    var colorLight: Color { .vermilion.opacity(0.5) }
+    var colorDark: Color { .vermilionDark }
 }
 
 // MARK: - Time Period for Stats

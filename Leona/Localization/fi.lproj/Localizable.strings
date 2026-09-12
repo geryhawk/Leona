@@ -426,6 +426,15 @@
 "notification_snoozed_body" = "Torkutettu muistutus";
 "notification_action_snooze" = "Torkuta 30min";
 "notification_action_dismiss" = "Ohita";
+"notification_shared_update_title" = "Jaettu paivitys";
+"notification_shared_update_activity_body %@ %@" = "Toinen vanhempi lisasi merkinnan %@ lapselle %@";
+"notification_shared_update_activity_by_parent_body %@ %@ %@" = "%@ lisasi merkinnan %@ lapselle %@";
+"notification_shared_update_growth_body %@" = "Toinen vanhempi lisasi kasvumerkinnan lapselle %@";
+"notification_shared_update_growth_by_parent_body %@ %@" = "%@ lisasi kasvumerkinnan lapselle %@";
+"notification_shared_update_health_body %@" = "Toinen vanhempi lisasi terveysmerkinnan lapselle %@";
+"notification_shared_update_health_by_parent_body %@ %@" = "%@ lisasi terveysmerkinnan lapselle %@";
+"notification_shared_update_multiple_body %lld %@" = "%lld uutta jaettua paivitysta lapselle %@";
+"notification_shared_update_multiple_by_parent_body %@ %lld %@" = "%@ lisasi %lld uutta jaettua paivitysta lapselle %@";
 
 /* iCloud Settings */
 "icloud_sync_toggle" = "iCloud-synkronointi";
@@ -494,3 +503,346 @@
 "icloud_consent_title" = "Ota iCloud-synkronointi käyttöön";
 "icloud_consent_accept" = "Ota käyttöön";
 "icloud_consent_message" = "Kun tämä on käytössä, vauvasi tiedot (nimi, syntymäaika, toiminnot, kasvu- ja terveystiedot) tallennetaan henkilökohtaiseen iCloud-tiliisi, jota hallinnoi Apple. Tämä mahdollistaa synkronoinnin laitteidesi välillä ja jakamisen kumppanisi kanssa. Tietoja ei lähetetä kolmansille osapuolille. Voit poistaa tämän käytöstä milloin tahansa.";
+
+/* === insights (Thread v2) === */
+/* Insights hub · Trendit */
+"trends_title" = "Trendit";
+"trends_days %lld" = "%lld päivää";
+"trends_milk_steady" = "Maitomäärä on tasainen.";
+"trends_milk_varies" = "Maitomäärä vaihtelee päivästä toiseen.";
+"trends_night_up %@" = "%@:n yöt pitenevät.";
+"trends_night_down %@" = "%@:n yöt ovat lyhyempiä kuin aiemmin.";
+"trends_night_flat %@" = "%@:n yöt pysyvät tasaisina.";
+"trends_night_only %@ %@" = "%@ nukkuu toistaiseksi noin %@ yössä.";
+"trends_verdict_thin %@" = "Muutama päivä lisää %@:n lankaan, niin minulla on jotain sanottavaa.";
+"trends_why_milk_band %@" = "Päivittäinen maitomäärä on pysynyt %@:n haarukassa.";
+"trends_why_milk_vs_prev %lld %lld" = "Saanti on %lld %% sisällä edellisten %lld päivän keskiarvosta.";
+"trends_why_night_up %@" = "Yöuni on pidentynyt keskimäärin noin %@ yössä.";
+"trends_why_night_down %@" = "Yöuni on lyhentynyt keskimäärin noin %@ yössä.";
+"trends_why_night_flat" = "Yöuni on suunnilleen sama kuin aiemmin.";
+"trends_why_naps_shorter %@" = "Päiväunet lyhenivät noin %@ päivässä.";
+"trends_why_naps_longer %@" = "Päiväunet pitenivät noin %@ päivässä.";
+"trends_why_thin %@" = "Kun %@:n langassa on muutama päivä lisää, kerron mikä muuttuu.";
+"trends_milk_per_day" = "Maitoa päivässä";
+"trends_sleep_night_naps" = "Uni · yö vs päiväunet";
+"trends_avg %@" = "ka. %@";
+"trends_hours %@" = "%@ t";
+"trends_what_changed_week" = "Mikä muuttui tällä viikolla";
+"trends_what_changed_days %lld" = "Mikä muuttui %lld päivässä";
+"trends_change_none %@" = "Mikään ei ole vielä muuttunut. Jatka %@:n lankaa, niin erot ilmestyvät tähän.";
+"trends_change_nights_longer" = "pidemmät yöt";
+"trends_change_nights_shorter" = "lyhyemmät yöt";
+"trends_change_naps_longer" = "pidemmät päiväunet";
+"trends_change_naps_shorter" = "lyhyemmät päiväunet";
+"trends_change_weight_gained %@" = "painonnousu %@ jälkeen";
+"trends_change_weight_lost %@" = "painonlasku %@ jälkeen";
+"trends_change_feeds_more" = "syöttöä enemmän päivässä";
+"trends_change_feeds_fewer" = "syöttöä vähemmän päivässä";
+"trends_change_diapers_more" = "vaippaa enemmän päivässä";
+"trends_change_diapers_fewer" = "vaippaa vähemmän päivässä";
+"trends_send_pdf" = "Lähetä tämä lastenlääkärille";
+"trends_pdf_failed" = "PDF:n luonti ei onnistunut.";
+
+/* Kasvu */
+"growth_axis_birth" = "Syntymä";
+"growth_axis_months %lld" = "%lld kk";
+"growth_axis_years %@" = "%@ v";
+"growth_age_birth" = "Syntymä";
+"growth_age_in_days %lld" = "%lld päivää";
+"growth_age_in_weeks %lld" = "%lld viikkoa";
+"growth_every_measurement" = "Kaikki mittaukset";
+"growth_add_short" = "+ Lisää";
+"growth_delta_since_last %@" = "%@ edellisestä käynnistä";
+"growth_metric_empty %@" = "Ei vielä mittausta: %@. Lisää yksi, niin asetan sen WHO:n käyrälle.";
+"growth_gender_girl" = "tytölle";
+"growth_gender_boy" = "pojalle";
+"growth_gender_baby" = "vauvalle";
+"growth_verdict_percentile %@ %@ %@" = "Noin %@ persentiili %@, ikä %@.";
+"growth_steady_single" = "Yksi mittaus on lähtökohta; seuraava näyttää suunnan.";
+"growth_steady_held %@" = "%@ on pysynyt samalla kaistalla viime mittauksissa. Tuo tasaisuus on se, mitä kannattaa katsoa, ei luku.";
+"growth_steady_up %@" = "%@ on noussut käyrällä viime mittauksissa. Mainitsemisen arvoista seuraavalla käynnillä.";
+"growth_steady_down %@" = "%@ on laskenut käyrällä viime mittauksissa. Ota puheeksi seuraavalla käynnillä.";
+"growth_empty_bubble %@" = "Ei vielä mittauksia. Lisää %@:n ensimmäinen paino, pituus tai päänympärys, niin asetan sen WHO:n käyrälle.";
+"growth_percentile_note %@" = "Persentiilit lasketaan tuon päivän iän mukaan: %@.";
+"growth_delete_measurement" = "Poista tämä mittaus";
+"growth_delete_message" = "Mittaus poistetaan käyrältä ja jaetusta kirjasta.";
+
+/* Terveys */
+"health_history_short" = "Historia";
+"health_log_short" = "+ Kirjaa";
+"health_same_day" = "sama päivä";
+"health_pinned_active_day %lld" = "Kiinnitetty · päivä %lld";
+"health_record_kind" = "Terveysmerkintä";
+"health_open_record" = "Avaa merkintä";
+"health_mark_resolved_short" = "Merkitse ohi";
+"health_resolved_toast %@" = "%@ merkitty ohi";
+"health_summary_line %@ %@ %@" = "Alkaen %@. %@, %@.";
+"health_summary_no_symptoms" = "Ei kirjattuja oireita";
+"health_summary_one_symptom" = "Yksi oire";
+"health_summary_symptoms %lld" = "%lld oiretta";
+"health_summary_fever %@" = "kuumetta %@";
+"health_summary_warm %@" = "hieman lämpöä %@";
+"health_summary_no_fever %@" = "ei kuumetta (%@)";
+"health_summary_no_temp" = "lämpöä ei mitattu";
+"health_empty_bubble %@" = "%@:lla ei ole vielä merkintöjä. Kirjaa sairaus, rokotus tai lämpö kun niitä tulee, niin pidän päivämäärät järjestyksessä.";
+
+/* Seuraava rokotus */
+"vax_next" = "Seuraava rokotus";
+"vax_not_set" = "Ei asetettu";
+"vax_not_set_caption %@" = "Lisää %@:n seuraavan ajan päivämäärä, niin muistutan viikkoa ennen.";
+"vax_choose_date" = "Valitse päivä";
+"vax_caption %@" = "%@ · napauta päivää vaihtaaksesi";
+"vax_passed" = "Tuo päivä on jo mennyt. Napauta sitä asettaaksesi seuraavan.";
+"vax_remind" = "Muistuta viikkoa ennen";
+"vax_reminder_set" = "Muistutus asetettu";
+"vax_reminder_toast %@" = "Muistutus asetettu: %@";
+"vax_reminder_denied" = "Salli ilmoitukset Asetuksissa saadaksesi muistutuksen.";
+"vax_clear" = "Tyhjennä päivä";
+"notification_vaccination_title" = "Rokotus ensi viikolla";
+"notification_vaccination_body %@" = "%@:n rokotus on viikon päästä. Muista varata aika.";
+
+/* === profile (Thread v2) === */
+/* Profile */
+"profile_you" = "Sinä";
+"profile_born %@" = "Syntynyt %@";
+"profile_entries_kept %lld" = "%lld merkintää tallessa";
+"profile_in_this_thread" = "Tässä ketjussa";
+"profile_names_and %@ %@" = "%@ & %@";
+"profile_synced %@" = "synkronoitu %@";
+"profile_threads" = "Ketjut";
+"profile_switch_toast %@" = "Nyt %@:n ketjussa";
+"profile_preferences" = "Asetukset";
+"profile_night_theme" = "Yöteema";
+"profile_night_on" = "Päällä · luumu ja lämmin muste";
+"profile_night_off" = "Pois · vaalea kangas";
+"profile_auto_dusk" = "Vaihda automaattisesti hämärässä";
+"profile_auto_dusk_sub" = "Himmeä ja lämmin iltasyötön jälkeen";
+"profile_leona_speak" = "Anna Leonan puhua";
+"profile_leona_speak_sub" = "Ehdotuksia ketjussa, ei koskaan ilmoituksia";
+"profile_metric" = "Metriset yksiköt";
+"profile_metric_on" = "kg, cm, ml, °C";
+"profile_metric_off" = "lb, in, oz, °F";
+"profile_reminders" = "Muistutukset";
+"profile_tracks" = "Mitä Leona seuraa";
+"profile_track_sleep" = "Uni";
+"profile_track_breastfeeding" = "Imetys";
+"profile_track_diapers" = "Vaipat";
+"profile_track_bottles" = "Pullot ja kiinteät";
+"profile_icloud" = "iCloud";
+"profile_icloud_last_sync %@" = "viimeisin synkronointi %@";
+"profile_record" = "Tallenne";
+"profile_print_book" = "Tulosta ketju muistokirjaksi";
+"profile_export_csv" = "Vie raakadata · CSV";
+"profile_new_thread" = "Aloita ketju toiselle vauvalle";
+"profile_delete_everything %@" = "Poista kaikki: %@";
+"profile_export_failed" = "Vientiä ei voitu luoda";
+"profile_thread_cleared" = "Ketju tyhjennetty";
+"profile_about" = "Tietoja";
+"profile_photo_updated" = "Kuva päivitetty";
+"profile_delete_thread %@" = "Poista %@:n ketju";
+"profile_delete_thread_confirm %@" = "Poistetaanko %@:n ketju?";
+"profile_delete_thread_warning" = "Kaikki merkinnät, mittaukset ja terveystiedot poistuvat samalla. Tätä ei voi perua.";
+"profile_delete_last_title" = "Poistetaanko viimeinen ketju?";
+"profile_delete_last_message" = "Kaikki poistetaan ja Leona aloittaa alusta tervetulonäkymästä.";
+"profile_delete_and_reset" = "Poista ja aloita alusta";
+
+/* Sharing */
+"sharing_title" = "Jakaminen";
+"sharing_invite_line %@" = "Jaa %@:n ketju kumppanin kanssa: kaikki, mitä kumpi tahansa kirjaa, näkyy täällä molemmille.";
+"sharing_quiet_line %@" = "Kumppaniltasi ei vielä mitään tänään. Kaikki, mitä kirjaatte %@:lle, tulee tänne molemmille.";
+"sharing_handoff_one %@ %@" = "%@ kirjasi viimeisimmän merkinnän. Olet ollut vapaalla klo %@ alkaen.";
+"sharing_handoff %@ %lld %@" = "%@ kirjasi viimeiset %lld merkintää. Olet ollut vapaalla klo %@ alkaen.";
+"sharing_people" = "Ihmiset";
+"sharing_me_row %@" = "%@ · sinä";
+"sharing_role_owner" = "Omistaja";
+"sharing_role_editor" = "Voi kirjata ja muokata";
+"sharing_here_now" = "paikalla";
+"sharing_your_name_title" = "Nimesi ketjussa";
+"sharing_your_name_placeholder" = "Etunimi";
+"sharing_name_saved" = "Nimi tallennettu";
+"sharing_remove_participant" = "Poista ketjusta";
+"sharing_invite_partner" = "Kutsu kumppani";
+"sharing_invite_someone_else" = "Kutsu joku muu";
+"sharing_send" = "Lähetä";
+"sharing_sent" = "Lähetetty";
+"sharing_link_caption" = "Linkki minkä tahansa sovelluksen kautta — iCloud-osoitetta ei tarvita.";
+"sharing_link_copied_toast" = "Kutsulinkki kopioitu";
+"sharing_who_logged_today" = "Kuka kirjasi mitä · tänään";
+"sharing_everyone_else" = "Muut";
+"sharing_off_duty_balance" = "Vapaavuorojen tasapaino";
+"sharing_balance %@ %lld %lld" = "%@ on hoitanut %lld viimeisestä %lld merkinnästä.";
+"sharing_balance_empty" = "Ei vielä merkintöjä — tasapaino näkyy, kun ketju täyttyy.";
+"sharing_needs_icloud %@" = "Jakaminen kulkee iCloudin kautta. Ota iCloud-synkronointi käyttöön, niin pidän %@:n ketjun samana molemmissa puhelimissa.";
+"sharing_turn_on_icloud" = "Ota iCloud-synkronointi käyttöön";
+"sharing_stopped_toast" = "Jakaminen lopetettu";
+
+/* Search */
+"search_title" = "Haku";
+"search_placeholder" = "Hae kaikista merkinnöistä…";
+"search_filter_feeds" = "Syötöt";
+"search_filter_sleep" = "Uni";
+"search_filter_diapers" = "Vaipat";
+"search_filter_notes" = "Muistiinpanot";
+"search_entry_one" = "1 merkintä";
+"search_entries %lld" = "%lld merkintää";
+"search_logged_by %@" = "kirjannut %@";
+"search_no_results" = "Ei vielä osumia.";
+
+/* Record */
+"record_title" = "Merkintä";
+"record_started" = "Alkoi";
+"record_ended" = "Päättyi";
+"record_logged_by" = "Kirjannut";
+"record_against_average %@" = "Verrattuna %@:n keskiarvoon";
+"record_note" = "Muistiinpano";
+"record_no_baseline" = "ei vielä tarpeeksi historiaa";
+"record_on_average" = "aivan keskiarvossa";
+"record_under_average %@" = "%@ alle keskiarvon";
+"record_over_average %@" = "%@ yli keskiarvon";
+"record_usual_length" = "tavallinen kesto";
+"record_longer_than_usual %@" = "%@ pidempi kuin tavallisesti";
+"record_shorter_than_usual %@" = "%@ lyhyempi kuin tavallisesti";
+"record_usual_spacing" = "tavallinen väli";
+"record_sooner_than_usual %@" = "%@ aiemmin kuin tavallisesti";
+"record_later_than_usual %@" = "%@ myöhemmin kuin tavallisesti";
+"record_removed_toast" = "Poistettu ketjusta";
+"record_edit_title" = "Muokkaa merkintää";
+"record_mark_finished" = "Merkitse päättyneeksi";
+
+/* === sessions (Thread v2) === */
+
+/* Welcome (first run, in-thread) */
+"welcome_setting_up" = "Käyttöönotto · 30 sekuntia";
+"welcome_hello" = "Hei. Minä pidän kirjaa, jotta sinun ei tarvitse muistaa mitään.";
+"welcome_two_questions" = "Kaksi kysymystä ja olemme valmiit. Kenestä pidämme kirjaa?";
+"welcome_name_placeholder" = "Vauvan nimi";
+"welcome_greeting %@" = "Ihanaa. Milloin %@ syntyi?";
+"welcome_pick_date" = "Valitse päivä";
+"welcome_age_today" = "Syntynyt tänään. Onnea — aloitan kirjanpidon tästä hetkestä.";
+"welcome_age_one_day" = "Yhden päivän ikäinen. Pidän kirjaa jokaisesta merkinnästä tästä lähtien.";
+"welcome_age_days %lld" = "%lld päivän ikäinen. Käytän sitä prosenttipisteisiin.";
+"welcome_age_weeks %lld" = "%lld viikon ikäinen. Käytän sitä prosenttipisteisiin.";
+"welcome_age_months %lld" = "%lld kuukauden ikäinen. Käytän sitä prosenttipisteisiin.";
+"welcome_gender_question" = "Tyttö vai poika? Käytän tietoa kasvukäyriin.";
+"welcome_gender_skip" = "En halua sanoa";
+"welcome_cta_start" = "Aloita ketju";
+"welcome_cta_answer_both" = "Vastaa molempiin jatkaaksesi";
+"welcome_helper" = "Yksiköt, muistutukset ja jakaminen tulevat vastaan, kun tarvitset niitä";
+"welcome_thread_started %@" = "Ketju aloitettu: %@";
+
+/* Sleep session */
+"sleep_went_down %@ %@ %@" = "%@ nukahti klo %@. Lisään sen ketjuun, kun %@ herää.";
+"sleep_asleep_for" = "Nukkunut";
+"sleep_against_average %@" = "Verrattuna %@:n omaan keskiarvoon";
+"sleep_usual %@" = "Tavallisesti %@";
+"sleep_obs_longer %lld" = "Viimeisimmät unet ovat olleet %lld minuuttia pidempiä kuin aiemmat.";
+"sleep_obs_shorter %lld" = "Viimeisimmät unet ovat olleet %lld minuuttia lyhyempiä kuin aiemmat.";
+"sleep_obs_steady" = "Viimeisimmät unet ovat olleet tasaisia — suunnilleen tavallisen mittaisia.";
+"sleep_obs_thin %@" = "Vertaan tätä %@:n tavalliseen uneen, kun unia on kertynyt muutama lisää.";
+"sleep_last_24h" = "Viime 24 h";
+"sleep_naps_today" = "Päiväunet tänään";
+"sleep_awake_cta %@" = "%@ heräsi";
+"sleep_slept_added %@" = "Nukkui %@ · lisätty ketjuun";
+"sleep_fix_start" = "Korjaa alkuaika";
+"sleep_log_past" = "Kirjaa aiempi uni";
+"sleep_no_running %@" = "%@ ei nuku juuri nyt. Kirjataanko aiempi uni?";
+"sleep_save_past" = "Tallenna tämä uni";
+"sleep_invalid_range" = "Heräämisajan on oltava alkuajan jälkeen.";
+
+/* Breastfeed session */
+"bf_status_recording" = "Tallentaa";
+"bf_status_paused" = "Tauolla";
+"bf_hint_first" = "Ensimmäinen imetys. Napauta puolta milloin vain vaihtaaksesi; pidän jokaisen jakson erikseen kirjassa.";
+"bf_hint_previous %@ %@ %@ %@" = "%@ söi %@ puolelta klo %@, joten aloitin %@ puolelta.";
+"bf_hint_switched_one" = "Vaihdettu kerran tähän mennessä. Napauta puolta vaihtaaksesi; pidän jokaisen jakson erikseen kirjassa.";
+"bf_hint_switched %lld" = "Vaihdettu %lld kertaa tähän mennessä. Napauta puolta vaihtaaksesi; pidän jokaisen jakson erikseen kirjassa.";
+"bf_feeding_for" = "Imetys kestänyt";
+"bf_paused_at" = "Tauolla kohdassa";
+"bf_pause %@" = "Tauko · %@ irrotti otteen";
+"bf_resume" = "Jatka";
+"bf_this_session" = "Tämä imetys";
+"bf_done %lld" = "Valmis · %lld min";
+"bf_too_short" = "Liian lyhyt tallennettavaksi — hylätty";
+"bf_added %@ %lld" = "Imetys · %@ · %lld min · lisätty";
+"bf_discard" = "Hylkää";
+"bf_discarded" = "Imetys hylätty";
+"bf_no_session %@" = "Vauvalle %@ ei ole käynnissä imetystä. Aloita imetys ketjusta.";
+
+/* === thread (Thread v2) === */
+/* Thread */
+"thread_back" = "Ketju";
+"author_you" = "Sinä";
+"thread_today_divider %@" = "Tänään · %@";
+"thread_yesterday_divider %@" = "Eilen · %@";
+"thread_unread %lld %@" = "%lld uutta poissa ollessasi · %@";
+"thread_bottle_formula %@" = "Pullo · %@ korviketta";
+"thread_bottle_milk %@" = "Pullo · %@ lypsettyä maitoa";
+"thread_breastfed %@ %lld" = "Imetys · %@ · %lld min";
+"thread_solid %@ %@" = "Kiinteä · %@ · %@";
+"thread_solid_no_name %@" = "Kiinteä · %@";
+"thread_diaper %@" = "Vaippa · %@";
+"thread_slept %@ %@" = "Nukkui %@ → %@";
+"side_left_lower" = "vasen";
+"side_right_lower" = "oikea";
+"side_both_lower" = "vasen + oikea";
+"record_kind_sleep" = "Unimerkintä";
+"record_kind_diaper" = "Vaippamerkintä";
+"record_kind_note" = "Muistiinpano";
+"record_kind_feed" = "Ruokintamerkintä";
+"record_missing" = "Tämä merkintä ei ole enää ketjussa";
+"thread_asleep_now" = "nukkuu nyt";
+"thread_next %@" = "seuraava %@";
+"thread_overdue %@" = "%@ myöhässä";
+"thread_feeds %lld" = "%lld ruokintaa";
+"thread_diapers %lld" = "%lld vaippaa";
+"thread_presence_asleep %@" = "Nukkuu · %@";
+"thread_presence_shared %@" = "Yhdessä: %@ · tässä ketjussa";
+"thread_presence_shared_generic" = "Jaettu ketju";
+"thread_now %@" = "Nyt · %@";
+"thread_synced %@" = "Synkronoitu %@";
+"thread_added %@" = "%@ · lisätty";
+"thread_note_placeholder" = "Kirjoita mitä vain…";
+"thread_note_added" = "Muistiinpano lisätty ketjuun";
+"thread_chip_bottle %@" = "Pullo %@";
+"thread_chip_feeding %@" = "Imetys · %@";
+"thread_chip_breast" = "Rinta";
+"thread_chip_woke %@" = "%@ heräsi";
+"thread_chip_sleep" = "Uni";
+"thread_chip_diaper" = "Vaippa";
+"thread_chip_solid" = "Kiinteä";
+"thread_slept_added %@" = "Nukkui %@ · lisätty ketjuun";
+"thread_sleep_started %@" = "Uni alkoi · %@";
+"thread_asleep_since %@" = "Nukkunut klo %@ alkaen";
+"thread_running_sub %@" = "%@ tähän mennessä · avaa napauttamalla";
+"thread_meta_now" = "nyt";
+"thread_feeding_side %@" = "Imetys · %@ puoli";
+"thread_bf_running %@" = "käynnissä · %@ · avaa napauttamalla";
+"thread_bf_paused %@" = "tauolla · %@ · avaa napauttamalla";
+"thread_started_at %@" = "alkoi %@";
+
+/* Leona's suggestion */
+"leona_why" = "Miksi?";
+"leona_muted %@" = "Mykistetty. Ota minut käyttöön: %@ → Anna Leonan puhua.";
+"leona_asleep %@ %@" = "%@ nukahti klo %@. Kirjaan sen tähän herätessä.";
+"leona_snoozed %@" = "Selvä — odotan klo %@ asti.";
+"leona_due %@ %@ %@" = "%@ on yleensä nälkäinen noin klo %@, suunnilleen %@. Kirjaanko sen?";
+"leona_overdue %@ %@ %@" = "%@ on %@ yli tavallisen ruokinta-ajan. Kirjaanko %@?";
+"leona_no_data %@" = "Kirjaa pari ruokintaa, niin alan ennustaa, milloin %@ syö seuraavaksi.";
+"leona_cta_log %@" = "Kirjaa %@";
+"leona_cta_open_session" = "Avaa istunto";
+"leona_cta_log_bottle" = "Kirjaa pullo";
+"leona_snooze_not_yet" = "Ei vielä";
+"leona_snooze_not_now" = "Ei nyt";
+"leona_snooze_fix_start" = "Korjaa alkuaika";
+
+/* Tray */
+"tray_unit_min" = "min";
+"tray_title_bottle %@" = "Pullo · %@";
+"tray_title_breast" = "Imetys · minuutit";
+"tray_title_solid %@" = "Kiinteä · %@";
+"tray_title_diaper" = "Vaippa";
+"tray_side_suggested %@" = "%@ · suositus";
+"tray_expressed_milk" = "Lypsetty maito";
+"tray_send" = "Lähetä";
+"tray_time_now %@" = "Nyt · %@";
+"thread_refreshed" = "Ketju päivitetty";

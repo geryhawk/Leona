@@ -11,7 +11,18 @@ private let logger = Logger(subsystem: "com.leona.app", category: "Sharing")
 @Observable
 final class SharingManager {
     static let shared = SharingManager()
+    static let privateSubscriptionID = "private-baby-changes"
     static let sharedSubscriptionID = "shared-baby-changes"
+
+    private struct SharedZoneBookmark: Codable {
+        let zoneName: String
+        let ownerName: String
+    }
+
+    private enum SharedDatabaseScope: String, Codable {
+        case privateOwner
+        case sharedParticipant
+    }
 
     @ObservationIgnored
     let container = CKContainer(identifier: "iCloud.com.leona.app")
@@ -19,15 +30,19 @@ final class SharingManager {
     var sharingStatus: SharingStatus = .none
     var sharedBabyIDs: Set<UUID> = []
     var activeShare: CKShare?
+    var activeShareBabyID: UUID?
     var participants: [CKShare.Participant] = []
     var invitedEmails: [String: String] = [:]
     var accountStatus: CKAccountStatus = .couldNotDetermine
+    private var participantFirstNames: [String: String] = [:]
     
     private var accountStatusChecked = false
     private var accountCheckTask: Task<Void, Never>?
     private var lastRecoveryScanDate: Date?
     private let recoveryScanCooldown: TimeInterval = 20.0
     private var remoteImportDepth = 0
+    private var sharedZoneBookmarks: [String: SharedZoneBookmark] = [:]
+    private var sharedDatabaseScopes: [String: SharedDatabaseScope] = [:]
 
     enum SharingStatus: Equatable {
         case none
@@ -39,6 +54,9 @@ final class SharingManager {
     private init() {
         loadSharedBabyIDs()
         loadInvitedEmails()
+        loadSharedZoneBookmarks()
+        loadSharedDatabaseScopes()
+        loadParticipantFirstNames()
         // Don't start account check in init - will be done on-demand or in app startup
         // This prevents duplicate checks and race conditions
     }
@@ -132,17 +150,128 @@ final class SharingManager {
             ?? zones.first(where: { $0.zoneID.zoneName.contains(babyID.uuidString) })?.zoneID
     }
 
+    private func cacheSharedZoneID(_ zoneID: CKRecordZone.ID, for babyID: UUID) {
+        sharedZoneBookmarks[babyID.uuidString] = SharedZoneBookmark(
+            zoneName: zoneID.zoneName,
+            ownerName: zoneID.ownerName
+        )
+        saveSharedZoneBookmarks()
+    }
+
+    private func cachedSharedZoneID(for babyID: UUID) -> CKRecordZone.ID? {
+        guard let bookmark = sharedZoneBookmarks[babyID.uuidString] else { return nil }
+        return CKRecordZone.ID(zoneName: bookmark.zoneName, ownerName: bookmark.ownerName)
+    }
+
+    private func clearSharedZoneID(for babyID: UUID) {
+        sharedZoneBookmarks.removeValue(forKey: babyID.uuidString)
+        saveSharedZoneBookmarks()
+    }
+
     private func sharedZoneID(for baby: Baby) async throws -> CKRecordZone.ID? {
+        if let cachedZoneID = cachedSharedZoneID(for: baby.id) {
+            return cachedZoneID
+        }
+
         let zones = try await container.sharedCloudDatabase.allRecordZones()
-        return matchingSharedZoneID(for: baby.id, in: zones)
+        let discoveredZoneID = matchingSharedZoneID(for: baby.id, in: zones)
+        if let discoveredZoneID {
+            cacheSharedZoneID(discoveredZoneID, for: baby.id)
+        }
+        return discoveredZoneID
+    }
+
+    private func setSharedDatabaseScope(_ scope: SharedDatabaseScope, for baby: Baby) {
+        sharedDatabaseScopes[baby.id.uuidString] = scope
+        saveSharedDatabaseScopes()
+
+        if scope == .privateOwner, baby.ownerName != nil {
+            baby.ownerName = nil
+        }
+    }
+
+    private func cachedSharedDatabaseScope(for babyID: UUID) -> SharedDatabaseScope? {
+        sharedDatabaseScopes[babyID.uuidString]
+    }
+
+    private func clearSharedDatabaseScope(for babyID: UUID) {
+        sharedDatabaseScopes.removeValue(forKey: babyID.uuidString)
+        saveSharedDatabaseScopes()
+    }
+
+    private func clearResolvedShareContext(for babyID: UUID) {
+        clearSharedZoneID(for: babyID)
+        clearSharedDatabaseScope(for: babyID)
+    }
+
+    private func ownerZoneContextIfAvailable(for baby: Baby) async throws -> (zoneID: CKRecordZone.ID, database: CKDatabase)? {
+        let privateZoneID = zoneID(for: baby.id)
+        let recordName = baby.ckRecordName ?? baby.id.uuidString
+        let recordID = CKRecord.ID(recordName: recordName, zoneID: privateZoneID)
+
+        do {
+            _ = try await container.privateCloudDatabase.record(for: recordID)
+            return (privateZoneID, container.privateCloudDatabase)
+        } catch let error as CKError where error.code == .unknownItem || error.code == .zoneNotFound {
+            return nil
+        }
     }
 
     private func resolveZoneContext(for baby: Baby) async throws -> (zoneID: CKRecordZone.ID, database: CKDatabase) {
+        if let cachedScope = cachedSharedDatabaseScope(for: baby.id) {
+            switch cachedScope {
+            case .privateOwner:
+                setSharedDatabaseScope(.privateOwner, for: baby)
+                return (zoneID(for: baby.id), container.privateCloudDatabase)
+            case .sharedParticipant:
+                if let sharedZoneID = try await sharedZoneID(for: baby) {
+                    return (sharedZoneID, container.sharedCloudDatabase)
+                }
+                clearSharedDatabaseScope(for: baby.id)
+            }
+        }
+
+        if let privateContext = try await ownerZoneContextIfAvailable(for: baby) {
+            setSharedDatabaseScope(.privateOwner, for: baby)
+            return privateContext
+        }
+
         if let sharedZoneID = try await sharedZoneID(for: baby) {
+            setSharedDatabaseScope(.sharedParticipant, for: baby)
             return (sharedZoneID, container.sharedCloudDatabase)
         }
 
-        return (zoneID(for: baby.id), container.privateCloudDatabase)
+        throw SharingError.sharedZoneUnavailable
+    }
+
+    func isShareOwner(for baby: Baby) -> Bool {
+        if let scope = cachedSharedDatabaseScope(for: baby.id) {
+            return scope == .privateOwner
+        }
+
+        if activeShareBabyID == baby.id,
+           let currentUserRole = activeShare?.currentUserParticipant?.role {
+            return currentUserRole == .owner
+        }
+
+        let ownerName = baby.ownerName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return ownerName.isEmpty
+    }
+
+    private func updateActiveShare(_ share: CKShare?, for baby: Baby) {
+        activeShare = share
+        activeShareBabyID = share == nil ? nil : baby.id
+        participants = share?.participants.filter { $0.role != .owner } ?? []
+        if let share {
+            cacheParticipantFirstNames(from: share)
+        }
+    }
+
+    private func clearActiveShareIfNeeded(for baby: Baby) {
+        guard activeShareBabyID == baby.id else { return }
+        activeShare = nil
+        activeShareBabyID = nil
+        participants = []
     }
 
     // MARK: - Get or Create Share
@@ -164,8 +293,8 @@ final class SharingManager {
             // Try to fetch existing share first
             if let existingShare = try await fetchExistingShare(for: baby) {
                 logger.info("Found existing share for baby: \(baby.displayName)")
-                self.activeShare = existingShare
-                self.participants = existingShare.participants.filter { $0.role != .owner }
+                setSharedDatabaseScope(.privateOwner, for: baby)
+                updateActiveShare(existingShare, for: baby)
                 self.sharingStatus = .active
 
                 if !baby.isShared {
@@ -307,7 +436,7 @@ final class SharingManager {
             childRecords.append(health.toCKRecord(in: zone))
         }
         if !childRecords.isEmpty {
-            try await saveRecords(childRecords, to: database)
+            _ = try await saveRecords(childRecords, to: database)
         }
 
         // 6. Update local state
@@ -317,8 +446,8 @@ final class SharingManager {
 
         sharedBabyIDs.insert(baby.id)
         saveSharedBabyIDs()
-        activeShare = savedShare
-        participants = savedShare.participants.filter { $0.role != .owner }
+        setSharedDatabaseScope(.privateOwner, for: baby)
+        updateActiveShare(savedShare, for: baby)
         sharingStatus = .active
 
         logger.info("Fresh share created for baby: \(baby.displayName), ready for sharing")
@@ -347,10 +476,20 @@ final class SharingManager {
             let zoneID = metadata.share.recordID.zoneID
             saveChangeToken(nil, for: zoneID)
             let records = try await fetchAllRecordsWithRetry(in: zoneID, from: sharedDB)
-            let ownerName = metadata.ownerIdentity.nameComponents?.formatted() ?? "Partner"
+            // An owner identity can exist with no discoverable name; an empty string would leave
+            // baby.ownerName nil and make the owner's legacy entries read as the participant's own.
+            let formattedOwner = metadata.ownerIdentity.nameComponents?.formatted()
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let ownerName = formattedOwner.isEmpty ? "Partner" : formattedOwner
             let (baby, childCount) = try importSharedRecords(records, ownerName: ownerName, in: context)
 
-            activeShare = metadata.share
+            cacheSharedZoneID(zoneID, for: baby.id)
+            setSharedDatabaseScope(.sharedParticipant, for: baby)
+            if let fetchedShare = try? await fetchShareRecordWithRetry(for: baby) {
+                updateActiveShare(fetchedShare, for: baby)
+            } else {
+                updateActiveShare(metadata.share, for: baby)
+            }
             sharingStatus = .active
             logger.info("Shared baby imported/updated: \(baby.displayName) with \(childCount) child records")
         } catch {
@@ -394,7 +533,9 @@ final class SharingManager {
                     }
                     
                     saveChangeToken(nil, for: zone.zoneID)
-                    _ = try importSharedRecords(records, ownerName: "Partner", in: context)
+                    let (baby, _) = try importSharedRecords(records, ownerName: "Partner", in: context)
+                    cacheSharedZoneID(zone.zoneID, for: baby.id)
+                    setSharedDatabaseScope(.sharedParticipant, for: baby)
                     recoveredCount += 1
                     logger.info("Recovered missing shared baby from zone \(zone.zoneID.zoneName)")
                 } catch {
@@ -530,16 +671,78 @@ final class SharingManager {
         return (baby, childRecords.count)
     }
 
+    private func fetchShareRecord(for baby: Baby) async throws -> CKShare? {
+        let resolved = try await resolveZoneContext(for: baby)
+        let recordName = baby.ckRecordName ?? baby.id.uuidString
+        let recordID = CKRecord.ID(recordName: recordName, zoneID: resolved.zoneID)
+        let record = try await resolved.database.record(for: recordID)
+
+        guard let shareRef = record.share else {
+            return nil
+        }
+
+        return try await resolved.database.record(for: shareRef.recordID) as? CKShare
+    }
+
+    private func fetchShareRecordWithRetry(
+        for baby: Baby,
+        maxAttempts: Int = 3
+    ) async throws -> CKShare? {
+        var lastError: Error?
+
+        for attempt in 1...maxAttempts {
+            do {
+                if let share = try await fetchShareRecord(for: baby) {
+                    return share
+                }
+            } catch {
+                lastError = error
+            }
+
+            guard attempt < maxAttempts else { break }
+            try? await Task.sleep(for: .milliseconds(450 * attempt))
+        }
+
+        if let lastError {
+            throw lastError
+        }
+
+        return nil
+    }
+
     /// CloudKit can lag a short time between share acceptance and record visibility.
     /// Retry briefly to avoid false "no baby found" errors on real devices.
     private func fetchAllRecordsWithRetry(in zoneID: CKRecordZone.ID, from database: CKDatabase) async throws -> [CKRecord] {
-        let maxAttempts = 4
+        let maxAttempts = 5
+        var bestRecords: [CKRecord] = []
+        var previousVisibleCount: Int?
+        var stableSnapshotCount = 0
         
         for attempt in 1...maxAttempts {
             do {
                 let records = try await fetchAllRecords(in: zoneID, from: database)
-                if records.contains(where: { $0.recordType == Baby.ckRecordType }) {
-                    return records
+
+                if records.count > bestRecords.count {
+                    bestRecords = records
+                }
+
+                let hasBaby = records.contains(where: { $0.recordType == Baby.ckRecordType })
+                if hasBaby {
+                    if let previousVisibleCount, previousVisibleCount == records.count {
+                        stableSnapshotCount += 1
+                    } else {
+                        stableSnapshotCount = 0
+                    }
+
+                    previousVisibleCount = records.count
+
+                    if stableSnapshotCount >= 1 || attempt == maxAttempts {
+                        return bestRecords
+                    }
+
+                    logger.info("Shared zone snapshot still growing (attempt \(attempt), \(records.count) record(s)); retrying")
+                } else if attempt == maxAttempts, bestRecords.contains(where: { $0.recordType == Baby.ckRecordType }) {
+                    return bestRecords
                 }
                 
                 if attempt == maxAttempts {
@@ -610,51 +813,36 @@ final class SharingManager {
         from database: CKDatabase,
         since previousToken: CKServerChangeToken?
     ) async throws -> ZoneChangesBatch {
-        try await withCheckedThrowingContinuation { continuation in
-            var changedRecords: [CKRecord] = []
-            var deletedRecordIDs: [CKRecord.ID] = []
-            var serverChangeToken = previousToken
+        var changedRecords: [CKRecord] = []
+        var deletedRecordIDs: [CKRecord.ID] = []
+        var serverChangeToken = previousToken
+        var moreComing = true
 
-            let config = CKFetchRecordZoneChangesOperation.ZoneConfiguration()
-            config.previousServerChangeToken = previousToken
-
-            let operation = CKFetchRecordZoneChangesOperation(
-                recordZoneIDs: [zoneID],
-                configurationsByRecordZoneID: [zoneID: config]
+        while moreComing {
+            let result = try await database.recordZoneChanges(
+                inZoneWith: zoneID,
+                since: serverChangeToken
             )
-            operation.qualityOfService = .userInitiated
 
-            operation.recordWasChangedBlock = { _, result in
-                if case .success(let record) = result {
-                    changedRecords.append(record)
-                }
-            }
-
-            operation.recordWithIDWasDeletedBlock = { recordID, _ in
-                deletedRecordIDs.append(recordID)
-            }
-
-            operation.recordZoneFetchResultBlock = { _, result in
-                if case .success(let zoneResult) = result {
-                    serverChangeToken = zoneResult.serverChangeToken
-                }
-            }
-
-            operation.fetchRecordZoneChangesResultBlock = { result in
-                switch result {
-                case .success:
-                    continuation.resume(returning: ZoneChangesBatch(
-                        changedRecords: changedRecords,
-                        deletedRecordIDs: deletedRecordIDs,
-                        serverChangeToken: serverChangeToken
-                    ))
+            for (_, modificationResult) in result.modificationResultsByID {
+                switch modificationResult {
+                case .success(let modification):
+                    changedRecords.append(modification.record)
                 case .failure(let error):
-                    continuation.resume(throwing: error)
+                    throw error
                 }
             }
 
-            database.add(operation)
+            deletedRecordIDs.append(contentsOf: result.deletions.map(\.recordID))
+            serverChangeToken = result.changeToken
+            moreComing = result.moreComing
         }
+
+        return ZoneChangesBatch(
+            changedRecords: changedRecords,
+            deletedRecordIDs: deletedRecordIDs,
+            serverChangeToken: serverChangeToken
+        )
     }
 
     // MARK: - Sync Shared Records
@@ -664,143 +852,177 @@ final class SharingManager {
         guard baby.isShared else { return }
 
         let resolved = try await resolveZoneContext(for: baby)
-        let previousToken = loadChangeToken(for: resolved.zoneID)
-        let batch: ZoneChangesBatch
-
         do {
-            batch = try await fetchZoneChanges(
-                in: resolved.zoneID,
-                from: resolved.database,
-                since: previousToken
-            )
-        } catch let error as CKError where error.code == .changeTokenExpired {
-            logger.warning("Change token expired for zone \(resolved.zoneID.zoneName), refetching full state")
-            saveChangeToken(nil, for: resolved.zoneID)
-            batch = try await fetchZoneChanges(
-                in: resolved.zoneID,
-                from: resolved.database,
-                since: nil
-            )
-        }
+            let records = try await fetchAllRecordsWithRetry(in: resolved.zoneID, from: resolved.database)
 
-        remoteImportDepth += 1
-        defer { remoteImportDepth -= 1 }
+            remoteImportDepth += 1
+            defer { remoteImportDepth -= 1 }
 
-        for record in batch.changedRecords {
-            switch record.recordType {
-            case Baby.ckRecordType:
-                baby.applyCKRecord(record)
-
-            case Activity.ckRecordType:
-                let activityID = UUID(uuidString: record.recordID.recordName)
-                
-                // Skip if this record was deleted locally
-                if let id = activityID, isRecordDeleted(id) {
-                    logger.info("Skipping deleted activity: \(id)")
-                    break
-                }
-                
-                if let existing = (baby.activities ?? []).first(where: { $0.id == activityID }) {
-                    existing.applyCKRecord(record)
-                } else {
-                    // Create without baby to avoid ghost card via inverse relationship
-                    let activity = Activity(type: .note, startTime: Date(), baby: nil)
-                    if let id = activityID { activity.id = id }
-                    activity.applyCKRecord(record)
-                    context.insert(activity)
-                    activity.baby = baby
-                }
-
-            case GrowthRecord.ckRecordType:
-                let recordID = UUID(uuidString: record.recordID.recordName)
-                
-                // Skip if this record was deleted locally
-                if let id = recordID, isRecordDeleted(id) {
-                    logger.info("Skipping deleted growth record: \(id)")
-                    break
-                }
-                
-                if let existing = (baby.growthRecords ?? []).first(where: { $0.id == recordID }) {
-                    existing.applyCKRecord(record)
-                } else {
-                    let growth = GrowthRecord(baby: nil)
-                    if let id = recordID { growth.id = id }
-                    growth.applyCKRecord(record)
-                    context.insert(growth)
-                    growth.baby = baby
-                }
-
-            case HealthRecord.ckRecordType:
-                let recordID = UUID(uuidString: record.recordID.recordName)
-                
-                // Skip if this record was deleted locally
-                if let id = recordID, isRecordDeleted(id) {
-                    logger.info("Skipping deleted health record: \(id)")
-                    break
-                }
-                
-                if let existing = (baby.healthRecords ?? []).first(where: { $0.id == recordID }) {
-                    existing.applyCKRecord(record)
-                } else {
-                    let health = HealthRecord(baby: nil)
-                    if let id = recordID { health.id = id }
-                    health.applyCKRecord(record)
-                    context.insert(health)
-                    health.baby = baby
-                }
-
-            default:
-                break
-            }
-        }
-
-        for deletedRecordID in batch.deletedRecordIDs {
-            if deletedRecordID.recordName == baby.id.uuidString {
-                continue
+            guard let babyRecord = records.first(where: { $0.recordType == Baby.ckRecordType }) else {
+                throw SharingError.noBabyFound
             }
 
-            if let activity = (baby.activities ?? []).first(where: { $0.id.uuidString == deletedRecordID.recordName }) {
+            baby.applyCKRecord(babyRecord)
+
+            var remoteActivityIDs: Set<UUID> = []
+            var remoteGrowthIDs: Set<UUID> = []
+            var remoteHealthIDs: Set<UUID> = []
+            var insertedEntries: [SharedEntryNotificationEvent] = []
+
+            for record in records where record.recordType != Baby.ckRecordType {
+                switch record.recordType {
+                case Activity.ckRecordType:
+                    let activityID = UUID(uuidString: record.recordID.recordName)
+
+                    if let id = activityID {
+                        remoteActivityIDs.insert(id)
+                    }
+
+                    if let id = activityID, isRecordDeleted(id) {
+                        logger.info("Skipping deleted activity: \(id)")
+                        break
+                    }
+
+                    if let existing = (baby.activities ?? []).first(where: { $0.id == activityID }) {
+                        existing.applyCKRecord(record)
+                    } else {
+                        let activity = Activity(type: .note, startTime: Date(), baby: nil)
+                        if let id = activityID { activity.id = id }
+                        activity.applyCKRecord(record)
+                        context.insert(activity)
+                        activity.baby = baby
+                        let authorFirstName = await authorFirstName(for: record, baby: baby)
+                        insertedEntries.append(
+                            SharedEntryNotificationEvent(
+                                kind: .activity(activity.type),
+                                authorFirstName: authorFirstName
+                            )
+                        )
+                    }
+
+                case GrowthRecord.ckRecordType:
+                    let recordID = UUID(uuidString: record.recordID.recordName)
+
+                    if let id = recordID {
+                        remoteGrowthIDs.insert(id)
+                    }
+
+                    if let id = recordID, isRecordDeleted(id) {
+                        logger.info("Skipping deleted growth record: \(id)")
+                        break
+                    }
+
+                    if let existing = (baby.growthRecords ?? []).first(where: { $0.id == recordID }) {
+                        existing.applyCKRecord(record)
+                    } else {
+                        let growth = GrowthRecord(baby: nil)
+                        if let id = recordID { growth.id = id }
+                        growth.applyCKRecord(record)
+                        context.insert(growth)
+                        growth.baby = baby
+                        let authorFirstName = await authorFirstName(for: record, baby: baby)
+                        insertedEntries.append(
+                            SharedEntryNotificationEvent(
+                                kind: .growth,
+                                authorFirstName: authorFirstName
+                            )
+                        )
+                    }
+
+                case HealthRecord.ckRecordType:
+                    let recordID = UUID(uuidString: record.recordID.recordName)
+
+                    if let id = recordID {
+                        remoteHealthIDs.insert(id)
+                    }
+
+                    if let id = recordID, isRecordDeleted(id) {
+                        logger.info("Skipping deleted health record: \(id)")
+                        break
+                    }
+
+                    if let existing = (baby.healthRecords ?? []).first(where: { $0.id == recordID }) {
+                        existing.applyCKRecord(record)
+                    } else {
+                        let health = HealthRecord(baby: nil)
+                        if let id = recordID { health.id = id }
+                        health.applyCKRecord(record)
+                        context.insert(health)
+                        health.baby = baby
+                        let authorFirstName = await authorFirstName(for: record, baby: baby)
+                        insertedEntries.append(
+                            SharedEntryNotificationEvent(
+                                kind: .health,
+                                authorFirstName: authorFirstName
+                            )
+                        )
+                    }
+
+                default:
+                    break
+                }
+            }
+
+            for activity in baby.activities ?? [] {
+                guard (activity.ckRecordName != nil || activity.ckChangeTag != nil),
+                      !remoteActivityIDs.contains(activity.id) else {
+                    continue
+                }
                 context.delete(activity)
-                continue
             }
 
-            if let growth = (baby.growthRecords ?? []).first(where: { $0.id.uuidString == deletedRecordID.recordName }) {
+            for growth in baby.growthRecords ?? [] {
+                guard (growth.ckRecordName != nil || growth.ckChangeTag != nil),
+                      !remoteGrowthIDs.contains(growth.id) else {
+                    continue
+                }
                 context.delete(growth)
-                continue
             }
 
-            if let health = (baby.healthRecords ?? []).first(where: { $0.id.uuidString == deletedRecordID.recordName }) {
+            for health in baby.healthRecords ?? [] {
+                guard (health.ckRecordName != nil || health.ckChangeTag != nil),
+                      !remoteHealthIDs.contains(health.id) else {
+                    continue
+                }
                 context.delete(health)
             }
-        }
 
-        try? context.save()
-        saveChangeToken(batch.serverChangeToken, for: resolved.zoneID)
-        logger.info(
-            "Synced \(batch.changedRecords.count) changed record(s) and \(batch.deletedRecordIDs.count) deletion(s) for baby \(baby.displayName)"
-        )
+            try? context.save()
+
+            if !insertedEntries.isEmpty {
+                await NotificationManager.shared.scheduleSharedEntryNotification(
+                    babyName: baby.displayName,
+                    entries: insertedEntries
+                )
+            }
+
+            logger.info("Synced full shared snapshot with \(records.count) record(s) for baby \(baby.displayName)")
+        } catch let error as CKError where error.code == .zoneNotFound {
+            clearResolvedShareContext(for: baby.id)
+            throw SharingError.sharedZoneUnavailable
+        }
     }
 
     // MARK: - Push Local Changes
 
     /// Pushes local SwiftData changes to the shared CloudKit zone.
-    func pushLocalChanges(for baby: Baby) async throws {
+    func pushLocalChanges(for baby: Baby, in context: ModelContext) async throws {
         guard baby.isShared else { return }
 
         let resolved = try await resolveZoneContext(for: baby)
         var records: [CKRecord] = []
 
-        records.append(baby.toCKRecord(in: resolved.zoneID))
+        records.append(try await prepareRecordForSave(baby, in: resolved.zoneID, from: resolved.database))
 
         // Only push non-deleted records
         for activity in baby.activities ?? [] where !activity.isDeleted {
-            records.append(activity.toCKRecord(in: resolved.zoneID))
+            records.append(try await prepareRecordForSave(activity, in: resolved.zoneID, from: resolved.database))
         }
         for growth in baby.growthRecords ?? [] where !growth.isDeleted {
-            records.append(growth.toCKRecord(in: resolved.zoneID))
+            records.append(try await prepareRecordForSave(growth, in: resolved.zoneID, from: resolved.database))
         }
         for health in baby.healthRecords ?? [] where !health.isDeleted {
-            records.append(health.toCKRecord(in: resolved.zoneID))
+            records.append(try await prepareRecordForSave(health, in: resolved.zoneID, from: resolved.database))
         }
 
         guard !records.isEmpty else {
@@ -811,17 +1033,23 @@ final class SharingManager {
         // Mark that we're pushing (to avoid triggering sync on our own notification)
         lastPushDate = Date()
         
-        try await saveRecords(records, to: resolved.database)
+        do {
+            let savedRecords = try await saveRecords(records, to: resolved.database)
+            applySavedRecords(savedRecords, to: baby, in: context)
+        } catch let error as CKError where error.code == .zoneNotFound {
+            clearResolvedShareContext(for: baby.id)
+            throw SharingError.sharedZoneUnavailable
+        }
         logger.info("Pushed \(records.count) records for baby \(baby.displayName)")
     }
     
     private var lastPushDate: Date?
     
-    /// Returns true if a recent push just happened (within last 10 seconds)
-    /// Increased from 3 to 10 seconds to better prevent sync loops
+    /// Returns true if a local push just happened very recently.
+    /// This stays short so we don't mask another parent's updates for too long.
     var didRecentlyPush: Bool {
         guard let lastPush = lastPushDate else { return false }
-        return Date().timeIntervalSince(lastPush) < 10.0
+        return Date().timeIntervalSince(lastPush) < 4.0
     }
 
     /// Deletes a record from CloudKit when deleted locally.
@@ -841,6 +1069,9 @@ final class SharingManager {
             if !deletedIDs.isEmpty {
                 logger.info("Successfully deleted \(deletedIDs.count) record(s) from CloudKit")
             }
+        } catch let error as CKError where error.code == .zoneNotFound {
+            clearResolvedShareContext(for: baby.id)
+            throw SharingError.sharedZoneUnavailable
         } catch let error as CKError where error.code == .unknownItem {
             // Record doesn't exist on CloudKit - that's fine
             logger.info("Record already deleted from CloudKit: \(recordID.uuidString)")
@@ -884,20 +1115,28 @@ final class SharingManager {
 
     /// Removes a participant from the active CKShare.
     func removeParticipant(_ participant: CKShare.Participant, for baby: Baby) async throws {
-        guard let share = activeShare else {
+        let share: CKShare
+        if activeShareBabyID == baby.id, let currentActiveShare = activeShare {
+            share = currentActiveShare
+        } else if let fetchedShare = try await fetchShareRecordWithRetry(for: baby) {
+            share = fetchedShare
+        } else {
             throw SharingError.shareCreationFailed
         }
 
         share.removeParticipant(participant)
 
-        let database = container.privateCloudDatabase
-        let (savedResults, _) = try await database.modifyRecords(saving: [share], deleting: [], savePolicy: .changedKeys)
+        let resolved = try await resolveZoneContext(for: baby)
+        let (savedResults, _) = try await resolved.database.modifyRecords(
+            saving: [share],
+            deleting: [],
+            savePolicy: .changedKeys
+        )
 
         // Update with the returned share
         for (_, result) in savedResults {
             if case .success(let record) = result, let updatedShare = record as? CKShare {
-                self.activeShare = updatedShare
-                self.participants = updatedShare.participants.filter { $0.role != .owner }
+                updateActiveShare(updatedShare, for: baby)
             }
         }
 
@@ -926,9 +1165,9 @@ final class SharingManager {
 
         sharedBabyIDs.remove(baby.id)
         saveSharedBabyIDs()
+        clearResolvedShareContext(for: baby.id)
         saveChangeToken(nil, for: zone)
-        activeShare = nil
-        participants = []
+        clearActiveShareIfNeeded(for: baby)
         sharingStatus = .none
 
         logger.info("Stopped sharing baby: \(baby.displayName)")
@@ -937,19 +1176,17 @@ final class SharingManager {
     // MARK: - Fetch Share Info
 
     func fetchShareInfo(for baby: Baby) async {
-        guard baby.isShared, let recordName = baby.ckRecordName else { return }
+        guard baby.isShared else {
+            clearActiveShareIfNeeded(for: baby)
+            return
+        }
 
         do {
-            let resolved = try await resolveZoneContext(for: baby)
-            let recordID = CKRecord.ID(recordName: recordName, zoneID: resolved.zoneID)
-            let record = try await resolved.database.record(for: recordID)
-            if let shareRef = record.share {
-                let share = try await resolved.database.record(for: shareRef.recordID) as! CKShare
-                self.activeShare = share
-                self.participants = share.participants.filter { $0.role != .owner }
+            if let share = try await fetchShareRecordWithRetry(for: baby) {
+                updateActiveShare(share, for: baby)
                 
                 // Try to preserve any email mappings we can find
-                for participant in self.participants {
+                for participant in participants {
                     // Check if we already have this email stored
                     if let recordID = participant.userIdentity.userRecordID,
                        invitedEmails[recordID.recordName] != nil {
@@ -963,8 +1200,15 @@ final class SharingManager {
                     }
                 }
                 saveInvitedEmails()
+            } else {
+                clearActiveShareIfNeeded(for: baby)
             }
+        } catch let error as CKError where error.code == .zoneNotFound {
+            clearResolvedShareContext(for: baby.id)
+            clearActiveShareIfNeeded(for: baby)
+            logger.error("Failed to fetch share info: \(error.localizedDescription)")
         } catch {
+            clearActiveShareIfNeeded(for: baby)
             logger.error("Failed to fetch share info: \(error.localizedDescription)")
         }
     }
@@ -975,13 +1219,23 @@ final class SharingManager {
         await ensureAccountStatusChecked()
         guard accountStatus == .available else { return }
 
-        let subscription = CKDatabaseSubscription(subscriptionID: Self.sharedSubscriptionID)
+        let sharedSubscription = CKDatabaseSubscription(subscriptionID: Self.sharedSubscriptionID)
+        let privateSubscription = CKDatabaseSubscription(subscriptionID: Self.privateSubscriptionID)
         let notificationInfo = CKSubscription.NotificationInfo()
         notificationInfo.shouldSendContentAvailable = true
-        subscription.notificationInfo = notificationInfo
+        sharedSubscription.notificationInfo = notificationInfo
+        privateSubscription.notificationInfo = notificationInfo
 
-        try await container.sharedCloudDatabase.save(subscription)
-        logger.info("Shared database subscription set up")
+        try await ensureSubscription(
+            privateSubscription,
+            in: container.privateCloudDatabase,
+            label: "Private database"
+        )
+        try await ensureSubscription(
+            sharedSubscription,
+            in: container.sharedCloudDatabase,
+            label: "Shared database"
+        )
     }
 
     // MARK: - Add Participant by Email
@@ -1080,8 +1334,11 @@ final class SharingManager {
         }
 
         // 6. Update local state
-        self.activeShare = savedShare
-        self.participants = savedShare.participants.filter { $0.role != .owner }
+        if let refreshedShare = try? await fetchShareRecordWithRetry(for: baby) {
+            updateActiveShare(refreshedShare, for: baby)
+        } else {
+            updateActiveShare(savedShare, for: baby)
+        }
         self.sharingStatus = .active
 
         // 7. Store email mapping again with the FINAL participant info from saved share
@@ -1116,55 +1373,191 @@ final class SharingManager {
 
     // MARK: - Helpers
 
-    private func saveRecords(_ records: [CKRecord], to database: CKDatabase) async throws {
-        // Save in batches of 400 (CloudKit limit)
-        let batchSize = 400
-        for start in stride(from: 0, to: records.count, by: batchSize) {
-            let end = min(start + batchSize, records.count)
-            let batch = Array(records[start..<end])
-            let (_, _) = try await database.modifyRecords(saving: batch, deleting: [], savePolicy: .changedKeys)
+    private func prepareRecordForSave<T: CKRecordConvertible>(
+        _ item: T,
+        in zoneID: CKRecordZone.ID,
+        from database: CKDatabase
+    ) async throws -> CKRecord {
+        let recordID = CKRecord.ID(recordName: item.id.uuidString, zoneID: zoneID)
+
+        do {
+            let existingRecord = try await database.record(for: recordID)
+            item.updateCKRecord(existingRecord, in: zoneID)
+            return existingRecord
+        } catch let error as CKError where error.code == .unknownItem || error.code == .zoneNotFound {
+            return item.toCKRecord(in: zoneID)
         }
     }
 
-    /// Fetches ALL records in a zone using CKFetchRecordZoneChangesOperation.
-    /// This does NOT require queryable indexes or pre-existing record types.
-    private func fetchAllRecords(in zoneID: CKRecordZone.ID, from database: CKDatabase) async throws -> [CKRecord] {
-        try await withCheckedThrowingContinuation { continuation in
-            var allRecords: [CKRecord] = []
+    private func applySavedRecords(_ savedRecords: [CKRecord], to baby: Baby, in context: ModelContext) {
+        remoteImportDepth += 1
+        defer { remoteImportDepth -= 1 }
 
-            let config = CKFetchRecordZoneChangesOperation.ZoneConfiguration()
-            // Always start fresh - don't use server change tokens
-            // This prevents "Change Token Expired" errors
-            config.previousServerChangeToken = nil
+        for record in savedRecords {
+            switch record.recordType {
+            case Baby.ckRecordType:
+                baby.applyCKRecord(record)
 
-            let operation = CKFetchRecordZoneChangesOperation(
-                recordZoneIDs: [zoneID],
-                configurationsByRecordZoneID: [zoneID: config]
-            )
-            operation.qualityOfService = .userInitiated
-
-            operation.recordWasChangedBlock = { _, result in
-                if case .success(let record) = result {
-                    allRecords.append(record)
+            case Activity.ckRecordType:
+                let recordID = UUID(uuidString: record.recordID.recordName)
+                if let existing = (baby.activities ?? []).first(where: { $0.id == recordID }) {
+                    existing.applyCKRecord(record)
                 }
-            }
 
-            operation.fetchRecordZoneChangesResultBlock = { result in
-                switch result {
-                case .success:
-                    continuation.resume(returning: allRecords)
-                case .failure(let error):
-                    // Handle token expiration gracefully
-                    if let ckError = error as? CKError, ckError.code == .changeTokenExpired {
-                        logger.warning("Change token expired, retrying with nil token")
-                        // The next fetch will use nil token automatically
-                    }
-                    continuation.resume(throwing: error)
+            case GrowthRecord.ckRecordType:
+                let recordID = UUID(uuidString: record.recordID.recordName)
+                if let existing = (baby.growthRecords ?? []).first(where: { $0.id == recordID }) {
+                    existing.applyCKRecord(record)
                 }
-            }
 
-            database.add(operation)
+            case HealthRecord.ckRecordType:
+                let recordID = UUID(uuidString: record.recordID.recordName)
+                if let existing = (baby.healthRecords ?? []).first(where: { $0.id == recordID }) {
+                    existing.applyCKRecord(record)
+                }
+
+            default:
+                break
+            }
         }
+
+        try? context.save()
+    }
+
+    private func saveRecords(_ records: [CKRecord], to database: CKDatabase) async throws -> [CKRecord] {
+        // Save in batches of 400 (CloudKit limit)
+        let batchSize = 400
+        var savedRecords: [CKRecord] = []
+        for start in stride(from: 0, to: records.count, by: batchSize) {
+            let end = min(start + batchSize, records.count)
+            let batch = Array(records[start..<end])
+            let (saveResults, _) = try await database.modifyRecords(saving: batch, deleting: [], savePolicy: .changedKeys)
+            for (_, result) in saveResults {
+                switch result {
+                case .success(let record):
+                    savedRecords.append(record)
+                case .failure(let error):
+                    throw error
+                }
+            }
+        }
+        return savedRecords
+    }
+
+    private func authorFirstName(for record: CKRecord, baby: Baby) async -> String? {
+        let userRecordID = record.creatorUserRecordID ?? record.lastModifiedUserRecordID
+        guard let userRecordID else { return nil }
+
+        if let cachedName = cachedParticipantFirstName(for: userRecordID) {
+            return cachedName
+        }
+
+        if activeShareBabyID == baby.id, let activeShare {
+            cacheParticipantFirstNames(from: activeShare)
+            if let cachedName = cachedParticipantFirstName(for: userRecordID) {
+                return cachedName
+            }
+        }
+
+        if let fetchedShare = try? await fetchShareRecordWithRetry(for: baby) {
+            updateActiveShare(fetchedShare, for: baby)
+            return cachedParticipantFirstName(for: userRecordID)
+        }
+
+        return nil
+    }
+
+    private func cacheParticipantFirstNames(from share: CKShare) {
+        var hasChanges = false
+
+        for participant in share.participants {
+            guard let userRecordID = participant.userIdentity.userRecordID,
+                  let firstName = participantFirstName(from: participant.userIdentity.nameComponents) else {
+                continue
+            }
+
+            if participantFirstNames[userRecordID.recordName] != firstName {
+                participantFirstNames[userRecordID.recordName] = firstName
+                hasChanges = true
+            }
+        }
+
+        if hasChanges {
+            saveParticipantFirstNames()
+        }
+    }
+
+    private func participantFirstName(from components: PersonNameComponents?) -> String? {
+        if let givenName = components?.givenName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !givenName.isEmpty {
+            return givenName
+        }
+
+        guard let formattedName = components?.formatted().trimmingCharacters(in: .whitespacesAndNewlines),
+              !formattedName.isEmpty else {
+            return nil
+        }
+
+        return formattedName
+            .split(whereSeparator: \.isWhitespace)
+            .first
+            .map(String.init)
+    }
+
+    private func cachedParticipantFirstName(for userRecordID: CKRecord.ID) -> String? {
+        let cachedName = participantFirstNames[userRecordID.recordName]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return cachedName?.isEmpty == false ? cachedName : nil
+    }
+
+    private func ensureSubscription(
+        _ subscription: CKDatabaseSubscription,
+        in database: CKDatabase,
+        label: String
+    ) async throws {
+        let subscriptionID = subscription.subscriptionID
+
+        do {
+            _ = try await database.subscription(for: subscriptionID)
+            logger.info("\(label) subscription already set up")
+            return
+        } catch let error as CKError where error.code == .unknownItem {
+            // Missing subscription: create it below.
+        }
+
+        let (saveResults, _) = try await database.modifySubscriptions(
+            saving: [subscription],
+            deleting: []
+        )
+
+        switch saveResults[subscriptionID] {
+        case .success:
+            logger.info("\(label) subscription set up")
+        case .failure(let error):
+            if isDuplicateSubscriptionError(error) {
+                logger.info("\(label) subscription already set up")
+                return
+            }
+            throw error
+        case .none:
+            throw SharingError.syncFailed
+        }
+    }
+
+    private func isDuplicateSubscriptionError(_ error: Error) -> Bool {
+        guard let ckError = error as? CKError,
+              ckError.code == .serverRejectedRequest else {
+            return false
+        }
+
+        let description = ckError.localizedDescription.lowercased()
+        return description.contains("already")
+            || description.contains("duplicate")
+            || description.contains("exists")
+    }
+
+    /// Fetches ALL records in a zone without requiring queryable indexes or pre-existing record types.
+    private func fetchAllRecords(in zoneID: CKRecordZone.ID, from database: CKDatabase) async throws -> [CKRecord] {
+        try await fetchZoneChanges(in: zoneID, from: database, since: nil).changedRecords
     }
 
     // MARK: - Persistence
@@ -1194,6 +1587,51 @@ final class SharingManager {
             UserDefaults.standard.set(data, forKey: "invitedEmails")
         }
     }
+
+    private func loadSharedZoneBookmarks() {
+        guard let data = UserDefaults.standard.data(forKey: "sharedZoneBookmarks"),
+              let bookmarks = try? JSONDecoder().decode([String: SharedZoneBookmark].self, from: data) else {
+            return
+        }
+
+        sharedZoneBookmarks = bookmarks
+    }
+
+    private func saveSharedZoneBookmarks() {
+        if let data = try? JSONEncoder().encode(sharedZoneBookmarks) {
+            UserDefaults.standard.set(data, forKey: "sharedZoneBookmarks")
+        }
+    }
+
+    private func loadSharedDatabaseScopes() {
+        guard let data = UserDefaults.standard.data(forKey: "sharedDatabaseScopes"),
+              let scopes = try? JSONDecoder().decode([String: SharedDatabaseScope].self, from: data) else {
+            return
+        }
+
+        sharedDatabaseScopes = scopes
+    }
+
+    private func saveSharedDatabaseScopes() {
+        if let data = try? JSONEncoder().encode(sharedDatabaseScopes) {
+            UserDefaults.standard.set(data, forKey: "sharedDatabaseScopes")
+        }
+    }
+
+    private func loadParticipantFirstNames() {
+        guard let data = UserDefaults.standard.data(forKey: "participantFirstNames"),
+              let names = try? JSONDecoder().decode([String: String].self, from: data) else {
+            return
+        }
+
+        participantFirstNames = names
+    }
+
+    private func saveParticipantFirstNames() {
+        if let data = try? JSONEncoder().encode(participantFirstNames) {
+            UserDefaults.standard.set(data, forKey: "participantFirstNames")
+        }
+    }
 }
 
 // MARK: - Errors
@@ -1206,6 +1644,7 @@ enum SharingError: LocalizedError {
     case participantNotFound
     case invalidEmail
     case accountUnavailable
+    case sharedZoneUnavailable
 
     var errorDescription: String? {
         switch self {
@@ -1216,6 +1655,7 @@ enum SharingError: LocalizedError {
         case .participantNotFound: return String(localized: "share_error_participant_not_found")
         case .invalidEmail: return String(localized: "share_error_invalid_email")
         case .accountUnavailable: return "iCloud account is not available. Please sign in to iCloud in Settings."
+        case .sharedZoneUnavailable: return "The shared profile is not ready yet. Please try again in a moment."
         }
     }
 }

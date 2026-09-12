@@ -1,321 +1,497 @@
 import Foundation
 import SwiftData
+import SwiftUI
+import UIKit
 
-/// Generates rich demo data for App Store screenshots.
-/// Activated by launching with `-demo` argument.
+/// Generates deterministic mock data for App Store screenshots.
+/// Activated by launching with `-demo`.
 struct DemoDataGenerator {
+
+    enum DemoScreen: String {
+        case onboarding
+        case dashboard
+        case sleep
+        case forecast
+        case stats
+        case growth
+        case health
+        case sharing
+        case settings
+    }
 
     static var isDemoMode: Bool {
         CommandLine.arguments.contains("-demo")
     }
 
-    /// Returns the tab name to select, if `-tab <name>` was passed.
     static var requestedTab: String? {
-        guard let idx = CommandLine.arguments.firstIndex(of: "-tab"),
-              idx + 1 < CommandLine.arguments.count else { return nil }
-        return CommandLine.arguments[idx + 1]
+        argumentValue(after: "-tab")
     }
 
-    /// When `-onboarding` is passed, show the onboarding screen instead of main app
+    static var requestedScreen: DemoScreen? {
+        guard let value = argumentValue(after: "-screen")?.lowercased() else { return nil }
+        return DemoScreen(rawValue: value)
+    }
+
+    static var requestedVariant: String? {
+        argumentValue(after: "-variant")?.lowercased()
+    }
+
+    static var requestedPage: Int {
+        Int(argumentValue(after: "-page") ?? "") ?? 0
+    }
+
     static var showOnboarding: Bool {
-        CommandLine.arguments.contains("-onboarding")
+        CommandLine.arguments.contains("-onboarding") || requestedScreen == .onboarding
     }
 
     @MainActor
     static func populate(context: ModelContext) {
-        // Delete all existing data first
-        try? context.delete(model: Activity.self)
-        try? context.delete(model: GrowthRecord.self)
-        try? context.delete(model: HealthRecord.self)
-        try? context.delete(model: Baby.self)
-        try? context.save()
+        resetAllData(in: context)
+        configureDemoSettings()
 
-        // If onboarding mode, just reset and show onboarding
         if showOnboarding {
             AppSettings.shared.hasCompletedOnboarding = false
             AppSettings.shared.activeBabyID = nil
             return
         }
 
-        let cal = Calendar.current
+        let calendar = Calendar.current
         let now = Date()
 
-        // Create baby: Leo, 8 months old, boy — born July 2025
         let baby = Baby(
-            firstName: "Leo",
+            firstName: "Alma",
             lastName: "",
-            dateOfBirth: cal.date(byAdding: .month, value: -8, to: now)!,
-            gender: .boy
+            dateOfBirth: calendar.date(byAdding: .day, value: -6, to: calendar.date(byAdding: .month, value: -10, to: now)!)!,
+            gender: .girl,
+            bloodType: "O+"
         )
+        baby.profileImageData = makeProfileImageData(initial: "A")
         context.insert(baby)
 
-        // Set as active baby
         AppSettings.shared.activeBabyID = baby.id.uuidString
         AppSettings.shared.hasCompletedOnboarding = true
 
-        // ── Today's activities ──
+        insertTodayActivities(for: baby, in: context)
+        insertHistoricalActivities(for: baby, in: context)
+        insertGrowthRecords(for: baby, in: context)
+        insertHealthRecords(for: baby, in: context)
 
-        // Breastfeeding with laps — this morning
-        let bf1 = Activity(type: .breastfeeding, startTime: todayAt(7, 15), endTime: todayAt(7, 35), baby: baby)
-        bf1.breastSide = .left
-        bf1.sessionSlot = .morning
-        bf1.breastfeedingLaps = [
-            BreastfeedingLap(side: .left, startTime: todayAt(7, 15), endTime: todayAt(7, 24)),
-            BreastfeedingLap(side: .right, startTime: todayAt(7, 26), endTime: todayAt(7, 35))
-        ]
-        context.insert(bf1)
+        if requestedScreen == .sleep {
+            insertOngoingSleep(for: baby, in: context)
+        }
 
-        // Formula - 150ml
-        let f1 = Activity(type: .formula, startTime: todayAt(10, 0), baby: baby)
-        f1.volumeML = 150
-        f1.sessionSlot = .morning
-        context.insert(f1)
+        try? context.save()
+    }
 
-        // Solid food - sweet potato + chicken
-        let sf1 = Activity(type: .solidFood, startTime: todayAt(12, 0), baby: baby)
-        sf1.foodName = "Patate douce & poulet"
-        sf1.foodQuantity = 80
-        sf1.foodUnit = .grams
-        context.insert(sf1)
+    private static func argumentValue(after flag: String) -> String? {
+        guard let idx = CommandLine.arguments.firstIndex(of: flag),
+              idx + 1 < CommandLine.arguments.count else { return nil }
+        return CommandLine.arguments[idx + 1]
+    }
 
-        // Nap
-        let nap1 = Activity(type: .sleep, startTime: todayAt(9, 30), endTime: todayAt(11, 15), baby: baby)
-        nap1.sessionSlot = .day
-        context.insert(nap1)
+    @MainActor
+    private static func resetAllData(in context: ModelContext) {
+        try? context.delete(model: Activity.self)
+        try? context.delete(model: GrowthRecord.self)
+        try? context.delete(model: HealthRecord.self)
+        try? context.delete(model: Baby.self)
+        try? context.save()
+    }
 
-        // Diapers
-        let d1 = Activity(type: .diaper, startTime: todayAt(7, 0), baby: baby)
-        d1.diaperType = .both
-        context.insert(d1)
+    @MainActor
+    private static func configureDemoSettings() {
+        let settings = AppSettings.shared
+        settings.showSleepTracking = true
+        settings.showFeedingTracking = true
+        settings.showDiaperTracking = true
+        settings.showBreastfeeding = true
+        settings.showBreastfeedingNotifications = true
+        settings.showOngoingStatus = true
+        settings.showProfile = true
+        settings.showGrowth = true
+        settings.showHealth = true
+        settings.showStats = true
+        settings.showDataExport = true
+        settings.enableFeedingReminders = true
+        settings.feedingReminderInterval = 3 * 60 * 60
+        settings.useCelsius = true
+        settings.useMetric = true
+        settings.colorScheme = .light
+        settings.accentColor = .corail
+        settings.iCloudSyncEnabled = requestedScreen == .sharing || requestedScreen == .settings
+    }
 
-        let d2 = Activity(type: .diaper, startTime: todayAt(11, 20), baby: baby)
-        d2.diaperType = .pee
-        context.insert(d2)
-
-        // Mom's Milk - night feed
-        let mm1 = Activity(type: .momsMilk, startTime: todayAt(3, 30), baby: baby)
-        mm1.volumeML = 100
-        mm1.sessionSlot = .night
-        context.insert(mm1)
-
-        // Night sleep
-        let nightSleep = Activity(type: .sleep, startTime: yesterdayAt(20, 45), endTime: todayAt(3, 20), baby: baby)
+    @MainActor
+    private static func insertTodayActivities(for baby: Baby, in context: ModelContext) {
+        let nightSleep = Activity(
+            type: .sleep,
+            startTime: yesterdayAt(20, 52),
+            endTime: todayAt(6, 24),
+            baby: baby
+        )
         nightSleep.sessionSlot = .night
         context.insert(nightSleep)
 
-        // Note
-        let n1 = Activity(type: .note, startTime: todayAt(8, 0), baby: baby)
-        n1.noteText = "A fait coucou avec la main pour la première fois !"
-        context.insert(n1)
+        let diaper1 = Activity(type: .diaper, startTime: todayAt(6, 28), baby: baby)
+        diaper1.diaperType = .both
+        context.insert(diaper1)
 
-        // ── Yesterday's activities ──
-        let yesterdayFeedings: [(Int, Int, ActivityType)] = [
-            (6, 45, .breastfeeding), (9, 30, .formula), (12, 0, .solidFood),
-            (15, 0, .breastfeeding), (18, 0, .solidFood), (20, 15, .formula)
+        let breastfeeding = Activity(
+            type: .breastfeeding,
+            startTime: todayAt(6, 42),
+            endTime: todayAt(7, 2),
+            baby: baby
+        )
+        breastfeeding.breastSide = .both
+        breastfeeding.sessionSlot = .morning
+        breastfeeding.breastfeedingLaps = [
+            BreastfeedingLap(side: .left, startTime: todayAt(6, 42), endTime: todayAt(6, 51)),
+            BreastfeedingLap(side: .right, startTime: todayAt(6, 53), endTime: todayAt(7, 2))
         ]
-        for (hour, min, type) in yesterdayFeedings {
-            let act = Activity(type: type, startTime: yesterdayAt(hour, min), baby: baby)
-            if type == .formula { act.volumeML = Double(Int.random(in: 120...180)) }
-            else if type == .breastfeeding { act.breastSide = Bool.random() ? .left : .right; act.endTime = yesterdayAt(hour, min + Int.random(in: 12...20)) }
-            else if type == .solidFood { act.foodName = ["Compote pomme", "Purée courgette", "Banane écrasée"].randomElement()!; act.foodQuantity = Double(Int.random(in: 40...90)); act.foodUnit = .grams }
-            context.insert(act)
-        }
+        context.insert(breastfeeding)
 
-        for hour in [7, 10, 13, 16, 19] {
-            let d = Activity(type: .diaper, startTime: yesterdayAt(hour, Int.random(in: 0...30)), baby: baby)
-            d.diaperType = [DiaperType.pee, .pee, .poop, .both].randomElement()!
-            context.insert(d)
-        }
+        let breakfast = Activity(type: .solidFood, startTime: todayAt(7, 38), baby: baby)
+        breakfast.foodName = "Porridge poire & cannelle"
+        breakfast.foodQuantity = 115
+        breakfast.foodUnit = .grams
+        context.insert(breakfast)
 
-        let yNap = Activity(type: .sleep, startTime: yesterdayAt(13, 0), endTime: yesterdayAt(15, 10), baby: baby)
-        yNap.sessionSlot = .day
-        context.insert(yNap)
+        let diaper2 = Activity(type: .diaper, startTime: todayAt(8, 5), baby: baby)
+        diaper2.diaperType = .pee
+        context.insert(diaper2)
 
-        // ── Past 2 weeks of activities ──
-        for dayOffset in 2...14 {
-            let dayDate = cal.date(byAdding: .day, value: -dayOffset, to: now)!
+        let formula = Activity(type: .formula, startTime: todayAt(9, 44), baby: baby)
+        formula.volumeML = 180
+        formula.sessionSlot = .morning
+        context.insert(formula)
 
-            // 5-7 feedings per day
-            for _ in 0..<Int.random(in: 5...7) {
-                let hour = Int.random(in: 5...21)
-                let start = dateAt(dayDate, hour, Int.random(in: 0...59))
-                let types: [ActivityType] = [.breastfeeding, .formula, .momsMilk, .solidFood]
-                let act = Activity(type: types.randomElement()!, startTime: start, baby: baby)
-                if act.type == .formula || act.type == .momsMilk {
-                    act.volumeML = Double(Int.random(in: 80...180))
-                } else if act.type == .breastfeeding {
-                    act.breastSide = Bool.random() ? .left : .right
-                    act.endTime = dateAt(dayDate, hour, Int.random(in: 10...55))
-                } else {
-                    act.foodName = ["Banane", "Avocat", "Patate douce", "Céréales riz", "Compote pomme", "Purée carotte", "Yaourt nature"].randomElement()!
-                    act.foodQuantity = Double(Int.random(in: 30...100))
-                    act.foodUnit = [FoodUnit.grams, .tablespoons].randomElement()!
-                }
-                context.insert(act)
-            }
+        let morningNap = Activity(
+            type: .sleep,
+            startTime: todayAt(10, 8),
+            endTime: todayAt(11, 46),
+            baby: baby
+        )
+        morningNap.sessionSlot = .day
+        context.insert(morningNap)
 
-            // Night sleep + 1-2 naps
-            let nightSl = Activity(type: .sleep, startTime: dateAt(dayDate, Int.random(in: 19...21), 0), endTime: dateAt(cal.date(byAdding: .day, value: 1, to: dayDate)!, Int.random(in: 4...6), Int.random(in: 0...59)), baby: baby)
-            nightSl.sessionSlot = .night
-            context.insert(nightSl)
+        let note = Activity(type: .note, startTime: todayAt(12, 12), baby: baby)
+        note.noteText = "A applaudi toute seule pendant la comptine."
+        context.insert(note)
 
-            let morningNap = Activity(type: .sleep, startTime: dateAt(dayDate, Int.random(in: 9...10), 0), endTime: dateAt(dayDate, Int.random(in: 10...11), Int.random(in: 15...45)), baby: baby)
+        let pumpedMilk = Activity(type: .momsMilk, startTime: todayAt(13, 18), baby: baby)
+        pumpedMilk.volumeML = 120
+        pumpedMilk.sessionSlot = .day
+        context.insert(pumpedMilk)
+
+        let lunch = Activity(type: .solidFood, startTime: todayAt(14, 4), baby: baby)
+        lunch.foodName = "Courgette, saumon & riz"
+        lunch.foodQuantity = 140
+        lunch.foodUnit = .grams
+        context.insert(lunch)
+
+        let diaper3 = Activity(type: .diaper, startTime: todayAt(14, 28), baby: baby)
+        diaper3.diaperType = .both
+        context.insert(diaper3)
+
+        let afternoonNap = Activity(
+            type: .sleep,
+            startTime: todayAt(15, 8),
+            endTime: todayAt(16, 2),
+            baby: baby
+        )
+        afternoonNap.sessionSlot = .day
+        context.insert(afternoonNap)
+    }
+
+    @MainActor
+    private static func insertHistoricalActivities(for baby: Baby, in context: ModelContext) {
+        let formulaVolumes = [175.0, 185.0, 170.0, 180.0, 165.0, 190.0, 175.0, 180.0, 170.0, 185.0, 175.0, 180.0]
+        let expressedMilkVolumes = [110.0, 90.0, 120.0, 95.0, 105.0, 115.0]
+        let breakfasts = [
+            "Compote pomme-poire",
+            "Banane & avoine",
+            "Yaourt nature & framboise",
+            "Porridge mangue",
+            "Poire & biscuit bebe",
+            "Semoule vanille"
+        ]
+        let lunches = [
+            "Carotte & patate douce",
+            "Brocoli & poulet",
+            "Courge & quinoa",
+            "Petits pois & dinde",
+            "Patate douce & cabillaud",
+            "Riz, carotte & lentilles"
+        ]
+        let notes = [
+            "A fait coucou a la nounou.",
+            "A rampe jusque sous la table basse.",
+            "Sourire geant apres le bain.",
+            "S'est endormie seule dans le lit.",
+            "A tape dans ses mains au parc."
+        ]
+
+        for dayOffset in 1...18 {
+            let dayDate = Calendar.current.date(byAdding: .day, value: -dayOffset, to: Date())!
+            let previousEvening = Calendar.current.date(byAdding: .day, value: -1, to: dayDate)!
+
+            let overnight = Activity(
+                type: .sleep,
+                startTime: dateAt(previousEvening, 20 + dayOffset % 2, 32 + (dayOffset % 3) * 4),
+                endTime: dateAt(dayDate, 6, 6 + (dayOffset % 4) * 7),
+                baby: baby
+            )
+            overnight.sessionSlot = .night
+            context.insert(overnight)
+
+            let firstDiaper = Activity(type: .diaper, startTime: dateAt(dayDate, 6, 20 + dayOffset % 6), baby: baby)
+            firstDiaper.diaperType = dayOffset.isMultiple(of: 3) ? .both : .pee
+            context.insert(firstDiaper)
+
+            let morningBottle = Activity(type: .formula, startTime: dateAt(dayDate, 7, 18 + dayOffset % 10), baby: baby)
+            morningBottle.volumeML = formulaVolumes[(dayOffset - 1) % formulaVolumes.count]
+            morningBottle.sessionSlot = .morning
+            context.insert(morningBottle)
+
+            let breakfast = Activity(type: .solidFood, startTime: dateAt(dayDate, 8, 3 + dayOffset % 14), baby: baby)
+            breakfast.foodName = breakfasts[(dayOffset - 1) % breakfasts.count]
+            breakfast.foodQuantity = Double(85 + (dayOffset % 4) * 10)
+            breakfast.foodUnit = .grams
+            context.insert(breakfast)
+
+            let morningNap = Activity(
+                type: .sleep,
+                startTime: dateAt(dayDate, 9, 40 + dayOffset % 9),
+                endTime: dateAt(dayDate, 11, 5 + (dayOffset % 3) * 12),
+                baby: baby
+            )
             morningNap.sessionSlot = .day
             context.insert(morningNap)
 
-            if Bool.random() {
-                let afternoonNap = Activity(type: .sleep, startTime: dateAt(dayDate, Int.random(in: 13...14), 0), endTime: dateAt(dayDate, Int.random(in: 14...16), Int.random(in: 0...30)), baby: baby)
-                afternoonNap.sessionSlot = .day
-                context.insert(afternoonNap)
-            }
+            let lunch = Activity(type: .solidFood, startTime: dateAt(dayDate, 12, 5 + dayOffset % 11), baby: baby)
+            lunch.foodName = lunches[(dayOffset - 1) % lunches.count]
+            lunch.foodQuantity = Double(120 + (dayOffset % 5) * 8)
+            lunch.foodUnit = .grams
+            context.insert(lunch)
 
-            // 4-7 diapers
-            for _ in 0..<Int.random(in: 4...7) {
-                let d = Activity(type: .diaper, startTime: dateAt(dayDate, Int.random(in: 6...22), Int.random(in: 0...59)), baby: baby)
-                d.diaperType = [DiaperType.pee, .pee, .poop, .both].randomElement()!
-                context.insert(d)
+            let afternoonBottle = Activity(type: .momsMilk, startTime: dateAt(dayDate, 13, 38 + dayOffset % 12), baby: baby)
+            afternoonBottle.volumeML = expressedMilkVolumes[(dayOffset - 1) % expressedMilkVolumes.count]
+            afternoonBottle.sessionSlot = .day
+            context.insert(afternoonBottle)
+
+            let afternoonNap = Activity(
+                type: .sleep,
+                startTime: dateAt(dayDate, 14, 30 + dayOffset % 15),
+                endTime: dateAt(dayDate, 15, 32 + (dayOffset % 3) * 14),
+                baby: baby
+            )
+            afternoonNap.sessionSlot = .day
+            context.insert(afternoonNap)
+
+            let thirdDiaper = Activity(type: .diaper, startTime: dateAt(dayDate, 16, 12 + dayOffset % 10), baby: baby)
+            thirdDiaper.diaperType = dayOffset.isMultiple(of: 2) ? .pee : .both
+            context.insert(thirdDiaper)
+
+            let dinner = Activity(type: .solidFood, startTime: dateAt(dayDate, 18, 2 + dayOffset % 8), baby: baby)
+            dinner.foodName = dayOffset.isMultiple(of: 2) ? "Polenta & courgette" : "Purée de lentilles corail"
+            dinner.foodQuantity = Double(95 + (dayOffset % 4) * 12)
+            dinner.foodUnit = .grams
+            context.insert(dinner)
+
+            let bedtimeBottle = Activity(type: .formula, startTime: dateAt(dayDate, 19, 8 + dayOffset % 14), baby: baby)
+            bedtimeBottle.volumeML = 190 - Double((dayOffset % 3) * 10)
+            bedtimeBottle.sessionSlot = .evening
+            context.insert(bedtimeBottle)
+
+            if dayOffset.isMultiple(of: 3) {
+                let note = Activity(type: .note, startTime: dateAt(dayDate, 17, 24), baby: baby)
+                note.noteText = notes[(dayOffset / 3 - 1) % notes.count]
+                context.insert(note)
             }
         }
+    }
 
-        // ── Growth records (birth to 8 months — monthly) ──
+    @MainActor
+    private static func insertGrowthRecords(for baby: Baby, in context: ModelContext) {
         let birthDate = baby.dateOfBirth
         let growthData: [(Int, Double, Double, Double)] = [
-            // (days, weight kg, height cm, head cm)
-            (0,   3.5,  50.0, 35.0),   // birth
-            (5,   3.3,  50.0, 35.0),   // day 5 — physiological weight loss
-            (14,  3.6,  51.0, 35.5),   // 2 weeks — regained birth weight
-            (30,  4.4,  54.5, 37.5),   // 1 month
-            (60,  5.5,  58.5, 39.5),   // 2 months
-            (90,  6.4,  62.0, 41.0),   // 3 months
-            (120, 7.0,  64.5, 42.5),   // 4 months
-            (150, 7.5,  66.5, 43.5),   // 5 months
-            (180, 7.9,  68.0, 44.5),   // 6 months
-            (210, 8.4,  70.0, 45.5),   // 7 months
-            (240, 8.8,  72.0, 46.0),   // 8 months
+            (0, 3.4, 50.5, 35.0),
+            (14, 3.7, 51.4, 35.8),
+            (30, 4.5, 54.8, 37.3),
+            (60, 5.6, 58.7, 39.4),
+            (90, 6.4, 61.8, 40.9),
+            (120, 7.1, 64.5, 42.1),
+            (150, 7.6, 66.7, 43.2),
+            (180, 8.0, 69.0, 44.1),
+            (210, 8.4, 71.0, 45.0),
+            (240, 8.7, 72.6, 45.6),
+            (270, 9.0, 74.0, 46.0),
+            (300, 9.2, 75.2, 46.4)
         ]
-        for (daysAfter, weight, height, head) in growthData {
-            let gr = GrowthRecord(
-                date: cal.date(byAdding: .day, value: daysAfter, to: birthDate)!,
+
+        for (daysAfterBirth, weight, height, head) in growthData {
+            let record = GrowthRecord(
+                date: Calendar.current.date(byAdding: .day, value: daysAfterBirth, to: birthDate)!,
                 weightKg: weight,
                 heightCm: height,
                 headCircumferenceCm: head,
                 baby: baby
             )
-            context.insert(gr)
+            context.insert(record)
         }
-
-        // ── Health records ──
-
-        // Vaccination at 2 months
-        let vacc1 = HealthRecord(
-            illnessType: .vaccination,
-            startDate: cal.date(byAdding: .day, value: 60, to: birthDate)!,
-            endDate: cal.date(byAdding: .day, value: 60, to: birthDate)!,
-            notes: "Vaccins 2 mois (DTP, coqueluche, Hib, hépatite B, pneumocoque)",
-            baby: baby
-        )
-        context.insert(vacc1)
-        vacc1.temperatures = [
-            TemperatureReading(temperature: 38.2, measuredAt: cal.date(byAdding: .day, value: 60, to: birthDate)!)
-        ]
-        vacc1.symptoms = [
-            Symptom(description: "Pleurs après injection", severity: .mild),
-            Symptom(description: "Rougeur au point d'injection", severity: .mild)
-        ]
-
-        // Vaccination at 4 months
-        let vacc2 = HealthRecord(
-            illnessType: .vaccination,
-            startDate: cal.date(byAdding: .day, value: 120, to: birthDate)!,
-            endDate: cal.date(byAdding: .day, value: 120, to: birthDate)!,
-            notes: "Rappel vaccins 4 mois",
-            baby: baby
-        )
-        context.insert(vacc2)
-
-        // Cold at 5 months
-        let cold = HealthRecord(
-            illnessType: .cold,
-            startDate: cal.date(byAdding: .day, value: 145, to: birthDate)!,
-            endDate: cal.date(byAdding: .day, value: 152, to: birthDate)!,
-            notes: "Rhume léger, nez qui coule pendant 1 semaine",
-            baby: baby
-        )
-        context.insert(cold)
-        cold.symptoms = [
-            Symptom(description: "Nez qui coule", severity: .moderate),
-            Symptom(description: "Éternuements", severity: .mild),
-            Symptom(description: "Sommeil perturbé", severity: .mild)
-        ]
-        cold.temperatures = [
-            TemperatureReading(temperature: 37.8, measuredAt: cal.date(byAdding: .day, value: 145, to: birthDate)!),
-            TemperatureReading(temperature: 38.1, measuredAt: cal.date(byAdding: .day, value: 146, to: birthDate)!),
-            TemperatureReading(temperature: 37.5, measuredAt: cal.date(byAdding: .day, value: 148, to: birthDate)!)
-        ]
-        cold.medications = [
-            Medication(name: "Sérum physiologique", dosage: "Lavage nasal 6x/jour")
-        ]
-
-        // Teething — ongoing
-        let teeth = HealthRecord(
-            illnessType: .teething,
-            startDate: cal.date(byAdding: .day, value: -10, to: now)!,
-            notes: "Premières dents en cours, bave beaucoup, mâchouille tout",
-            baby: baby
-        )
-        context.insert(teeth)
-        teeth.symptoms = [
-            Symptom(description: "Bave excessive", severity: .moderate),
-            Symptom(description: "Gencives gonflées", severity: .moderate),
-            Symptom(description: "Irritabilité", severity: .mild)
-        ]
-        teeth.temperatures = [
-            TemperatureReading(temperature: 37.6, measuredAt: cal.date(byAdding: .day, value: -8, to: now)!)
-        ]
-        teeth.medications = [
-            Medication(name: "Anneau de dentition réfrigéré", dosage: "À la demande"),
-            Medication(name: "Camilia", dosage: "1 dose 3x/jour")
-        ]
-
-        // Stomach bug at 7 months
-        let stomachBug = HealthRecord(
-            illnessType: .stomachBug,
-            startDate: cal.date(byAdding: .day, value: -25, to: now)!,
-            endDate: cal.date(byAdding: .day, value: -22, to: now)!,
-            notes: "Gastro-entérite légère, 3 jours",
-            baby: baby
-        )
-        context.insert(stomachBug)
-        stomachBug.symptoms = [
-            Symptom(description: "Vomissements", severity: .moderate),
-            Symptom(description: "Diarrhée", severity: .moderate),
-            Symptom(description: "Perte d'appétit", severity: .mild)
-        ]
-        stomachBug.temperatures = [
-            TemperatureReading(temperature: 38.5, measuredAt: cal.date(byAdding: .day, value: -25, to: now)!),
-            TemperatureReading(temperature: 38.8, measuredAt: cal.date(byAdding: .day, value: -24, to: now)!),
-            TemperatureReading(temperature: 37.4, measuredAt: cal.date(byAdding: .day, value: -23, to: now)!)
-        ]
-        stomachBug.medications = [
-            Medication(name: "Solution de réhydratation", dosage: "50ml après chaque selle"),
-            Medication(name: "Smecta", dosage: "1/2 sachet 2x/jour")
-        ]
-
-        try? context.save()
     }
 
-    // MARK: - Date helpers
+    @MainActor
+    private static func insertHealthRecords(for baby: Baby, in context: ModelContext) {
+        let calendar = Calendar.current
+        let birthDate = baby.dateOfBirth
+        let now = Date()
+
+        let vaccine2Months = HealthRecord(
+            illnessType: .vaccination,
+            startDate: calendar.date(byAdding: .day, value: 60, to: birthDate)!,
+            endDate: calendar.date(byAdding: .day, value: 60, to: birthDate)!,
+            notes: "Vaccins 2 mois (DTP, coqueluche, Hib, hepatite B, pneumocoque).",
+            baby: baby
+        )
+        vaccine2Months.temperatures = [
+            TemperatureReading(temperature: 38.1, measuredAt: calendar.date(byAdding: .day, value: 60, to: birthDate)!)
+        ]
+        vaccine2Months.symptoms = [
+            Symptom(description: "Rougeur au point d'injection", severity: .mild),
+            Symptom(description: "Sommeil plus court", severity: .mild)
+        ]
+        context.insert(vaccine2Months)
+
+        let cold = HealthRecord(
+            illnessType: .cold,
+            startDate: calendar.date(byAdding: .day, value: 192, to: birthDate)!,
+            endDate: calendar.date(byAdding: .day, value: 198, to: birthDate)!,
+            notes: "Rhume leger avec nez qui coule et reveils plus frequents.",
+            baby: baby
+        )
+        cold.symptoms = [
+            Symptom(description: "Nez qui coule", severity: .moderate),
+            Symptom(description: "Eternuements", severity: .mild),
+            Symptom(description: "Sommeil perturbe", severity: .mild)
+        ]
+        cold.temperatures = [
+            TemperatureReading(temperature: 37.8, measuredAt: calendar.date(byAdding: .day, value: 192, to: birthDate)!),
+            TemperatureReading(temperature: 37.6, measuredAt: calendar.date(byAdding: .day, value: 194, to: birthDate)!)
+        ]
+        context.insert(cold)
+
+        if requestedScreen == .health {
+            let earInfection = HealthRecord(
+                illnessType: .earInfection,
+                startDate: calendar.date(byAdding: .hour, value: -26, to: now)!,
+                notes: "Se reveille en pleurant et touche souvent son oreille droite.",
+                baby: baby
+            )
+            earInfection.symptoms = [
+                Symptom(description: "Oreille chaude", severity: .moderate),
+                Symptom(description: "Irritabilite", severity: .moderate),
+                Symptom(description: "Petit appetit", severity: .mild)
+            ]
+            earInfection.temperatures = [
+                TemperatureReading(temperature: 38.4, measuredAt: calendar.date(byAdding: .hour, value: -18, to: now)!),
+                TemperatureReading(temperature: 38.7, measuredAt: calendar.date(byAdding: .hour, value: -6, to: now)!),
+                TemperatureReading(temperature: 38.2, measuredAt: calendar.date(byAdding: .hour, value: -1, to: now)!)
+            ]
+            earInfection.medications = [
+                Medication(name: "Doliprane", dosage: "120 mg si besoin"),
+                Medication(name: "Sérum physiologique", dosage: "Lavage de nez avant le coucher")
+            ]
+            context.insert(earInfection)
+        } else {
+            let teething = HealthRecord(
+                illnessType: .teething,
+                startDate: calendar.date(byAdding: .day, value: -8, to: now)!,
+                notes: "Premieres molaires en preparation, bave beaucoup.",
+                baby: baby
+            )
+            teething.symptoms = [
+                Symptom(description: "Gencives gonflees", severity: .moderate),
+                Symptom(description: "Mordille ses jouets", severity: .moderate),
+                Symptom(description: "Bave excessive", severity: .mild)
+            ]
+            teething.temperatures = [
+                TemperatureReading(temperature: 37.6, measuredAt: calendar.date(byAdding: .day, value: -2, to: now)!)
+            ]
+            teething.medications = [
+                Medication(name: "Anneau de dentition refroidi", dosage: "A la demande")
+            ]
+            context.insert(teething)
+        }
+    }
+
+    @MainActor
+    private static func insertOngoingSleep(for baby: Baby, in context: ModelContext) {
+        let ongoingSleep = Activity(
+            type: .sleep,
+            startTime: Calendar.current.date(byAdding: .minute, value: -98, to: Date())!,
+            isOngoing: true,
+            baby: baby
+        )
+        ongoingSleep.sessionSlot = .day
+        context.insert(ongoingSleep)
+    }
 
     private static func todayAt(_ hour: Int, _ minute: Int) -> Date {
-        Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: Date())!
+        dateAt(Date(), hour, minute)
     }
 
     private static func yesterdayAt(_ hour: Int, _ minute: Int) -> Date {
         let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
-        return Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: yesterday)!
+        return dateAt(yesterday, hour, minute)
     }
 
     private static func dateAt(_ day: Date, _ hour: Int, _ minute: Int) -> Date {
-        Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: day)!
+        let startOfDay = Calendar.current.startOfDay(for: day)
+        return Calendar.current.date(byAdding: .minute, value: hour * 60 + minute, to: startOfDay)!
+    }
+
+    private static func makeProfileImageData(initial: String) -> Data? {
+        let size = CGSize(width: 600, height: 600)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let image = renderer.image { context in
+            let cg = context.cgContext
+
+            let colors = [
+                UIColor(red: 1.0, green: 0.78, blue: 0.84, alpha: 1).cgColor,
+                UIColor(red: 1.0, green: 0.62, blue: 0.70, alpha: 1).cgColor,
+                UIColor(red: 0.98, green: 0.50, blue: 0.57, alpha: 1).cgColor
+            ] as CFArray
+
+            let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0, 0.55, 1])!
+            cg.drawLinearGradient(gradient, start: CGPoint(x: 0, y: 0), end: CGPoint(x: size.width, y: size.height), options: [])
+
+            cg.setFillColor(UIColor.white.withAlphaComponent(0.18).cgColor)
+            cg.fillEllipse(in: CGRect(x: 56, y: 76, width: 180, height: 180))
+            cg.fillEllipse(in: CGRect(x: 320, y: 96, width: 220, height: 220))
+            cg.fillEllipse(in: CGRect(x: 180, y: 340, width: 300, height: 180))
+
+            let circleRect = CGRect(x: 105, y: 105, width: 390, height: 390)
+            cg.setFillColor(UIColor.white.withAlphaComponent(0.18).cgColor)
+            cg.fillEllipse(in: circleRect)
+            cg.setStrokeColor(UIColor.white.withAlphaComponent(0.30).cgColor)
+            cg.setLineWidth(6)
+            cg.strokeEllipse(in: circleRect.insetBy(dx: 8, dy: 8))
+
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 220, weight: .black),
+                .foregroundColor: UIColor.white
+            ]
+            let attributed = NSAttributedString(string: initial, attributes: attributes)
+            let textSize = attributed.size()
+            let textRect = CGRect(
+                x: (size.width - textSize.width) / 2,
+                y: (size.height - textSize.height) / 2 - 24,
+                width: textSize.width,
+                height: textSize.height
+            )
+            attributed.draw(in: textRect)
+        }
+        return image.pngData()
     }
 }
