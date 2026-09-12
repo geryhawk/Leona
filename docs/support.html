@@ -1,96 +1,292 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Support - Leona</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            color: #3c3c46;
-            background: #faf8fc;
-            line-height: 1.7;
-        }
-        .container { max-width: 720px; margin: 0 auto; padding: 60px 24px; }
-        .back { color: #dc84a3; text-decoration: none; font-size: 14px; font-weight: 500; }
-        .back:hover { text-decoration: underline; }
-        h1 { font-size: 32px; font-weight: 700; color: #b15c7a; margin: 24px 0 8px; }
-        .subtitle { color: #999; font-size: 16px; margin-bottom: 32px; }
-        h2 { font-size: 20px; font-weight: 600; color: #3c3c46; margin: 32px 0 12px; }
-        p { margin-bottom: 16px; color: #555; }
-        .faq { background: white; border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-        .faq h3 { font-size: 16px; color: #3c3c46; margin-bottom: 8px; }
-        .faq p { margin-bottom: 0; font-size: 15px; }
-        .contact-box {
-            background: linear-gradient(135deg, #f3e8ee, #ede4f3);
-            border-radius: 16px;
-            padding: 32px;
-            text-align: center;
-            margin-top: 40px;
-        }
-        .contact-box h2 { margin-top: 0; }
-        .contact-box a {
-            display: inline-block;
-            background: #dc84a3;
-            color: white;
-            padding: 12px 28px;
-            border-radius: 24px;
-            font-weight: 600;
-            text-decoration: none;
-            margin-top: 12px;
-        }
-        .contact-box a:hover { background: #b15c7a; }
-        footer { text-align: center; margin-top: 60px; color: #aaa; font-size: 14px; padding-top: 24px; border-top: 1px solid #eee; }
-    </style>
+    <title data-en="Leona · Help" data-fr="Leona · Aide">Leona · Help</title>
+    <meta name="description" content="Help and answers for Leona, the baby tracker built around a thread: logging, Leona's suggestions, sessions, insights, sharing with a partner, reminders, export and privacy.">
+    <link rel="icon" type="image/png" href="assets/icon.png">
+    <link rel="stylesheet" href="site.css">
 </head>
 <body>
-    <div class="container">
-        <a class="back" href="index.html">&larr; Back to Leona</a>
-        <h1>Support</h1>
-        <p class="subtitle">We're here to help</p>
-
-        <h2>Frequently Asked Questions</h2>
-
-        <div class="faq">
-            <h3>How do I sync data between parents?</h3>
-            <p>Enable iCloud Sync in Settings, then tap "Invite Partner". This generates an iCloud sharing link that your partner can open to access the same baby data.</p>
-        </div>
-
-        <div class="faq">
-            <h3>Can I track multiple babies?</h3>
-            <p>Yes! Tap your baby's profile photo in the dashboard or go to Settings to switch between babies. You can add as many profiles as you need.</p>
-        </div>
-
-        <div class="faq">
-            <h3>How do I change the app language?</h3>
-            <p>Go to Settings > Language > App Language. You can choose between English, French, and Finnish. The change takes effect immediately.</p>
-        </div>
-
-        <div class="faq">
-            <h3>Is my data safe?</h3>
-            <p>Absolutely. All data is stored on your device and in your private iCloud account. We have no servers and no access to your data. See our <a href="privacy.html" style="color: #dc84a3;">Privacy Policy</a> for details.</p>
-        </div>
-
-        <div class="faq">
-            <h3>How do I export my data?</h3>
-            <p>Go to Settings > Export Data. You can export in CSV, XML, or a full readable report format.</p>
-        </div>
-
-        <div class="faq">
-            <h3>How do I delete my data?</h3>
-            <p>Go to Settings > Delete All Data. This permanently removes all activities, growth records, and health records for the selected baby.</p>
-        </div>
-
-        <div class="contact-box">
-            <h2>Need more help?</h2>
-            <p>We'd love to hear from you. Send us an email and we'll get back to you as soon as possible.</p>
-            <a href="mailto:gerald.chahine@pm.me">Contact Support</a>
-        </div>
-
-        <footer>
-            &copy; 2026 Gerald Chahine. All rights reserved.
-        </footer>
+<header class="top">
+    <div class="wrap">
+        <a class="brand" href="index.html"><span class="mark">L</span>Leona</a>
+        <nav class="nav">
+            <a class="hide-sm" href="index.html"><span data-l="en">Overview</span><span data-l="fr">Présentation</span></a>
+            <a class="current" href="support.html"><span data-l="en">Help</span><span data-l="fr">Aide</span></a>
+            <a class="hide-sm" href="privacy.html"><span data-l="en">Privacy</span><span data-l="fr">Confidentialité</span></a>
+            <span class="lang"><button type="button" data-set="en">EN</button><button type="button" data-set="fr">FR</button></span>
+        </nav>
     </div>
+</header>
+
+<main class="wrap narrow doc">
+
+<!-- ======================= ENGLISH ======================= -->
+<div data-l="en">
+    <h1>Help</h1>
+    <p class="subtitle">How Leona works, screen by screen, and answers to the questions we get most.</p>
+
+    <div class="toc">
+        <a href="#start">Getting started</a><a href="#thread">The thread</a><a href="#logging">Logging</a><a href="#sessions">Sleep &amp; breastfeeding</a>
+        <a href="#leona">Leona's suggestions</a><a href="#insights">Trends, growth, health</a><a href="#sharing">Sharing</a><a href="#reminders">Reminders</a>
+        <a href="#preferences">Preferences</a><a href="#babies">Several babies</a><a href="#export">Export</a><a href="#delete">Deleting</a><a href="#language">Language</a><a href="#sync">Sync problems</a>
+    </div>
+
+    <h2 id="start">Getting started</h2>
+    <p>The welcome screen asks two things: the baby's name and birth date. Girl or boy is optional and only shapes the WHO growth curves. Tap <kbd>Start the thread</kbd> and you are in. Units, reminders and sharing come up later, when you need them.</p>
+
+    <h2 id="thread">The thread</h2>
+    <p>Leona keeps one thread per baby. The newest entries sit at the bottom. Your entries are on the right in plum; your partner's are on the left. Under each bubble you see who logged it and at what time. Days are separated by a divider, and when your partner logged entries while you were away, a red marker shows where the new ones start.</p>
+    <ul>
+        <li><strong>Header.</strong> The photo and name open the profile. The moon switches the night theme. The chart icon opens Trends, Growth and Health. The magnifier opens search.</li>
+        <li><strong>Summary bar.</strong> Feeds, total sleep and diapers for today, plus the time of the next expected feed.</li>
+        <li><strong>Search.</strong> Every entry is searchable, with Feeds, Sleep, Diapers and Notes filters. Results show who logged each one.</li>
+        <li><strong>Refresh.</strong> Pull the thread down to sync right away.</li>
+    </ul>
+
+    <h2 id="logging">Logging</h2>
+    <p>The bar at the bottom of the thread has five chips: <kbd>Bottle</kbd>, <kbd>Breast</kbd>, <kbd>Sleep</kbd>, <kbd>Diaper</kbd> and <kbd>Solid</kbd>. Tap one to open its tray, adjust, then <kbd>Send</kbd>.</p>
+    <ul>
+        <li><strong>Bottle.</strong> The chip already shows the amount Leona expects. Choose formula or expressed milk and adjust the volume.</li>
+        <li><strong>Breast.</strong> Minutes and side. Leona suggests the side to start on, based on the last session.</li>
+        <li><strong>Solid.</strong> The food and the quantity.</li>
+        <li><strong>Diaper.</strong> Pee, poo or both.</li>
+        <li><strong>Time.</strong> Each tray defaults to now. Change it to log something that happened earlier.</li>
+        <li><strong>Notes.</strong> Type in the field at the bottom and send. The note lands in the thread like any other entry.</li>
+    </ul>
+    <div class="faq">
+        <h3>How do I edit or delete an entry?</h3>
+        <p>Tap its bubble. The record shows the start and end, who logged it, and how it compares with the baby's usual amount, length or spacing. From there you can edit every field or remove the entry from the thread.</p>
+    </div>
+
+    <h2 id="sessions">Sleep and breastfeeding sessions</h2>
+    <p>Sleep and breastfeeding run as live sessions. The running session stays pinned at the bottom of the thread with its timer. Tap it to open it.</p>
+    <ul>
+        <li><strong>Sleep.</strong> Tap <kbd>Sleep</kbd> when the baby goes down. The chip turns into <kbd>[name] woke</kbd>: tap it when the baby wakes. The finished sleep lands in the thread with its duration. If you started the session late, Leona offers <kbd>Fix start time</kbd>.</li>
+        <li><strong>Breastfeeding.</strong> Tap <kbd>Breast</kbd> to start on the suggested side. Open the session to pause, switch sides or stop. The finished feed shows the side and the minutes.</li>
+    </ul>
+
+    <h2 id="leona">Leona's suggestions</h2>
+    <p>Leona learns the baby's rhythm from the feeds you log. When the next feed is due within 30 minutes, or overdue, she posts a card at the bottom of the thread: the usual time and the usual amount.</p>
+    <ul>
+        <li><kbd>Log 160 ml</kbd> logs a bottle for that amount immediately.</li>
+        <li><kbd>Not yet</kbd> hides the card until 20 minutes after the usual feed time.</li>
+        <li><kbd>Why?</kbd> opens Trends, where the prediction comes from.</li>
+    </ul>
+    <p>Whatever you decide, Leona leaves a small bubble in the thread quoting what she asked and what you chose, so the decision stays visible. Those bubbles live on your phone only, for a day; they are not shared with your partner.</p>
+    <div class="faq">
+        <h3>How do I turn the suggestions off?</h3>
+        <p>Open the profile, then <kbd>Preferences</kbd>, and switch off <kbd>Let Leona speak</kbd>. Leona never sends push notifications for suggestions; they only appear inside the thread.</p>
+    </div>
+    <div class="faq">
+        <h3>Why is there no suggestion yet?</h3>
+        <p>Leona needs a couple of feeds to predict the next one. She also stays quiet while a sleep is running and outside the 30-minute window before the usual feed.</p>
+    </div>
+
+    <h2 id="insights">Trends, growth and health</h2>
+    <p>The chart icon in the thread header opens three tabs.</p>
+    <ul>
+        <li><strong>Trends.</strong> Feeds, sleep (nights versus naps) and diapers over the last days, with a plain-language read on what is changing.</li>
+        <li><strong>Growth.</strong> Weight, height and head circumference on the WHO curves, from the 3rd to the 97th percentile. Each measurement is placed for the baby's age on that date. Add one with <kbd>+ Add</kbd>; open a measurement to delete it.</li>
+        <li><strong>Health.</strong> Log an illness, a vaccination or a temperature. An active record stays pinned with its day count; mark it resolved when it is over. Set the date of the next vaccination and Leona reminds you a week before.</li>
+    </ul>
+
+    <h2 id="sharing">Sharing the thread with a partner</h2>
+    <p>Sharing runs through iCloud. Both phones must be signed into iCloud, each with its own Apple account, and iCloud sync must be on in Leona (profile, <kbd>iCloud</kbd>).</p>
+    <ol style="margin:0 0 14px 22px">
+        <li>Open the profile, then <kbd>Sharing</kbd>.</li>
+        <li>Tap <kbd>Invite a partner</kbd>, then <kbd>Send</kbd>. Share the link over Messages, WhatsApp, mail, any app. No iCloud address is needed.</li>
+        <li>Your partner installs Leona and opens the link on their iPhone. The thread appears in their app.</li>
+    </ol>
+    <p>From then on, everything either of you logs shows up in both threads, with the name of the person who logged it. Set how your name appears under <kbd>Your name in the thread</kbd>. The Sharing screen also shows who logged what today and how long each of you has been off duty. Each of you gets a notification when the other adds an entry.</p>
+    <div class="faq">
+        <h3>How do I remove someone or stop sharing?</h3>
+        <p>In <kbd>Sharing</kbd>, under <kbd>People</kbd>, open the participant and choose <kbd>Remove from the thread</kbd>. The owner of the thread can stop sharing entirely from the same screen; the thread then stays on the owner's phone only.</p>
+    </div>
+
+    <h2 id="reminders">Reminders and notifications</h2>
+    <p>Open the profile, then <kbd>Reminders</kbd>. You can turn on feeding reminders with an interval of your choice, and breastfeeding reminders. Vaccination reminders are set from the Health tab. All reminders are local notifications; iOS asks for permission the first time.</p>
+
+    <h2 id="preferences">Night theme and units</h2>
+    <ul>
+        <li><strong>Night theme.</strong> Tap the moon in the thread header, or open the profile, <kbd>Preferences</kbd>, <kbd>Night theme</kbd>. Turn on <kbd>Switch automatically at dusk</kbd> to let Leona dim the thread in the evening.</li>
+        <li><strong>Units.</strong> <kbd>Metric units</kbd> switches between kg, cm, ml, °C and lb, in, oz, °F.</li>
+    </ul>
+
+    <h2 id="babies">Several babies</h2>
+    <p>Open the profile and tap <kbd>Start a thread for another baby</kbd>. Every baby has its own thread; switch between them under <kbd>Threads</kbd> at the top of the profile.</p>
+
+    <h2 id="export">Exporting and printing</h2>
+    <p>Open the profile, then <kbd>The record</kbd>. <kbd>Print the thread as a keepsake book</kbd> builds a PDF of the whole thread that you can print or save. <kbd>Export raw data · CSV</kbd> produces a spreadsheet-ready file with every entry. Both files are generated on your phone and handed to the iOS share sheet.</p>
+
+    <h2 id="delete">Deleting data</h2>
+    <p>Open the profile and tap <kbd>Delete everything for [name]</kbd>. Every entry, measurement and health record for that baby is removed, on this phone and in iCloud if sync is on. Deleting the last thread takes Leona back to the welcome screen. Deleting the app removes the local data; iCloud data can be managed in the iOS Settings, under iCloud storage.</p>
+
+    <h2 id="language">Language</h2>
+    <p>Leona follows the language of your iPhone and is available in English, French and Finnish. To use a different language for Leona only, open the iOS Settings, then <kbd>Apps</kbd>, <kbd>Leona</kbd>, <kbd>Language</kbd> (on iOS 17: Settings, then Leona, then Language).</p>
+
+    <h2 id="sync">Sync problems</h2>
+    <div class="faq">
+        <h3>My partner sees an empty thread, or entries are missing.</h3>
+        <ul>
+            <li>Check that iCloud sync is on in Leona on both phones (profile, <kbd>iCloud</kbd>) and that both phones are signed into iCloud.</li>
+            <li>Pull the thread down to refresh. Entries usually appear within a few seconds when both phones are online.</li>
+            <li>Changing the iCloud sync toggle takes effect after restarting the app.</li>
+            <li>If the thread still does not appear, ask the partner to open the invitation link again.</li>
+        </ul>
+    </div>
+    <div class="faq">
+        <h3>The header says Offline or Sync Error.</h3>
+        <p>Leona keeps working offline and syncs when the connection is back. A persistent sync error usually means iCloud is signed out or iCloud Drive is off in the iOS Settings.</p>
+    </div>
+
+    <div class="contact">
+        <h2>Still stuck?</h2>
+        <p>Write to us with the version shown at the bottom of the profile screen and, if possible, a screenshot.</p>
+        <p style="margin-top:16px"><a class="btn" href="mailto:gerald.chahine@pm.me">Contact support</a></p>
+    </div>
+</div>
+
+<!-- ======================= FRANÇAIS ======================= -->
+<div data-l="fr">
+    <h1>Aide</h1>
+    <p class="subtitle">Comment Leona fonctionne, écran par écran, et les réponses aux questions qu'on nous pose le plus.</p>
+
+    <div class="toc">
+        <a href="#start-fr">Pour commencer</a><a href="#thread-fr">Le fil</a><a href="#logging-fr">Saisie</a><a href="#sessions-fr">Dodo et tétée</a>
+        <a href="#leona-fr">Suggestions de Leona</a><a href="#insights-fr">Tendances, croissance, santé</a><a href="#sharing-fr">Partage</a><a href="#reminders-fr">Rappels</a>
+        <a href="#preferences-fr">Préférences</a><a href="#babies-fr">Plusieurs bébés</a><a href="#export-fr">Export</a><a href="#delete-fr">Suppression</a><a href="#language-fr">Langue</a><a href="#sync-fr">Problèmes de synchro</a>
+    </div>
+
+    <h2 id="start-fr">Pour commencer</h2>
+    <p>L'écran d'accueil pose deux questions : le prénom de bébé et sa date de naissance. Fille ou garçon reste facultatif et ne sert qu'aux courbes de croissance OMS. Touchez <kbd>Commencer le fil</kbd> et c'est parti. Unités, rappels et partage viennent plus tard, quand vous en avez besoin.</p>
+
+    <h2 id="thread-fr">Le fil</h2>
+    <p>Leona tient un fil par bébé. Les entrées les plus récentes sont en bas. Vos entrées sont à droite, en prune ; celles de votre partenaire à gauche. Sous chaque bulle, vous voyez qui l'a notée et à quelle heure. Les jours sont séparés par un trait, et quand votre partenaire a noté des entrées pendant votre absence, un repère rouge indique où commencent les nouveautés.</p>
+    <ul>
+        <li><strong>En-tête.</strong> La photo et le prénom ouvrent le profil. La lune bascule le thème nuit. L'icône graphique ouvre Tendances, Croissance et Santé. La loupe ouvre la recherche.</li>
+        <li><strong>Barre de résumé.</strong> Repas, sommeil total et couches du jour, plus l'heure du prochain repas attendu.</li>
+        <li><strong>Recherche.</strong> Toutes les entrées sont cherchables, avec des filtres Repas, Sommeil, Couches et Notes. Les résultats indiquent qui a noté chacune.</li>
+        <li><strong>Rafraîchir.</strong> Tirez le fil vers le bas pour synchroniser tout de suite.</li>
+    </ul>
+
+    <h2 id="logging-fr">Saisie</h2>
+    <p>La barre en bas du fil porte cinq puces : <kbd>Biberon</kbd>, <kbd>Sein</kbd>, <kbd>Dodo</kbd>, <kbd>Couche</kbd> et <kbd>Solide</kbd>. Touchez-en une pour ouvrir son tiroir, ajustez, puis <kbd>Envoyer</kbd>.</p>
+    <ul>
+        <li><strong>Biberon.</strong> La puce affiche déjà la quantité que Leona attend. Choisissez lait infantile ou lait tiré et ajustez le volume.</li>
+        <li><strong>Sein.</strong> Minutes et côté. Leona suggère le côté par lequel commencer, d'après la dernière tétée.</li>
+        <li><strong>Solide.</strong> L'aliment et la quantité.</li>
+        <li><strong>Couche.</strong> Pipi, caca ou les deux.</li>
+        <li><strong>Heure.</strong> Chaque tiroir démarre à maintenant. Changez-la pour noter quelque chose qui s'est passé plus tôt.</li>
+        <li><strong>Notes.</strong> Tapez dans le champ en bas et envoyez. La note rejoint le fil comme n'importe quelle entrée.</li>
+    </ul>
+    <div class="faq">
+        <h3>Comment modifier ou supprimer une entrée ?</h3>
+        <p>Touchez sa bulle. La fiche montre le début et la fin, qui l'a notée, et l'écart avec la quantité, la durée ou l'espacement habituels de bébé. Depuis là, vous modifiez chaque champ ou retirez l'entrée du fil.</p>
+    </div>
+
+    <h2 id="sessions-fr">Dodo et tétée</h2>
+    <p>Le dodo et la tétée fonctionnent en sessions en direct. La session en cours reste épinglée en bas du fil avec son chrono. Touchez-la pour l'ouvrir.</p>
+    <ul>
+        <li><strong>Dodo.</strong> Touchez <kbd>Dodo</kbd> quand bébé s'endort. La puce devient <kbd>[prénom] est réveillé·e</kbd> : touchez-la au réveil. Le dodo terminé rejoint le fil avec sa durée. Si vous avez lancé la session en retard, Leona propose <kbd>Corriger l'heure</kbd>.</li>
+        <li><strong>Tétée.</strong> Touchez <kbd>Sein</kbd> pour démarrer du côté suggéré. Ouvrez la session pour mettre en pause, changer de côté ou arrêter. La tétée terminée affiche le côté et les minutes.</li>
+    </ul>
+
+    <h2 id="leona-fr">Les suggestions de Leona</h2>
+    <p>Leona apprend le rythme de bébé à partir des repas que vous notez. Quand le prochain repas tombe dans les 30 minutes, ou qu'il est en retard, elle affiche une carte en bas du fil : l'heure habituelle et la quantité habituelle.</p>
+    <ul>
+        <li><kbd>Noter 160 ml</kbd> enregistre tout de suite un biberon de cette quantité.</li>
+        <li><kbd>Pas encore</kbd> masque la carte jusqu'à 20 minutes après l'heure habituelle du repas.</li>
+        <li><kbd>Pourquoi ?</kbd> ouvre les Tendances, d'où vient la prédiction.</li>
+    </ul>
+    <p>Quelle que soit votre décision, Leona laisse une petite bulle dans le fil qui cite ce qu'elle a demandé et ce que vous avez choisi, pour que la décision reste visible. Ces bulles restent sur votre téléphone uniquement, pendant une journée ; elles ne sont pas partagées avec votre partenaire.</p>
+    <div class="faq">
+        <h3>Comment désactiver les suggestions ?</h3>
+        <p>Ouvrez le profil, puis <kbd>Préférences</kbd>, et désactivez <kbd>Laisser Leona parler</kbd>. Leona n'envoie jamais de notification pour ses suggestions ; elles n'apparaissent que dans le fil.</p>
+    </div>
+    <div class="faq">
+        <h3>Pourquoi n'y a-t-il pas encore de suggestion ?</h3>
+        <p>Leona a besoin de deux ou trois repas pour prédire le suivant. Elle reste aussi silencieuse pendant un dodo, et en dehors de la fenêtre de 30 minutes avant le repas habituel.</p>
+    </div>
+
+    <h2 id="insights-fr">Tendances, croissance et santé</h2>
+    <p>L'icône graphique dans l'en-tête du fil ouvre trois onglets.</p>
+    <ul>
+        <li><strong>Tendances.</strong> Repas, sommeil (nuits et siestes) et couches sur les derniers jours, avec une lecture en mots simples de ce qui change.</li>
+        <li><strong>Croissance.</strong> Poids, taille et périmètre crânien sur les courbes OMS, du 3e au 97e percentile. Chaque mesure est placée selon l'âge de bébé à cette date. Ajoutez-en une avec <kbd>+ Ajouter</kbd> ; ouvrez une mesure pour la supprimer.</li>
+        <li><strong>Santé.</strong> Notez une maladie, une vaccination ou une température. Un épisode en cours reste épinglé avec son compte de jours ; marquez-le résolu quand c'est fini. Renseignez la date de la prochaine vaccination et Leona vous la rappelle une semaine avant.</li>
+    </ul>
+
+    <h2 id="sharing-fr">Partager le fil avec un partenaire</h2>
+    <p>Le partage passe par iCloud. Les deux téléphones doivent être connectés à iCloud, chacun avec son propre compte Apple, et la synchronisation iCloud doit être activée dans Leona (profil, <kbd>iCloud</kbd>).</p>
+    <ol style="margin:0 0 14px 22px">
+        <li>Ouvrez le profil, puis <kbd>Partage</kbd>.</li>
+        <li>Touchez <kbd>Inviter un·e partenaire</kbd>, puis <kbd>Envoyer</kbd>. Partagez le lien par Messages, WhatsApp, mail, n'importe quelle app. Aucune adresse iCloud n'est nécessaire.</li>
+        <li>Votre partenaire installe Leona et ouvre le lien sur son iPhone. Le fil apparaît dans son app.</li>
+    </ol>
+    <p>Ensuite, tout ce que l'un ou l'autre note apparaît dans les deux fils, avec le nom de la personne qui l'a noté. Réglez votre nom sous <kbd>Votre nom dans le fil</kbd>. L'écran Partage montre aussi qui a noté quoi aujourd'hui et depuis combien de temps chacun est de repos. Chacun reçoit une notification quand l'autre ajoute une entrée.</p>
+    <div class="faq">
+        <h3>Comment retirer quelqu'un ou arrêter le partage ?</h3>
+        <p>Dans <kbd>Partage</kbd>, sous <kbd>Personnes</kbd>, ouvrez le participant et choisissez <kbd>Retirer du fil</kbd>. Le propriétaire du fil peut arrêter complètement le partage depuis le même écran ; le fil reste alors uniquement sur son téléphone.</p>
+    </div>
+
+    <h2 id="reminders-fr">Rappels et notifications</h2>
+    <p>Ouvrez le profil, puis <kbd>Rappels</kbd>. Vous pouvez activer des rappels de repas avec l'intervalle de votre choix, et des rappels de tétée. Les rappels de vaccination se règlent depuis l'onglet Santé. Tous les rappels sont des notifications locales ; iOS demande l'autorisation la première fois.</p>
+
+    <h2 id="preferences-fr">Thème nuit et unités</h2>
+    <ul>
+        <li><strong>Thème nuit.</strong> Touchez la lune dans l'en-tête du fil, ou ouvrez le profil, <kbd>Préférences</kbd>, <kbd>Thème nuit</kbd>. Activez <kbd>Basculer au crépuscule</kbd> pour que Leona tamise le fil le soir.</li>
+        <li><strong>Unités.</strong> <kbd>Unités métriques</kbd> bascule entre kg, cm, ml, °C et lb, in, oz, °F.</li>
+    </ul>
+
+    <h2 id="babies-fr">Plusieurs bébés</h2>
+    <p>Ouvrez le profil et touchez <kbd>Ouvrir un fil pour un autre bébé</kbd>. Chaque bébé a son propre fil ; passez de l'un à l'autre sous <kbd>Fils</kbd>, en haut du profil.</p>
+
+    <h2 id="export-fr">Exporter et imprimer</h2>
+    <p>Ouvrez le profil, puis <kbd>Le registre</kbd>. <kbd>Imprimer le fil en livre souvenir</kbd> construit un PDF de tout le fil, à imprimer ou à enregistrer. <kbd>Exporter les données brutes · CSV</kbd> produit un fichier prêt pour un tableur avec toutes les entrées. Les deux fichiers sont générés sur votre téléphone et remis à la feuille de partage iOS.</p>
+
+    <h2 id="delete-fr">Supprimer les données</h2>
+    <p>Ouvrez le profil et touchez <kbd>Tout supprimer pour [prénom]</kbd>. Toutes les entrées, mesures et fiches santé de ce bébé sont retirées, sur ce téléphone et dans iCloud si la synchronisation est active. Supprimer le dernier fil ramène Leona à l'écran d'accueil. Supprimer l'app efface les données locales ; les données iCloud se gèrent dans les Réglages iOS, sous le stockage iCloud.</p>
+
+    <h2 id="language-fr">Langue</h2>
+    <p>Leona suit la langue de votre iPhone et existe en anglais, français et finnois. Pour utiliser une autre langue seulement dans Leona, ouvrez les Réglages iOS, puis <kbd>Apps</kbd>, <kbd>Leona</kbd>, <kbd>Langue</kbd> (sur iOS 17 : Réglages, puis Leona, puis Langue).</p>
+
+    <h2 id="sync-fr">Problèmes de synchro</h2>
+    <div class="faq">
+        <h3>Mon partenaire voit un fil vide, ou des entrées manquent.</h3>
+        <ul>
+            <li>Vérifiez que la synchronisation iCloud est active dans Leona sur les deux téléphones (profil, <kbd>iCloud</kbd>) et que les deux téléphones sont connectés à iCloud.</li>
+            <li>Tirez le fil vers le bas pour rafraîchir. Les entrées apparaissent en général en quelques secondes quand les deux téléphones sont en ligne.</li>
+            <li>Un changement du réglage iCloud prend effet après redémarrage de l'app.</li>
+            <li>Si le fil n'apparaît toujours pas, demandez à votre partenaire de rouvrir le lien d'invitation.</li>
+        </ul>
+    </div>
+    <div class="faq">
+        <h3>L'en-tête indique Hors ligne ou Erreur de synchro.</h3>
+        <p>Leona continue de fonctionner hors ligne et synchronise au retour de la connexion. Une erreur persistante signifie en général qu'iCloud est déconnecté ou qu'iCloud Drive est désactivé dans les Réglages iOS.</p>
+    </div>
+
+    <div class="contact">
+        <h2>Toujours bloqué ?</h2>
+        <p>Écrivez-nous avec la version affichée en bas de l'écran de profil et, si possible, une capture d'écran.</p>
+        <p style="margin-top:16px"><a class="btn" href="mailto:gerald.chahine@pm.me">Contacter le support</a></p>
+    </div>
+</div>
+
+</main>
+
+<footer>
+    <div class="wrap">
+        <span>&copy; 2026 Gerald Chahine</span>
+        <nav>
+            <a href="index.html"><span data-l="en">Overview</span><span data-l="fr">Présentation</span></a>
+            <a href="privacy.html"><span data-l="en">Privacy</span><span data-l="fr">Confidentialité</span></a>
+            <a href="mailto:gerald.chahine@pm.me">Contact</a>
+        </nav>
+    </div>
+</footer>
+<script src="site.js"></script>
 </body>
 </html>

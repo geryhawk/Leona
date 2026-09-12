@@ -1,59 +1,197 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Leona - Baby Tracker</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            color: #3c3c46;
-            background: linear-gradient(135deg, #fcf5f8, #f5f0fa, #f6f6ff);
-            min-height: 100vh;
-        }
-        .container { max-width: 720px; margin: 0 auto; padding: 60px 24px; }
-        .hero { text-align: center; margin-bottom: 48px; }
-        .heart { font-size: 64px; margin-bottom: 16px; }
-        h1 { font-size: 42px; font-weight: 700; color: #b15c7a; margin-bottom: 8px; }
-        .subtitle { font-size: 18px; color: #78787e; margin-bottom: 32px; }
-        .badge {
-            display: inline-block;
-            background: #dc84a3;
-            color: white;
-            padding: 12px 28px;
-            border-radius: 24px;
-            font-weight: 600;
-            text-decoration: none;
-            font-size: 16px;
-        }
-        .badge:hover { background: #b15c7a; }
-        .links { text-align: center; margin-top: 32px; }
-        .links a {
-            color: #dc84a3;
-            text-decoration: none;
-            margin: 0 16px;
-            font-weight: 500;
-        }
-        .links a:hover { text-decoration: underline; }
-        footer { text-align: center; margin-top: 60px; color: #aaa; font-size: 14px; }
-    </style>
+    <title data-en="Leona · Your baby's day, as a conversation" data-fr="Leona · La journée de bébé, comme une conversation">Leona · Your baby's day, as a conversation</title>
+    <meta name="description" content="Leona is a baby tracker for iPhone and iPad. Feeds, sleeps, diapers and notes land as messages in one thread shared with your partner, and Leona suggests the next feed right on time.">
+    <link rel="icon" type="image/png" href="assets/icon.png">
+    <link rel="apple-touch-icon" href="assets/icon.png">
+    <link rel="stylesheet" href="site.css">
 </head>
 <body>
-    <div class="container">
-        <div class="hero">
-            <div class="heart">&hearts;</div>
-            <h1>Leona</h1>
-            <p class="subtitle">Your baby's companion</p>
-            <a class="badge" href="https://apps.apple.com/app/leona-baby-tracker/id000000000">Download on the App Store</a>
-        </div>
-        <div class="links">
-            <a href="privacy.html">Privacy Policy</a>
-            <a href="support.html">Support</a>
-        </div>
-        <footer>
-            &copy; 2026 Gerald Chahine. All rights reserved.
-        </footer>
+<header class="top">
+    <div class="wrap">
+        <a class="brand" href="index.html"><span class="mark">L</span>Leona</a>
+        <nav class="nav">
+            <a class="current hide-sm" href="index.html"><span data-l="en">Overview</span><span data-l="fr">Présentation</span></a>
+            <a href="support.html"><span data-l="en">Help</span><span data-l="fr">Aide</span></a>
+            <a class="hide-sm" href="privacy.html"><span data-l="en">Privacy</span><span data-l="fr">Confidentialité</span></a>
+            <span class="lang"><button type="button" data-set="en">EN</button><button type="button" data-set="fr">FR</button></span>
+        </nav>
     </div>
+</header>
+
+<section class="hero">
+    <div class="wrap">
+        <img class="appicon" src="assets/icon.png" alt="Leona app icon" width="96" height="96">
+        <span class="eyebrow"><span data-l="en">Baby tracker for iPhone &amp; iPad</span><span data-l="fr">Suivi de bébé sur iPhone et iPad</span></span>
+        <h1><span data-l="en">Your baby's day, as a conversation.</span><span data-l="fr">La journée de bébé, comme une conversation.</span></h1>
+        <p class="lead">
+            <span data-l="en">Feeds, sleeps, diapers and notes land as messages in one thread you share with your partner. Leona keeps count and speaks up when a feed is due.</span>
+            <span data-l="fr">Repas, dodos, couches et notes arrivent en messages dans un fil partagé avec votre partenaire. Leona tient les comptes et prend la parole quand un repas approche.</span>
+        </p>
+        <div class="cta">
+            <a class="btn" href="https://apps.apple.com/app/id6759004119">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+                <span data-l="en">Download on the App Store</span><span data-l="fr">Télécharger sur l'App Store</span>
+            </a>
+            <a class="btn ghost" href="support.html"><span data-l="en">How it works</span><span data-l="fr">Comment ça marche</span></a>
+        </div>
+        <p class="fine">
+            <span data-l="en">Free · iOS 17 or later · English, French and Finnish</span>
+            <span data-l="fr">Gratuite · iOS 17 ou plus récent · anglais, français et finnois</span>
+        </p>
+    </div>
+</section>
+
+<div class="gallery" aria-label="Screenshots">
+    <img data-l="en" loading="lazy" src="assets/en/01_Thread.jpg" alt="The thread: feeds, sleeps, diapers and notes as message bubbles">
+    <img data-l="en" loading="lazy" src="assets/en/02_Sleep.jpg" alt="A running sleep session in the night theme">
+    <img data-l="en" loading="lazy" src="assets/en/03_Trends.jpg" alt="Trends over the last days">
+    <img data-l="en" loading="lazy" src="assets/en/04_Growth.jpg" alt="Growth on WHO percentile curves">
+    <img data-l="en" loading="lazy" src="assets/en/05_Health.jpg" alt="Health records and the next vaccination">
+    <img data-l="en" loading="lazy" src="assets/en/06_Sharing.jpg" alt="Sharing the thread with a partner">
+    <img data-l="en" loading="lazy" src="assets/en/07_Welcome.jpg" alt="The 30-second welcome">
+    <img data-l="fr" loading="lazy" src="assets/fr/01_Thread.jpg" alt="Le fil : repas, dodos, couches et notes en bulles">
+    <img data-l="fr" loading="lazy" src="assets/fr/02_Sleep.jpg" alt="Un dodo en cours, en thème nuit">
+    <img data-l="fr" loading="lazy" src="assets/fr/03_Trends.jpg" alt="Les tendances des derniers jours">
+    <img data-l="fr" loading="lazy" src="assets/fr/04_Growth.jpg" alt="La croissance sur les courbes OMS">
+    <img data-l="fr" loading="lazy" src="assets/fr/05_Health.jpg" alt="Le dossier santé et la prochaine vaccination">
+    <img data-l="fr" loading="lazy" src="assets/fr/06_Sharing.jpg" alt="Le fil partagé avec un partenaire">
+    <img data-l="fr" loading="lazy" src="assets/fr/07_Welcome.jpg" alt="La prise en main en 30 secondes">
+</div>
+
+<section id="features">
+    <div class="wrap">
+        <p class="label"><span data-l="en">What Leona does</span><span data-l="fr">Ce que fait Leona</span></p>
+        <h2><span data-l="en">One thread per baby. Everything in it.</span><span data-l="fr">Un fil par bébé. Tout dedans.</span></h2>
+        <p class="sub">
+            <span data-l="en">No dashboard to decode. The day reads top to bottom, like the messages you already exchange about the baby.</span>
+            <span data-l="fr">Pas de tableau de bord à décoder. La journée se lit de haut en bas, comme les messages que vous échangez déjà au sujet de bébé.</span>
+        </p>
+        <div class="grid">
+            <div class="card"><div class="tick vermilion"></div>
+                <div data-l="en"><h3>The thread</h3><p>Every entry is a bubble: yours on the right, your partner's on the left, with the time and who logged it. Day dividers keep the flow readable, and a marker shows what happened while you were away.</p></div>
+                <div data-l="fr"><h3>Le fil</h3><p>Chaque entrée est une bulle : les vôtres à droite, celles de votre partenaire à gauche, avec l'heure et qui l'a notée. Des séparateurs par jour gardent le fil lisible, et un repère montre ce qui s'est passé pendant votre absence.</p></div>
+            </div>
+            <div class="card"><div class="tick plum"></div>
+                <div data-l="en"><h3>Leona speaks</h3><p>When a feed is due, Leona posts the usual time and amount. One tap logs it. "Not yet" makes her wait, and her answer stays in the thread. Mute her whenever you like.</p></div>
+                <div data-l="fr"><h3>Leona parle</h3><p>Quand un repas approche, Leona propose l'heure et la quantité habituelles. Un tap pour noter. « Pas encore » la fait patienter, et sa réponse reste dans le fil. Vous pouvez la faire taire quand vous voulez.</p></div>
+            </div>
+            <div class="card"><div class="tick lilac"></div>
+                <div data-l="en"><h3>Live sleep and breastfeeding</h3><p>Start a sleep or a feed and it stays pinned at the bottom of the thread with its timer. Switch sides, pause, stop. The finished session lands in the flow with its duration.</p></div>
+                <div data-l="fr"><h3>Dodo et tétée en direct</h3><p>Lancez un dodo ou une tétée : la session reste épinglée en bas du fil avec son chrono. Changez de côté, mettez en pause, arrêtez. La session terminée rejoint le fil avec sa durée.</p></div>
+            </div>
+            <div class="card"><div class="tick moss"></div>
+                <div data-l="en"><h3>Trends, growth, health</h3><p>Feeds, sleep and diapers over the last days in plain words. Weight, height and head circumference on WHO percentile curves. Illnesses, temperatures and vaccinations, with a reminder a week before the next one.</p></div>
+                <div data-l="fr"><h3>Tendances, croissance, santé</h3><p>Repas, sommeil et couches des derniers jours, en mots simples. Poids, taille et périmètre crânien sur les courbes de percentiles OMS. Maladies, températures et vaccinations, avec un rappel une semaine avant la prochaine.</p></div>
+            </div>
+            <div class="card"><div class="tick vermilion"></div>
+                <div data-l="en"><h3>Shared with your partner</h3><p>Invite by link from any app. Both of you log into the same thread through iCloud, see who logged what today, and who has been off duty for how long.</p></div>
+                <div data-l="fr"><h3>Partagé avec votre partenaire</h3><p>Invitez par lien depuis n'importe quelle app. Vous notez tous les deux dans le même fil via iCloud, vous voyez qui a noté quoi aujourd'hui, et qui est de repos depuis combien de temps.</p></div>
+            </div>
+            <div class="card"><div class="tick plum"></div>
+                <div data-l="en"><h3>Yours to keep</h3><p>Print the thread as a keepsake book, or export the raw data as CSV. A night theme that can switch on by itself at dusk. Metric or imperial units.</p></div>
+                <div data-l="fr"><h3>Un souvenir à garder</h3><p>Imprimez le fil en livre souvenir, ou exportez les données brutes en CSV. Un thème nuit qui peut s'activer tout seul au crépuscule. Unités métriques ou impériales.</p></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="logging">
+    <div class="wrap split">
+        <div>
+            <p class="label"><span data-l="en">Logging</span><span data-l="fr">Saisie</span></p>
+            <h2><span data-l="en">One tap. Sometimes two.</span><span data-l="fr">Un tap. Parfois deux.</span></h2>
+            <div data-l="en">
+                <p class="sub">The bar at the bottom of the thread holds five chips: Bottle, Breast, Sleep, Diaper, Solid. The bottle chip already shows the amount Leona expects. Tap a chip, adjust if needed, send. Anything else goes in as a note, typed like a message.</p>
+                <p class="sub">Tap any bubble to open the record: start and end, who logged it, and how it compares with the baby's average. Edit it or remove it from there.</p>
+            </div>
+            <div data-l="fr">
+                <p class="sub">La barre en bas du fil porte cinq puces : Biberon, Sein, Dodo, Couche, Solide. La puce biberon affiche déjà la quantité que Leona attend. Un tap sur la puce, un ajustement si besoin, envoi. Tout le reste part en note, tapée comme un message.</p>
+                <p class="sub">Un tap sur une bulle ouvre la fiche : début et fin, qui l'a notée, et l'écart avec la moyenne de bébé. Vous la modifiez ou la retirez depuis là.</p>
+            </div>
+        </div>
+        <div class="thread" aria-hidden="true">
+            <div data-l="en">
+                <div class="bubble theirs"><i style="background:var(--lilac)"></i><div>Slept 10:08 → 11:46<small>1h 38min</small></div></div>
+                <p class="meta">Thomas · 11:46</p>
+                <div class="bubble mine"><i style="background:var(--vermilion)"></i><div>Bottle · 120 ml expressed milk</div></div>
+                <p class="meta right">You · 13:18</p>
+                <div class="bubble theirs"><i style="background:var(--moss)"></i><div>Diaper · both</div></div>
+                <p class="meta">Thomas · 14:28</p>
+                <div class="suggest">
+                    <div class="who"><b>A</b>ALMA <span style="margin-left:auto;text-decoration:underline">Why?</span></div>
+                    <p>Alma is usually hungry around 16:22, roughly 160 ml. Want me to log it?</p>
+                    <div class="row"><span class="go">Log 160 ml</span><span class="no">Not yet</span></div>
+                </div>
+            </div>
+            <div data-l="fr">
+                <div class="bubble theirs"><i style="background:var(--lilac)"></i><div>Dodo 10:08 → 11:46<small>1h 38min</small></div></div>
+                <p class="meta">Thomas · 11:46</p>
+                <div class="bubble mine"><i style="background:var(--vermilion)"></i><div>Biberon · 120 ml de lait tiré</div></div>
+                <p class="meta right">Vous · 13:18</p>
+                <div class="bubble theirs"><i style="background:var(--moss)"></i><div>Couche · les deux</div></div>
+                <p class="meta">Thomas · 14:28</p>
+                <div class="suggest">
+                    <div class="who"><b>A</b>ALMA <span style="margin-left:auto;text-decoration:underline">Pourquoi ?</span></div>
+                    <p>Alma a généralement faim vers 16:22, environ 160 ml. Je l'enregistre ?</p>
+                    <div class="row"><span class="go">Noter 160 ml</span><span class="no">Pas encore</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="start">
+    <div class="wrap">
+        <p class="label"><span data-l="en">Getting started</span><span data-l="fr">Pour commencer</span></p>
+        <h2><span data-l="en">Thirty seconds, then the thread is yours.</span><span data-l="fr">Trente secondes, puis le fil est à vous.</span></h2>
+        <div class="steps">
+            <div class="step">
+                <div data-l="en"><h3>Name and birth date</h3><p>Two questions. Girl or boy is optional and only feeds the growth curves.</p></div>
+                <div data-l="fr"><h3>Prénom et date de naissance</h3><p>Deux questions. Fille ou garçon reste facultatif et ne sert qu'aux courbes de croissance.</p></div>
+            </div>
+            <div class="step">
+                <div data-l="en"><h3>Log from the bar</h3><p>A couple of feeds and Leona starts predicting the next one.</p></div>
+                <div data-l="fr"><h3>Notez depuis la barre</h3><p>Deux ou trois repas et Leona commence à prédire le suivant.</p></div>
+            </div>
+            <div class="step">
+                <div data-l="en"><h3>Invite your partner</h3><p>Send the link over Messages, WhatsApp or mail. Their entries appear in your thread, and yours in theirs.</p></div>
+                <div data-l="fr"><h3>Invitez votre partenaire</h3><p>Envoyez le lien par Messages, WhatsApp ou mail. Ses entrées apparaissent dans votre fil, et les vôtres dans le sien.</p></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="privacy">
+    <div class="wrap">
+        <div class="band">
+            <div>
+                <h2><span data-l="en">No account. No server. No tracking.</span><span data-l="fr">Pas de compte. Pas de serveur. Pas de pistage.</span></h2>
+                <p data-l="en">Entries stay on your device and in your own iCloud. Sharing goes through iCloud to the people you invite, and nobody else. Leona's suggestions are computed on the phone from your own entries. <a href="privacy.html">Read the privacy policy</a>.</p>
+                <p data-l="fr">Les entrées restent sur votre appareil et dans votre propre iCloud. Le partage passe par iCloud vers les personnes que vous invitez, et personne d'autre. Les suggestions de Leona sont calculées sur le téléphone à partir de vos propres entrées. <a href="privacy.html">Lire la politique de confidentialité</a>.</p>
+            </div>
+            <ul>
+                <li><span data-l="en">No analytics, no ads</span><span data-l="fr">Ni statistiques d'usage, ni publicité</span></li>
+                <li><span data-l="en">Export your data anytime</span><span data-l="fr">Exportez vos données quand vous voulez</span></li>
+                <li><span data-l="en">Delete everything in one tap</span><span data-l="fr">Supprimez tout en un tap</span></li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <div class="wrap">
+        <span>&copy; 2026 Gerald Chahine</span>
+        <nav>
+            <a href="support.html"><span data-l="en">Help</span><span data-l="fr">Aide</span></a>
+            <a href="privacy.html"><span data-l="en">Privacy</span><span data-l="fr">Confidentialité</span></a>
+            <a href="mailto:gerald.chahine@pm.me">Contact</a>
+        </nav>
+    </div>
+</footer>
+<script src="site.js"></script>
 </body>
 </html>
